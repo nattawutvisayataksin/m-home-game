@@ -1,0 +1,15 @@
+# Godot
+.godot/
+*.import
+
+# Python / uv
+.venv/
+__pycache__/
+*.pyc
+
+# Cloned MCP servers (ติดตั้งใหม่ได้ตาม ReadFirst.md — มี .git ของตัวเอง nested อยู่)
+mcp-servers/
+
+# Temp / system
+Thumbs.db
+*.blend1

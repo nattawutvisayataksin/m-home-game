@@ -1,0 +1,41 @@
+; Engine configuration file.
+config_version=5
+
+[application]
+config/name="Kick Hero Arena"
+run/main_scene="res://scenes/main_menu.tscn"
+config/features=PackedStringArray("4.7", "GL Compatibility")
+
+[autoload]
+Game="*res://scripts/game.gd"
+
+[display]
+window/size/viewport_width=480
+window/size/viewport_height=270
+window/size/window_width_override=1440
+window/size/window_height_override=810
+window/stretch/mode="canvas_items"
+window/stretch/aspect="keep"
+
+[input]
+p1_up={"deadzone": 0.2, "events": [Object(InputEventKey,"device":-1,"physical_keycode":87)]}
+p1_down={"deadzone": 0.2, "events": [Object(InputEventKey,"device":-1,"physical_keycode":83)]}
+p1_left={"deadzone": 0.2, "events": [Object(InputEventKey,"device":-1,"physical_keycode":65)]}
+p1_right={"deadzone": 0.2, "events": [Object(InputEventKey,"device":-1,"physical_keycode":68)]}
+p1_kick={"deadzone": 0.2, "events": [Object(InputEventKey,"device":-1,"physical_keycode":67)]}
+p1_skill={"deadzone": 0.2, "events": [Object(InputEventKey,"device":-1,"physical_keycode":86)]}
+p1_item={"deadzone": 0.2, "events": [Object(InputEventKey,"device":-1,"physical_keycode":88)]}
+p1_sprint={"deadzone": 0.2, "events": [Object(InputEventKey,"device":-1,"physical_keycode":32)]}
+p2_sprint={"deadzone": 0.2, "events": [Object(InputEventKey,"device":-1,"physical_keycode":4194325)]}
+p2_up={"deadzone": 0.2, "events": [Object(InputEventKey,"device":-1,"physical_keycode":4194320)]}
+p2_down={"deadzone": 0.2, "events": [Object(InputEventKey,"device":-1,"physical_keycode":4194322)]}
+p2_left={"deadzone": 0.2, "events": [Object(InputEventKey,"device":-1,"physical_keycode":4194319)]}
+p2_right={"deadzone": 0.2, "events": [Object(InputEventKey,"device":-1,"physical_keycode":4194321)]}
+p2_kick={"deadzone": 0.2, "events": [Object(InputEventKey,"device":-1,"physical_keycode":75)]}
+p2_skill={"deadzone": 0.2, "events": [Object(InputEventKey,"device":-1,"physical_keycode":76)]}
+p2_item={"deadzone": 0.2, "events": [Object(InputEventKey,"device":-1,"physical_keycode":74)]}
+
+[rendering]
+renderer/rendering_method="gl_compatibility"
+textures/canvas_textures/default_texture_filter=0
+2d/snap/snap_2d_transforms_to_pixel=true

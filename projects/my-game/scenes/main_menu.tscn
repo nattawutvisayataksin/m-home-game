@@ -1,0 +1,77 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/main_menu.gd" id="1"]
+
+[node name="MainMenu" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+script = ExtResource("1")
+
+[node name="BG" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+color = Color(0.102, 0.11, 0.173, 1)
+
+[node name="Title" type="Label" parent="."]
+layout_mode = 1
+offset_left = 0.0
+offset_top = 10.0
+offset_right = 480.0
+offset_bottom = 34.0
+theme_override_font_sizes/font_size = 18
+text = "KICK HERO ARENA"
+horizontal_alignment = 1
+
+[node name="Menu" type="VBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -80.0
+offset_top = 42.0
+offset_right = 80.0
+offset_bottom = 200.0
+
+[node name="BtnLocal" type="Button" parent="Menu"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 10
+text = "1v1 จับคู่เพื่อน (Local)"
+
+[node name="BtnEasy" type="Button" parent="Menu"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 10
+text = "vs AI — Easy"
+
+[node name="BtnNormal" type="Button" parent="Menu"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 10
+text = "vs AI — Normal"
+
+[node name="BtnHard" type="Button" parent="Menu"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 10
+text = "vs AI — Hard"
+
+[node name="BtnTraining" type="Button" parent="Menu"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 10
+text = "Training"
+
+[node name="BtnOnline" type="Button" parent="Menu"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 10
+text = "Online 1v1 (ผ่านเว็บ)"
+
+[node name="Footer" type="Label" parent="."]
+layout_mode = 1
+offset_left = 0.0
+offset_top = 236.0
+offset_right = 480.0
+offset_bottom = 252.0
+theme_override_font_sizes/font_size = 9
+text = "P1: WASD เดิน + C เตะ/เเย่ง + V สกิล + Space เร่ง    P2: ลูกศร + K เตะ/เเย่ง + L สกิล + Shift เร่ง"
+horizontal_alignment = 1
