@@ -10,9 +10,13 @@ var _ignore_until := 0.0   # วินาทีจากตอนเตะออ
 
 func _physics_process(_delta: float) -> void:
 	if owner_hero != null and is_instance_valid(owner_hero):
-		global_position = owner_hero.global_position + owner_hero.aim * 11.0
+		# กาวบอล — clamp ไม่ให้ teleport เข้ากรอบโน้ต/หลังเส้น (กัน poke-through)
+		var px := clampf(owner_hero.global_position.x + owner_hero.aim.x * 16.0, 28.0, 452.0)
+		var py := clampf(owner_hero.global_position.y + owner_hero.aim.y * 16.0, 16.0, 254.0)
+		global_position = Vector2(px, py)
 		linear_velocity = Vector2.ZERO
 		angular_velocity = 0.0
+		sleeping = false   # ห้ามหลับ — ไม่งั้น Area2D (kick zone) ตรวจไม่เจอ
 
 func owner_is_hero() -> bool:
 	return owner_hero != null and is_instance_valid(owner_hero)
@@ -24,12 +28,14 @@ func try_claim(hero: Hero) -> bool:
 	if _now() < _ignore_until:
 		return false
 	owner_hero = hero
+	sleeping = false
 	return true
 
 func release(new_velocity: Vector2, ignore_secs := 0.35) -> void:
 	owner_hero = null
 	_ignore_until = _now() + ignore_secs
 	linear_velocity = new_velocity
+	sleeping = false
 
 ## Hero สัมผัสบอลด้วยปุ่มเตะ/สกิล:
 ##   คือเจ้าของ → ปล่อยยิงตาม power

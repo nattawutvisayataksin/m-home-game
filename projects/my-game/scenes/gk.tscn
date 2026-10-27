@@ -5,9 +5,9 @@
 [ext_resource type="Texture2D" path="res://assets/shadow.png" id="4"]
 
 [sub_resource type="RectangleShape2D" id="3"]
-size = Vector2(8, 12)
+size = Vector2(12, 20)
 
-[node name="GK" type="CharacterBody2D"]
+[node name="GK" type="CharacterBody2D" groups=["gk"]]
 script = ExtResource("1")
 
 [node name="Shadow" type="Sprite2D" parent="."]

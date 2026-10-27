@@ -23,6 +23,8 @@ var score_left := 0
 var score_right := 0
 var time_left := MATCH_TIME
 var _announce := 2.0
+var _debug_tick := 0.0    # debug สถานะเป็นช่วง ๆ (headless เท่านั้น)
+var _elapsed := 0.0       # เวลาที่ผ่านไปในแมตช์ (เพื่อ debug/เทสต์)
 var _training := false
 var _online := false
 
@@ -88,6 +90,15 @@ func _process(delta: float) -> void:
 		S.END:
 			pass
 	_update_labels()
+	_elapsed += delta
+	_debug_tick -= delta
+	if _debug_tick <= 0.0 and DisplayServer.get_name() == "headless":
+		_debug_tick = 5.0
+		var owner_txt := "free"
+		if ball.owner_is_hero():
+			owner_txt = "P%d" % ball.owner_hero.player_id
+		print("[ARENA] tick t=%ds state=%s score=%d:%d owner=%s ball=%v gkY=%v" % [
+			int(_elapsed), state, score_left, score_right, owner_txt, ball.global_position, gk_left.global_position])
 
 	# ปุ่มลัด: R เริ่มใหม่ / M เมนู / Esc เมนู
 	if Input.is_action_just_pressed("ui_cancel") or Input.is_key_pressed(KEY_M):
@@ -98,6 +109,8 @@ func _process(delta: float) -> void:
 func _on_goal_left(body: Node2D) -> void:
 	if not (body is Ball) or state != S.PLAY:
 		return
+	if body.owner_is_hero():
+		return   # บอลติดเท้า — ไม่นับ (กันการเดินบดทะลุ GK; ต้องเตะเข้าเส้น)
 	if _training:
 		score_left += 1
 		_flash_goal("ได้ๆ! ต่อไป")
@@ -109,6 +122,8 @@ func _on_goal_left(body: Node2D) -> void:
 func _on_goal_right(body: Node2D) -> void:
 	if not (body is Ball) or state != S.PLAY:
 		return
+	if body.owner_is_hero():
+		return
 	if _training:
 		score_left += 1
 		_flash_goal("ได้ๆ! ต่อไป")
@@ -119,6 +134,8 @@ func _on_goal_right(body: Node2D) -> void:
 
 func _flash_goal(text: String) -> void:
 	_headless_debug("GOAL → %s | %d : %d" % [text, score_left, score_right])
+	if DisplayServer.get_name() == "headless":
+		print("[ARENA] ball@=%v v=%v gkY=%v" % [ball.global_position, ball.linear_velocity, gk_left.global_position])
 	state = S.GOAL
 	_show_msg(text)
 	_announce = 1.4
@@ -134,6 +151,10 @@ func _finish() -> void:
 	elif score_right > score_left: winner = "RIGHT WINS!"
 	_headless_debug("MATCH END :: %s  %d:%d" % [winner, score_left, score_right])
 	_show_msg("%s  %d : %d\nR = เริ่มใหม่   Esc = เมนู" % [winner, score_left, score_right])
+	if DisplayServer.get_name() == "headless":
+		# เทสต์ headless: จบแมตช์แล้วออกจากโปรแกรมเอง (ไม่ต้องพึ่ง --quit-after)
+		await get_tree().create_timer(0.5).timeout
+		get_tree().quit()
 
 func _headless_debug(text: String) -> void:
 	if DisplayServer.get_name() == "headless":

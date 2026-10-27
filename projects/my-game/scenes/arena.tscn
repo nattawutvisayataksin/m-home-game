@@ -72,6 +72,9 @@ position = Vector2(240, 135)
 gravity_scale = 0.0
 linear_damp = 0.45
 angular_damp = 0.6
+contact_monitor = true
+max_contacts_reported = 8
+continuous_cd = true
 physics_material_override = SubResource("1")
 script = ExtResource("2")
 
@@ -89,13 +92,13 @@ texture = ExtResource("7")
 [node name="LeftGoal" type="Area2D" parent="Goals"]
 
 [node name="Shape" type="CollisionShape2D" parent="Goals/LeftGoal"]
-position = Vector2(0, 135)
+position = Vector2(-6, 135)
 shape = SubResource("4")
 
 [node name="RightGoal" type="Area2D" parent="Goals"]
 
 [node name="Shape" type="CollisionShape2D" parent="Goals/RightGoal"]
-position = Vector2(480, 135)
+position = Vector2(486, 135)
 shape = SubResource("4")
 
 [node name="Hero1" parent="." instance=ExtResource("3")]
@@ -108,13 +111,13 @@ skin = ExtResource("5")
 
 [node name="GKLeft" parent="." instance=ExtResource("4")]
 position = Vector2(14, 135)
-patrol_min_y = 112.0
-patrol_max_y = 158.0
+patrol_min_y = 100.0
+patrol_max_y = 170.0
 
 [node name="GKRight" parent="." instance=ExtResource("4")]
 position = Vector2(466, 135)
-patrol_min_y = 112.0
-patrol_max_y = 158.0
+patrol_min_y = 100.0
+patrol_max_y = 170.0
 
 [node name="UI" type="Node2D" parent="."]
 

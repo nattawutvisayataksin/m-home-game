@@ -12,6 +12,8 @@ func _ready() -> void:
 	if args.size() > 0 and VALID_MODES.has(args[0]):
 		mode = args[0]
 	_set_ai_level()
+	if "fast" in args:      # เทสต์เร็ว: จำลองเวลาเดินเร็วขึ้น
+		Engine.time_scale = 4.0
 
 func start_mode(m: String) -> void:
 	mode = m

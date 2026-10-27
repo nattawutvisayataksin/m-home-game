@@ -58,10 +58,10 @@ $proj = "C:\Users\admin\Desktop\m-home-game\projects\my-game"  # ← สัน�
 # ตรวจ parser / scene ความสะอาด
 & $gd --headless --path $proj --import ; & $gd --headless --path $proj --quit
 
-# แมตช์เต็ม AI (≈95 วินาทีจริง) — ดูได้ GOAL / MATCH END จาก stdout
-& $gd --headless --path $proj "res://scenes/arena.tscn" --quit-after 6000 -- hard
+# แมตช์เต็ม AI (เวลาจริง ≈95 วินาที, จบแมตช์แล้วตัวโปรแกรมออกเอง)
+& $gd --headless --path $proj "res://scenes/arena.tscn" -- hard
 
-# Training สั้น ๆ ยืนยันระบบรันได้
+# Training สั้น ๆ ยืนยันระบบรันได้ (ยังต้อง quit-after เพราะ training ไม่จบเอง)
 & $gd --headless --path $proj "res://scenes/arena.tscn" --quit-after 1200 -- training
 ```
 
@@ -85,7 +85,9 @@ uv run python .agents/skills/godot-nodes-scenes/scripts/check_godot_project.py $
 
 ได้ข้อ 1, 2, 5 จากด้านบน (ไม่จบแมตช์เป็น training ไม่จับเวลา — บอลได้เข้าประตูจะเห็น `GOAL → ได้ๆ! ต่อไป` ถ้าโหมดว่างนานพอ)
 
-> ⚠ **ห้ามรัน headless แบบไม่ใส่ `--quit-after`** — แมตช์ไม่จบเอง ข้างในเกมจะวน node ตลอด
+> ⚠ **ห้ามรัน headless แบบไม่ใส่ `--quit-after` ในโหมด training** — training ไม่จบเอง ข้างในเกมจะวน node ตลอด (โหมด AI จบเอง + quit พร้อม)
+
+> ⚠ **ห้ามใช้ `fast` (time_scale ×4) เพื่อสรุปสมดุลเกม** — time_scale ทำให้ physics delta ต่อ step บวม 4 เท่า (dt=0.0667) บอลเร็ว ๆ จะ "ทะลุ" วัตถุเล็ก ๆ อย่าง GK ได้ (tunneling ปลอม) ผลประตูไม่ตรงกับการเล่นจริง — ใช้ fast ได้แค่ smoke test ว่าระบบรันไม่ติด error เท่านั้น
 
 ## 4. เอกสารที่เกี่ยวข้อง
 

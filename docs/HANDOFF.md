@@ -59,16 +59,23 @@ uv run python .agents/skills/godot-nodes-scenes/scripts/check_godot_project.py $
 4. **ตำแหน่งสนาม**: ประตูซ้าย x=0 / ขวา x=480, แนวกลาง y=135, ช่องประตูสูง 62px (104..165), เริ่มบอล (240,135)
 5. ค่า ratio ใน tscn แก้ได้เฉพาะบาง property ที่ export ไว้ (hero: run_speed, kick_power, sprint_*, ai_level, attack_left / gk: patrol_min_y, patrol_max_y / arena: player_id, skin ของ Hero2)
 
-## 5. สถานะปัจจุบัน (ณ ย้ายเครื่อง)
+## 5. สถานะปัจจุบัน (ณ ย้ายเครื่อง — 2026-10-27 ก่อนพัก)
 
-✅ เสร็จ: สนาม top-down + ฟิสิกส์บอล + possession บอลติดตัว + sprint/stamina + steal + AI 3 ระดับ + Training + เมนูเลือกโหมด + HUD คะแนน/เวลา/สไตมิน่า + สไปรต์/สนามผ่าน lint 90+ ทุกชิ้น
+✅ เสร็จ: สนาม top-down + ฟิสิกส์บอล + possession + sprint/stamina + steal + AI 3 ระดับ + Training + เมนู + HUD + สไปรต์ lint 90+ ทุกชิ้น — และรอบล่าสุด:
 
-⏳ ค้าง ทำต่อตามลำดับ:
-1. **Online 1v1 sync** — ดู ARCHITECTURE doc §5 (ส่วนของ `_setup_online` / `remote_control` เตรียมไว้แล้ว)
-2. **Export** Windows + Web (install export templates ก่อน)
-3. ไอเทมกลางสนาม + Ultimate ต่อ Hero ต่างชนิด (DESIGN.md §สร้างความรู้สึก)
-4. เสียง (SFX เตะ/ประตู + มิวสิก) + animation frames วิ่ง/เตะ
-5. ✅ git init → commit → push สำเร็จแล้ว (2026-10-27) — ทำงานต่อบนเครื่องใหม่ด้วย `git clone`
+- **Hero sprite ชุดใหม่** (pixellab 32×32 → ย่อ 16×16 majority-vote + รีเพ้นฟ้าสคริปต์ฟรี) — `assets/hero_red.png` / `hero_blue.png`, convention south-facing ตรงเดิมหมุนได้ทันที ต้นฉบับอยู่ `assets_legacy/` (gdignore) — รายละเอียดใน DESIGN.md "Sprite Hero ชุดใหม่"
+- **BALANCE6 แก้ deadlock สำเร็จ** — gk.gd (dive lock, `_punch_clear`, predict_lead 0.20, track 75) + ball.gd (glue clamp 28..452) + hero.gd (มุมยิง 108/162) — ผล: easy 0:0 / normal 0:0 / hard 0:1 ✅ (hard ผ่านเกณฑ์ GOAL+SAVE ไม่ติด) — ปูรายละเอียดใน DESIGN.md "Changelog สมดุล"
+- **pixellab โควต้า 0/40** — ห้ามใช้จนรีเซ็ตวันถัดไป (เช็ค `get_balance` ตาม ReadFirst)
+
+⏳ ค้าง — สิ่งแรกที่ทำบนเครื่องใหม่:
+
+1. **BALANCE7 จูนยอดประตู easy/normal** (เป้า 1–2 ประตู/แมตช์) — เลือกปรับหัวละนิด: dive cap `1.45→~1.15` หรือ `predict_lead 0.20→0.15` หรือ AI ยิงระยะใกล้ (dist<170→<120) แล้วรันเทสต์เวลาจริงซ้ำ 3 โหมด (งานเบา เริ่มจากข้อนี้ก่อน)
+2. **Online 1v1 sync** — ดู ARCHITECTURE doc §6 (ส่วน `_setup_online` / `remote_control` เตรียมไว้แล้ว)
+3. Export Windows + Web (install export templates ก่อน)
+4. ไอเทมกลางสนาม + Ultimate ต่อ Hero ต่างชนิด
+5. เสียง + อนิเมชัน frames
+
+> ✅ Git: repo `origin` เชื่อมและ push ถึง commit ก่อนพักแล้ว (2026-10-27) — บนเครื่องใหม่แค่ `git clone` + import รอบแรก (`--import`) + ตั้งค่า MCP ตาม ReadFirst ปุ๊บ ทำงานต่อได้เลย (git อย่าลืมใช้ PATH หรือ full path `C:\Program Files\Git\cmd\git.exe`)
 
 ## 6. เอกสารลูก
 

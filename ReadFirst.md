@@ -108,6 +108,24 @@ game-dev/
 
 > 💡 ถ้าจะให้ bridge start เองทุกครั้ง: เปิด Blender → AI Bridge tab → เปิดติ๊ก **Start bridge when Blender loads** ใน Add-on preferences
 
+### pixellab ✅ (ติดตั้งและเชื่อมต่อสำเร็จ)
+
+| รายการ | ข้อมูล |
+|---|---|
+| **ประเภท** | MCP Remote (HTTP) — ตัว AI สร้างภาพพิกเซล/อนิเมชันด้วย API ของ pixellab.ai |
+| **เชื่อมโยงที่** | config global: `C:\Users\admin\.config\opencode\opencode.json` → `mcp.servers.pixellab` (`type: remote`, `url: https://api.pixellab.ai/mcp`) |
+| **ระบบยืนยันตัวตน** | Header `Authorization: Bearer {env:PIXELLAB_API_KEY}` — token เก็บอยู่ใน **Environment variable ชื่อ `PIXELLAB_API_KEY`** (setx แล้ว — ไม่เขียน token ลงไฟล์ตรง ๆ) |
+| **หากเจอ 401 Missing Authorization** | เพราะ OpenCode process เก่าเปิดก่อน setx → ไม่เห็น env var แก้ทันที 2 ทาง: (1) รีสตาร์ท OpenCode แล้ว header `{env:...}` จะอ่านได้, หรือ (2) วาง token ตรงใน header ชั่วคราว (ไฟล์ config อยู่นอก repo ไม่โดน push) |
+| **โควต้า** | Trial = 40 generations/วัน — **เช็ค `get_balance` ก่อน generate ทุกครั้ง**, ถ้าเหลือ 0 ห้ามใช้ + งานต่อใช้ pixelart-mcp (ฟรี วาดเองในเครื่อง) แล้วรอโควต้าวันถัดไป |
+| **สถานะ** | เชื่อมต่อสำเร็จ — ใช้งานได้ **103 tools** (สร้างตัวละคร/อนิเมชัน/tileset + งานฟรี pixelart_workbench / vfx_workbench) |
+
+**ข้อควรจำ (เครื่องใหม่):** รันคำสั่งเดียวแล้วเอาตัว token ไปวาง (ดูเป็นตัวอย่าง `XXXXXXXX`) —
+```
+setx PIXELLAB_API_KEY "TOKEN"
+opencode mcp add pixellab --global --url https://api.pixellab.ai/mcp --header 'Authorization=Bearer {env:PIXELLAB_API_KEY}'
+opencode mcp list   # ✓ pixellab connected
+```
+
 ## Gamedev Skills ✅ (ติดตั้งแล้ว 77 skills)
 
 - **ที่มา:** [gamedev-skills/awesome-gamedev-agent-skills](https://github.com/gamedev-skills/awesome-gamedev-agent-skills) (repo นี้เป็น skills ใช้กับ agent ได้หลายตัว: OpenCode, Claude, Copilot, Gemini CLI, Antigravity)
@@ -145,6 +163,9 @@ game-dev/
 | จังหวะแข่ง FSM: KICKOFF(นับ 3s) → PLAY (90s/3 ประตู) → GOAL → END (R ย้อม/Esc เมนู) + Training โหมด (ไม่มีคู่, Infinity timer, ประตูสองฝั่งนับได้) + บันทึก `[ARENA]` headless logs | ✅ (arena.gd) |
 | เอกสารย้ายเครื่อง: docs/HANDOFF.md + ARCHITECTURE.md + MANUAL.md (คุมลักษณะ/เทสต์/คำสั่งทั้งหมด) | ✅ |
 | คุณภาพ: checker 0 errors (25 ไฟล์) + headless import/parse สะอาด | ✅ |
+| **Hero sprite ชุดใหม่** (2026-10-27): pixellab `create_image_pro_flash` 32×32 high top-down south-facing → ย่อ 16×16 majority-vote + รีเพ้นแดง→ฟ้าด้วยสคริปต์ฟรีในเครื่อง (สูตรใน DESIGN.md); convention ตรงเดิมไม่ต้องแก้โค้ด; ต้นฉบับอยู่ `assets_legacy/` (gdignore) | ✅ |
+| **BALANCE6 แก้ deadlock บอลแช่ตันสำเร็จ** (2026-10-27): gk.gd dive lock ต่อลูกยิง + `_punch_clear` + predict 0.20/track 75, ball.gd glue clamp 28..452, hero.gd มุมยิง 108/162 — ผลเทสต์เวลาจริง: easy 0:0 / normal 0:0 / hard **0:1 ผ่านเกณฑ์** (GOAL+SAVE+CLEAR ครบ) — รายละเอียด + แผน BALANCE7 ใน DESIGN.md §Changelog | ✅ (งานต่อ: จูนประตู easy/normal) |
+| pixellab: แก้ auth 401 ได้ (header token ตรงชั่วคราว; รีสตาร์ท OpenCode แล้ว `{env:PIXELLAB_API_KEY}` ใช้ได้) + โควต้า trial ใช้ครบ **0/40** เมื่อสร้าง hero จบ — งดใช้จนรีเซ็ตวันถัดไป, งาน pixel ใช้ pixelart-mcp ฟรีแทน | ⏳ รอโควต้า |
 | Online 1v1 sync เต็ม / Export (Windows + Web) / ไอเทม + Ultimate ต่อ Hero / เสียง + อนิเมชันเดินเตะ | 🔜 todo-later (ลำดับใน docs/HANDOFF.md §5) |
 
 > เทคนิค: build ตรวจด้วย `uv run python .agents/skills/godot-nodes-scenes/scripts/check_godot_project.py projects/my-game` + รอบ import แรกต้องใช้ `--import` ก่อน (class cache ของ `class_name Ball` ถึงจะติด) จากนั้นรัน `--headless --quit` เพื่อคัดกรอง parse error

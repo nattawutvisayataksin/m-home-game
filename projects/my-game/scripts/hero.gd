@@ -25,7 +25,8 @@ const AI_AIM_ERR := [0.0, 0.38, 0.18, 0.06]
 const AI_KICK_SCALE := [1.0, 0.82, 0.92, 1.0]
 const AI_LEAD := [0.0, 0.0, 0.12, 0.25]    # ทำนายบอลล้ำหน้า (วินาที)
 const STUN_SLOW := 0.55
-const CLAIM_RADIUS := 15.0                 # ระยะเดินชนบอลแล้วได้ครอง
+const CLAIM_RADIUS := 18.0                 # ระยะเดินชนบอลแล้วได้ครอง
+const BALL_OFFSET := 14.0                  # kick zone อยู่หน้าตัว (ครอบบอลที่ติดหน้า 16px)
 
 @onready var kick_zone: Area2D = $KickZone
 @onready var sprite: Sprite2D = $Visual
@@ -42,6 +43,9 @@ var _ai_timer := float(0.0)
 var _ai_dir := Vector2.ZERO
 var _ai_wants_kick := bool(false)
 var _ai_sprint := bool(false)
+var _ai_prev_pos := Vector2.ZERO       # ยังตรวจ ติด collision
+var _unstuck_t := float(0.0)           # จังหวะหลบรอบหลังโดนตัน
+var _unstuck_dir := Vector2.ZERO
 
 func _ready() -> void:
 	motion_mode = CharacterBody2D.MOTION_MODE_FLOATING
@@ -57,7 +61,7 @@ func _physics_process(delta: float) -> void:
 		_kick_timer = maxf(_kick_timer - delta, 0.0)
 		if _kick_active > 0.0 and not _kick_used:
 			_kick_active -= delta
-			kick_zone.position = aim * 12.0
+			kick_zone.position = aim * BALL_OFFSET
 			_apply_kick()
 		move_and_slide()
 		return
@@ -105,7 +109,7 @@ func _physics_process(delta: float) -> void:
 	elif want_skill and _kick_timer <= 0.0:
 		_start_kick(skill_power, skill_cooldown)
 
-	kick_zone.position = aim * 12.0
+	kick_zone.position = aim * BALL_OFFSET
 	if _kick_active > 0.0:
 		_kick_active -= delta
 		if not _kick_used:
@@ -115,6 +119,29 @@ func _physics_process(delta: float) -> void:
 
 func _prefix() -> String:
 	return "p1_" if player_id == 1 else "p2_"
+
+## เลือกจุดยิง: มุมบน/ล่างของประตูที่ห่าง GK ฝั่งนั้น (skill สูงเลือกหนีแม่นกว่า)
+func _pick_shot_target(goal_attack: Vector2, attack_x: float, own_x: float) -> Vector2:
+	var gy := 135.0
+	for n in get_tree().get_nodes_in_group("gk"):
+		var gn := n as Node2D
+		if gn == null:
+			continue
+		# GK ของฝั่งที่ยิงใส่ = ตัวที่อยู่ใกล้เส้นประตูฝ่ายโจมตี
+		if absf(gn.global_position.x - attack_x) < absf(gn.global_position.x - own_x):
+			gy = gn.global_position.y
+	var y_top := 108.0
+	var y_bot := 162.0
+	var pick_top: bool
+	if ai_level <= 0:
+		pick_top = randf() < 0.5
+	else:
+		pick_top = absf(gy - y_top) > absf(gy - y_bot)
+		# พลาดอ่าน GK บ้าง (normal พลาด 35%, hard พลาด 20%)
+		if randf() < (0.35 if ai_level == 1 else 0.20):
+			pick_top = not pick_top
+	var jitter: float = randf_range(-10.0, 10.0) if ai_level <= 0 else randf_range(-4.0, 4.0)
+	return Vector2(attack_x, (y_top if pick_top else y_bot) + jitter)
 
 func _face_aim() -> void:
 	sprite.rotation = aim.angle() + PI / 2.0
@@ -126,12 +153,18 @@ func _start_kick(power: float, cooldown: float) -> void:
 	_kick_used = false
 
 ## เตะ = ยิง (บอลของเรา/บอลว่าง) หรือ แย่ง (บอลของคนอื่น) — บอลตัดสินใจใน receive_touch
+## ใช้ระยะตรง (บอลติดตัวจะ teleport ทุกเฟรม — Area2D อาจตรวจไม่ทันที่เสถียรใน headless)
 func _apply_kick() -> void:
-	for body in kick_zone.get_overlapping_bodies():
-		if body is Ball:
-			body.receive_touch(self, _kick_now)
-			_kick_used = true
-			return
+	var b := get_tree().get_first_node_in_group("ball") as Ball
+	if b == null:
+		return
+	var reach := 27.0
+	if b.global_position.distance_to(global_position) <= reach:
+		body_touched(b)
+
+func body_touched(b: Ball) -> void:
+	b.receive_touch(self, _kick_now)
+	_kick_used = true
 
 ## เดินเข้าบอลว่าง → ได้ครอง
 func _claim_ball_if_free() -> void:
@@ -158,10 +191,24 @@ func _ai_think(delta: float) -> void:
 	_ai_wants_kick = false
 	_ai_sprint = false
 	_ai_timer -= delta
+	if _unstuck_t > 0.0:
+		_unstuck_t -= delta
+		_ai_dir = _unstuck_dir
+		return
 	var ball := get_tree().get_first_node_in_group("ball") as Ball
 	if ball == null:
 		_ai_dir = Vector2.ZERO
 		return
+	if _ai_timer <= 0.0:
+		# ตรวจติดตัว: อยากวิ่งแต่ไม่ขยัก → สั่งหลบรอบ (หมุนทิศ 60°)
+		var moved := global_position.distance_to(_ai_prev_pos)
+		_ai_prev_pos = global_position
+		if moved < 1.5 and _kick_timer <= 0.0:
+			var sign_g := -1.0 if randf() < 0.5 else 1.0
+			_unstuck_dir = _ai_dir.rotated(sign_g * PI / 3.0)
+			_unstuck_t = 0.5
+			return
+		_ai_timer = AI_REACT[ai_level]
 
 	var attack_x := 480.0 if not attack_left else 0.0
 	var own_x := 0.0 if not attack_left else 480.0
@@ -173,9 +220,10 @@ func _ai_think(delta: float) -> void:
 		_ai_sprint = true
 		var dist_goal := global_position.distance_to(goal_attack)
 		if dist_goal < 170.0 and _kick_timer <= 0.0:
-			var jitter := randf_range(-18.0, 18.0)
-			var shot := (goal_attack + Vector2(0, jitter) - global_position).normalized()
-			shot = shot.rotated(randf_range(-AI_AIM_ERR[ai_level], AI_AIM_ERR[ai_level]))
+			# เลือกมุมบน/ล่างที่ห่างจาก GK ฝั่งนั้น (skill สูงเลือกแม่นกว่า)
+			var shot_target := _pick_shot_target(goal_attack, attack_x, own_x)
+			var shot: Vector2 = (shot_target - global_position).normalized()
+			shot = shot.rotated(randf_range(-float(AI_AIM_ERR[ai_level]), float(AI_AIM_ERR[ai_level])))
 			aim = shot
 			_face_aim()
 			_ai_wants_kick = true
