@@ -2,7 +2,12 @@
 
 > ⚠️ **เอกสารสำคัญ — กรุณาอ่านก่อน**
 
+บนเครื่องนี้: `git` ติดตั้งแล้วที่ `C:\Program Files\Git\cmd\git.exe` (ถ้า `git` ใน PATH ไม่เจอ ให้ใช้ full path)
+
 ## Git / Repository ของ Project
+
+> 🔁 อัปเดตงานขึ้นเครื่องใหม่: `git add -A; git commit -m "..."; git push` (ใช้ full path git.exe ถ้า PATH ไม่เจอ)
+> ⚠️ `.gitignore` กัน `.godot/` (cache import), `.venv/`, `mcp-servers/` (repo ซ้อนมี .git ของตัวเอง — ติดตั้งใหม่ตามคำอธิบายในหัวข้อ MCP Servers ได้)
 
 | รายการ | ข้อมูล |
 |---|---|
@@ -15,7 +20,7 @@
 | **สถานะ** | Public |
 | **Default Branch** | `main` |
 | **สร้างเมื่อ** | 2026-10-27 |
-| **เนื้อหา** | ยังว่าง (empty repo — ไม่มี commit แรกยัง) |
+| **เนื้อหา** | ✅ **มี commit แรกแล้ว** (push เมื่อ 2026-10-27 — Kick Hero Arena vertical slice ครบ: possession/sprint/AI 3 ระดับ/Training/เมนู/docs) |
 
 ### คำสั่งเบื้องต้น
 

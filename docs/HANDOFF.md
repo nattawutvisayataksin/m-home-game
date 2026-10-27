@@ -68,7 +68,7 @@ uv run python .agents/skills/godot-nodes-scenes/scripts/check_godot_project.py $
 2. **Export** Windows + Web (install export templates ก่อน)
 3. ไอเทมกลางสนาม + Ultimate ต่อ Hero ต่างชนิด (DESIGN.md §สร้างความรู้สึก)
 4. เสียง (SFX เตะ/ประตู + มิวสิก) + animation frames วิ่ง/เตะ
-5. git init → commit → push ทั้ง repo (ReadFirst.md มีคำสั่งพร้อม)
+5. ✅ git init → commit → push สำเร็จแล้ว (2026-10-27) — ทำงานต่อบนเครื่องใหม่ด้วย `git clone`
 
 ## 6. เอกสารลูก
 
