@@ -169,6 +169,7 @@ opencode mcp list   # ✓ pixellab connected
 | **BALANCE8 GK "เมโทรนอม"** (2026-10-28 ตามคำสั่งเจ้าของเกม — ประตูเยอะ เซฟน้อย): gk.gd เขียนใหม่ ลบ dive/misread/predict ทั้งหมด → ขยับขึ้น-ลง sine period 4s จังหวะตรงกันทั้งสองฝั่งทุกโหมด — ผล: easy/normal/hard จบ **0:3 ทุกแมตช์** เซฟเหลือ 21/11/6 (เดิม 55–68) ไม่มี error | ✅ |
 | **ITEMS v1 ระบบไอเทมกลางสนาม** (2026-10-28): 4 ไอเทม ⚡speed/⚫heavy/👻decoy/🚪gate — spawn ตามเวลา (แรก 12s → ทุก 15s, max 2, แถบกลางสนาม) เก็บเดินชน ใช้ X/J — AI ไล่เก็บ (seek 110/160/200 ตามระดับ) + ใช้เองหลังดีเลย์ 1–2.5s — ผล: easy 3/3, normal 1/2, hard 2/2 pickup ทุกแมตช์จบ 0:3 ไม่มี error (รายละเอียด DESIGN.md §ITEMS v1) | ✅ |
 | **EXPORT v1 Windows + Web** (2026-10-28): templates 4.7.2.stable ติดตั้ง (tpz 1222MB) + export_presets.cfg ใหม่ — Windows KickHeroArena.exe 104MB / Web index.html+wasm 37.7MB (nothreads — static host ได้) — smoke: .exe EXIT=0, web serve 200 ทุกไฟล์ — สั่ง export ซ้ำด้วย `--export-release` (สร้าง build dir ก่อน) — build/ ถูก ignore | ✅ |
+| **WEB PUBLISH GitHub Pages** (2026-10-28): ลิงก์เล่นสาธารณะ https://nattawutvisayataksin.github.io/m-home-game/ (branch gh-pages) — ยืนยัน wasm/pck โหลด 200 ครบ | ✅ |
 | pixellab: แก้ auth 401 ได้ (header token ตรงชั่วคราว; รีสตาร์ท OpenCode แล้ว `{env:PIXELLAB_API_KEY}` ใช้ได้) + โควต้า trial ใช้ครบ **0/40** เมื่อสร้าง hero จบ — งดใช้จนรีเซ็ตวันถัดไป, งาน pixel ใช้ pixelart-mcp ฟรีแทน | ⏳ รอโควต้า |
 | Online 1v1 sync เต็ม / Export (Windows + Web) / ไอเทม + Ultimate ต่อ Hero / เสียง + อนิเมชันเดินเตะ | 🔜 todo-later (ลำดับใน docs/HANDOFF.md §5) |
 

@@ -167,3 +167,9 @@ Hero แต่ละตัวมี **สกิลประจำตัว** + �
 - **ผล export (headless CLI `--export-release`):** Windows `KickHeroArena.exe` 104 MB + `.pck` 0.05 MB / Web `index.html` + `index.wasm` 37.7 MB + `index.pck` 0.05 MB — build/ ถูก .gitignore (ไฟล์ binary สร้างใหม่ได้)
 - **สั่ง export ซ้ำ:** `godot --headless --path <proj> --export-release "Windows Desktop" build\windows\KickHeroArena.exe` (สร้าง `build\windows\` ก่อน — Godot ไม่สร้าง dir ให้) และ `--export-release "Web" build\web\index.html`
 - **Smoke test:** .exe รัน `--quit-after 600` EXIT=0 เปิดหน้าต่างเล่นได้จริง / เว็บเสิร์ฟ `python -m http.server` HTTP 200 ทุกไฟล์ (index.html/js/wasm/pck) — ทดสอบ wasm ใน browser จริง = ทำตอน upload (itch.io)
+
+### WEB PUBLISH (2026-10-28) — เกมออนไลน์บน GitHub Pages ✅
+
+- Push build/web → branch `gh-pages` (orphan temp repo) → Pages ชี้ source แล้วอัตโนมัติ (API 409 "already enabled" + ตรวจ GET — source ชี้ gh-pages อยู่พอดี)
+- **ลิงก์เล่น:** https://nattawutvisayataksin.github.io/m-home-game/ — ยืนยัน: หน้า HTTP 200 + `index.wasm` 37.68 MB (`application/wasm` ถูกต้อง) + pck/js ครบ — nothreads build รันบน static host ได้โดยไม่ต้อง COOP/COEP
+- **อัปเดตเว็บ:** export Web ใหม่ → copy `build/web/*` ทับ temp repo → commit + push `gh-pages` (ตาม ReadFirst.md ขั้นตอน)
