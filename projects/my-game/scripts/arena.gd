@@ -7,6 +7,19 @@ enum S { KICKOFF, PLAY, GOAL, END }
 const MATCH_TIME := 90.0
 const TARGET_SCORE := 3
 
+# --- ไอเทมกลางสนาม (DESIGN.md §ระบบพิเศษ) — ปล่อยตามเวลา ใครเดินชนก่อนได้ก่อน ---
+const ITEM_KINDS: Array[StringName] = [&"speed", &"heavy", &"decoy", &"gate"]
+const ITEM_SPAWN_FIRST := 12.0    # วินาทีก่อนไอเทมลูกแรก (ช่วงเกมมุมกลาง)
+const ITEM_SPAWN_EVERY := 15.0    # หลังจากนั้นปล่อยทุก ๆ 15 วิ
+const ITEM_MAX_ON_FIELD := 2
+const ITEM_EFFECT_SECS := 6.0     # ความยาวเอฟเฟกต์ทุกชนิด
+const ITEM_TEX_PATHS := {
+	&"speed": "res://assets/items/item_speed.png",
+	&"heavy": "res://assets/items/item_heavy.png",
+	&"decoy": "res://assets/items/item_decoy.png",
+	&"gate": "res://assets/items/item_gate.png",
+}
+
 @onready var ball: Ball = $Ball
 @onready var hero1: Hero = $Hero1
 @onready var hero2: Hero = $Hero2
@@ -27,6 +40,10 @@ var _debug_tick := 0.0    # debug สถานะเป็นช่วง ๆ (h
 var _elapsed := 0.0       # เวลาที่ผ่านไปในแมตช์ (เพื่อ debug/เทสต์)
 var _training := false
 var _online := false
+var _item_tex := {}             # kind -> Texture2D
+var _item_t := ITEM_SPAWN_FIRST # นับถอยหลังถึงไอเทมลูกถัดไป
+var _icon1: TextureRect         # ไอคอนไอเทมที่ P1 ถือ (UI)
+var _icon2: TextureRect         # ไอคอนไอเทมที่ P2 ถือ (UI)
 
 func _ready() -> void:
 	_headless_debug("ARENA READY — mode=%s" % Game.mode)
@@ -51,6 +68,10 @@ func _ready() -> void:
 		state = S.KICKOFF
 		_announce = 2.0
 	_setup_online()
+	for k in ITEM_TEX_PATHS:
+		_item_tex[k] = load(ITEM_TEX_PATHS[k])
+	_icon1 = _make_icon(Vector2(14, 14))
+	_icon2 = _make_icon(Vector2(450, 14))
 	place_pieces()
 	_update_labels()
 
@@ -62,6 +83,10 @@ func place_pieces() -> void:
 	hero1._face_aim()
 	hero2.aim = Vector2.LEFT
 	hero2._face_aim()
+	if _icon1 != null:
+		_icon1.texture = null
+	if _icon2 != null:
+		_icon2.texture = null
 
 func _process(delta: float) -> void:
 	match state:
@@ -81,6 +106,12 @@ func _process(delta: float) -> void:
 				time_left = maxf(time_left - delta, 0.0)
 				if time_left <= 0.0:
 					_finish()
+			# ไอเทมกลางสนาม — ปล่อยตามเวลา (online ยังไม่ sync จึงงดตอน online)
+			if not _online:
+				_item_t = maxf(_item_t - delta, 0.0)
+				if _item_t <= 0.0:
+					_item_t = ITEM_SPAWN_EVERY
+					_spawn_field_item()
 		S.GOAL:
 			_announce -= delta
 			if _announce <= 0.0:
@@ -187,3 +218,123 @@ func _setup_online() -> void:
 
 func _both_connected() -> bool:
 	return true
+
+# ---------------- ไอเทมกลางสนาม (X = P1 / J = P2) ----------------
+
+func _item_log(text: String) -> void:
+	if DisplayServer.get_name() == "headless":
+		print("[ITEM] ", text)
+
+## HUD: ช่องไอคอนไอเทมที่ถือ (16×16 ใต้แถบสไตมิน่า)
+func _make_icon(pos: Vector2) -> TextureRect:
+	var tr := TextureRect.new()
+	tr.position = pos
+	tr.size = Vector2(16, 16)
+	tr.stretch_mode = TextureRect.STRETCH_KEEP
+	tr.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	tr.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	tr.texture = null
+	$UI.add_child(tr)
+	return tr
+
+## ปล่อยไอเทมสุ่ม 1 ชิ้นในแถบกลางสนาม (คู่แข่งทั้งสองฝั่งเข้าถึงได้พอ ๆ กัน)
+func _spawn_field_item() -> void:
+	if get_tree().get_nodes_in_group("field_item").size() >= ITEM_MAX_ON_FIELD:
+		return
+	var kind: StringName = ITEM_KINDS[randi() % ITEM_KINDS.size()]
+	var pos := _find_item_spot()
+	var it := FieldItem.new()
+	var sh := CollisionShape2D.new()
+	var c := CircleShape2D.new()
+	c.radius = 12.0
+	sh.shape = c
+	sh.name = "Shape"
+	it.add_child(sh)
+	var icon := Sprite2D.new()
+	icon.name = "Icon"
+	it.add_child(icon)
+	it.add_to_group("field_item")
+	add_child(it)
+	it.setup(kind, _item_tex[kind], pos)
+	it.picked.connect(_on_item_picked)
+	_item_log("spawn — %s @ %v" % [kind, pos])
+
+func _find_item_spot() -> Vector2:
+	for i in 12:
+		var p := Vector2(randf_range(180.0, 300.0), randf_range(60.0, 210.0))
+		if p.distance_to(ball.global_position) < 60.0:
+			continue
+		if p.distance_to(hero1.global_position) < 60.0:
+			continue
+		if p.distance_to(hero2.global_position) < 60.0:
+			continue
+		return p
+	return Vector2(240, 135)   # หาที่ว่างไม่ได้ใน 12 ครั้ง → กลางสนาม
+
+func _on_item_picked(hero: Hero, kind: StringName) -> void:
+	_item_log("pickup — P%d เก็บ %s" % [hero.player_id, kind])
+	var icon := _icon1 if hero == hero1 else _icon2
+	icon.texture = _item_tex[kind]
+
+## เรียกจาก hero.use_item() — เอฟเฟกต์ทุกชนิดจัดการที่นี่ที่เดียว
+func apply_item_effect(hero: Hero, kind: StringName) -> void:
+	_item_log("use — P%d ใช้ %s" % [hero.player_id, kind])
+	match kind:
+		&"speed":
+			hero.speed_buff_t = ITEM_EFFECT_SECS
+		&"heavy":
+			ball.heavy_t = ITEM_EFFECT_SECS
+		&"decoy":
+			_spawn_decoy(hero.global_position)
+		&"gate":
+			_spawn_gate(hero.player_id)
+	var icon := _icon1 if hero == hero1 else _icon2
+	icon.texture = null
+
+## 👻 อำพราง — ตัวหลอกยืนตรงจุดที่ใช้ 6 วิ บอล/คู่แข่งชนได้ (กันยิงทะลุ)
+func _spawn_decoy(pos: Vector2) -> void:
+	var sb := StaticBody2D.new()
+	sb.position = pos
+	var sh := CollisionShape2D.new()
+	var r := RectangleShape2D.new()
+	r.size = Vector2(12, 14)
+	sh.shape = r
+	sb.add_child(sh)
+	var s := Sprite2D.new()
+	s.texture = _item_tex[&"decoy"]
+	s.modulate = Color(1.0, 1.0, 1.0, 0.92)
+	sb.add_child(s)
+	add_child(sb)
+	_despawn_later(sb, "decoy หายไป")
+
+## 🚪 โรเลิ่ลลิงเกต — กำแพงหน้าประตูตัวเอง 6 วิ บล็อกลูกยิงทุกลูกช่วงนั้น
+func _spawn_gate(player_id: int) -> void:
+	var sb := StaticBody2D.new()
+	var sh := CollisionShape2D.new()
+	var r := RectangleShape2D.new()
+	r.size = Vector2(4, 66)   # คลุมปากประตู y 104..166
+	sh.shape = r
+	sb.add_child(sh)
+	for i in 4:
+		var s := Sprite2D.new()
+		s.texture = _item_tex[&"gate"]
+		s.position = Vector2(0, -24 + i * 16)
+		s.modulate = Color(1.0, 1.0, 1.0, 0.92)
+		sb.add_child(s)
+	var x := 26.0 if player_id == 1 else 454.0   # P1 เฝ้าซ้าย / P2 เฝ้าขวา
+	sb.position = Vector2(x, 135.0)
+	add_child(sb)
+	_despawn_later(sb, "gate หายไป")
+
+## หน่วงหายไป — Timer เป็นลูกของตัวเอง เพื่อไม่มี coroutine ค้างหลัง scene โหลดใหม่
+func _despawn_later(n: Node, label: String) -> void:
+	var t := Timer.new()
+	t.wait_time = ITEM_EFFECT_SECS
+	t.one_shot = true
+	t.timeout.connect(func() -> void:
+		if is_instance_valid(n):
+			n.queue_free()
+			_item_log(label)
+	)
+	n.add_child(t)
+	t.start()

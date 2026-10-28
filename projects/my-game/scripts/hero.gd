@@ -17,16 +17,19 @@ class_name Hero
 @export var stamina_regen := float(0.55)   # ต่อวินาทีตอนไม่ sprint
 @export var ai_level := int(0)
 @export var attack_left := bool(false)     # AI: ยิงประตูฝั่งซ้าย (สำหรับ P2)
+@export var held_item := StringName(&"")   # ไอเทมที่ถืออยู่ — ใช้ด้วย X (P1) / J (P2)
 
 # ตาราง 1..3 = Easy/Normal/Hard
 const AI_SPEED_SCALE := [1.0, 0.78, 0.9, 1.0]
 const AI_REACT := [0.0, 0.45, 0.28, 0.15]
+const AI_ITEM_SEEK := [0.0, 110.0, 160.0, 200.0]  # ระยะที่ AI สนใจไอเทม (skill สูงเห็นไกลกว่า)
 const AI_AIM_ERR := [0.0, 0.38, 0.18, 0.06]
 const AI_KICK_SCALE := [1.0, 0.82, 0.92, 1.0]
 const AI_LEAD := [0.0, 0.0, 0.12, 0.25]    # ทำนายบอลล้ำหน้า (วินาที)
 const STUN_SLOW := 0.55
 const CLAIM_RADIUS := 18.0                 # ระยะเดินชนบอลแล้วได้ครอง
 const BALL_OFFSET := 14.0                  # kick zone อยู่หน้าตัว (ครอบบอลที่ติดหน้า 16px)
+const ITEM_SPEED_MULT := 1.35              # บัฟความเร็วจากไอเทม ⚡
 
 @onready var kick_zone: Area2D = $KickZone
 @onready var sprite: Sprite2D = $Visual
@@ -34,12 +37,14 @@ const BALL_OFFSET := 14.0                  # kick zone อยู่หน้า�
 var aim := Vector2.RIGHT
 var remote_control := bool(false)
 var stamina := float(1.0)
+var speed_buff_t := float(0.0)             # เวลาที่เหลือของบัฟความเร็ว
 var _stun_t := float(0.0)
 var _kick_now := float(0.0)
 var _kick_timer := float(0.0)
 var _kick_active := float(0.0)
 var _kick_used := bool(false)              # หนึ่งการเตะ = สัมผัสบอลครั้งเดียว
 var _ai_timer := float(0.0)
+var _ai_item_t := float(0.0)               # AI: ดีเลย์สั้น ๆ ก่อนใช้ไอเทมที่เก็บได้
 var _ai_dir := Vector2.ZERO
 var _ai_wants_kick := bool(false)
 var _ai_sprint := bool(false)
@@ -57,6 +62,7 @@ func _ready() -> void:
 
 func _physics_process(delta: float) -> void:
 	_stun_t = maxf(_stun_t - delta, 0.0)
+	speed_buff_t = maxf(speed_buff_t - delta, 0.0)
 	if remote_control:
 		_kick_timer = maxf(_kick_timer - delta, 0.0)
 		if _kick_active > 0.0 and not _kick_used:
@@ -75,12 +81,19 @@ func _physics_process(delta: float) -> void:
 		dir = _ai_dir
 		want_kick = _ai_wants_kick
 		want_sprint = _ai_sprint
+		# AI: ถือไอเทมแป๊บหนึ่งแล้วใช้เอง (จังหวะสุ่มเหมือนคนตัดสินใจ)
+		if held_item != &"":
+			_ai_item_t = maxf(_ai_item_t - delta, 0.0)
+			if _ai_item_t <= 0.0:
+				use_item()
 	else:
 		var p := _prefix()
 		dir = Input.get_vector(p + "left", p + "right", p + "up", p + "down")
 		want_kick = Input.is_action_just_pressed(p + "kick")
 		want_skill = Input.is_action_just_pressed(p + "skill")
 		want_sprint = Input.is_action_pressed(p + "sprint")
+		if Input.is_action_just_pressed(p + "item"):
+			use_item()
 
 	if dir != Vector2.ZERO:
 		aim = dir.normalized()
@@ -92,6 +105,8 @@ func _physics_process(delta: float) -> void:
 		speed *= AI_SPEED_SCALE[ai_level]
 	if _stun_t > 0.0:
 		speed *= STUN_SLOW
+	if speed_buff_t > 0.0:
+		speed *= ITEM_SPEED_MULT
 	var sprinting := want_sprint and dir != Vector2.ZERO and stamina > 0.02 and _stun_t <= 0.0
 	if sprinting:
 		speed *= sprint_multiplier
@@ -178,6 +193,21 @@ func _claim_ball_if_free() -> void:
 func stun(secs: float) -> void:
 	_stun_t = maxf(_stun_t, secs)
 
+## ไอเทมกลางสนามเดินชน → เรียกจาก FieldItem (เก็บเข้าตัว)
+func receive_item(k: StringName) -> void:
+	held_item = k
+	_ai_item_t = randf_range(1.0, 2.5)   # AI: ถือแป๊บหนึ่งแล้วค่อยใช้ (เหมือนคิดจังหวะ)
+
+## ใช้ไอเทมที่ถือ (X/J หรือ AI ใช้เอง) — เอฟเฟกต์จัดการโดย arena.apply_item_effect()
+func use_item() -> void:
+	if held_item == &"":
+		return
+	var k := held_item
+	held_item = &""
+	var arena := get_tree().current_scene
+	if arena != null and arena.has_method("apply_item_effect"):
+		arena.apply_item_effect(self, k)
+
 ## ให้ arena/network เรียกเตะแทนด้วยสคริปต์นี้
 func force_kick(dir: Vector2, power: float = 0.0) -> void:
 	if _kick_timer > 0.0:
@@ -214,6 +244,16 @@ func _ai_think(delta: float) -> void:
 	var own_x := 0.0 if not attack_left else 480.0
 	var goal_own := Vector2(own_x, 135.0)
 	var goal_attack := Vector2(attack_x, 135.0)
+
+	# --- ไอเทมกลางสนาม: ไม่ถือของ + ไม่ครองบอล + ไอเทมลอยใกล้ → วิ่งไปเก็บ ---
+	if held_item == &"" and ball.owner_hero != self and _kick_timer <= 0.0:
+		var it := get_tree().get_first_node_in_group("field_item") as Node2D
+		if it != null and is_instance_valid(it):
+			var d_it := global_position.distance_to(it.global_position)
+			if d_it <= float(AI_ITEM_SEEK[ai_level]):
+				_ai_sprint = d_it > 60.0
+				_ai_dir = (it.global_position - global_position).limit_length(1.0)
+				return
 
 	if ball.owner_hero == self:
 		# --- ครองบอล: เลี้ยงไปประตูฝ่ายตรงข้าม + ยิงเมื่อใกล้ (sprint เลี้ยงหลบ) ---
@@ -259,3 +299,5 @@ func reset_to(pos: Vector2) -> void:
 	_kick_timer = 0.0
 	_kick_active = 0.0
 	_ai_dir = Vector2.ZERO
+	held_item = &""           # เริ่มแมตช์/คิกออฟ — เคลียร์ไอเทมที่ถือ
+	speed_buff_t = 0.0

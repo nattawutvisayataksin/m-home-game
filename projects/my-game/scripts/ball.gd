@@ -7,8 +7,18 @@ const START := Vector2(240, 135)   # จุดวางบอลกลางส�
 
 var owner_hero: Hero = null
 var _ignore_until := 0.0   # วินาทีจากตอนเตะออก — ไม่ให้ใคร "ครอง" ใหม่ก่อนเวลานี้
+var heavy_t := 0.0         # ไอเทม "บอลหนัก" — เวลาที่เหลือ (>0 = บอลไหลลื่น ไกลกว่าเดิม)
 
-func _physics_process(_delta: float) -> void:
+const NORMAL_DAMP := 0.45  # ตรงกับ linear_damp ใน arena.tscn — แก้คู่กัน
+const HEAVY_DAMP := 0.15
+
+func _physics_process(delta: float) -> void:
+	# บอลหนัก: ลดแรงเสียดทานชั่วคราว → เตะแล้วลื่นไกลกว่าเดิม
+	if heavy_t > 0.0:
+		heavy_t = maxf(heavy_t - delta, 0.0)
+		linear_damp = HEAVY_DAMP
+	else:
+		linear_damp = NORMAL_DAMP
 	if owner_hero != null and is_instance_valid(owner_hero):
 		# กาวบอล — clamp ไม่ให้ teleport เข้ากรอบโน้ต/หลังเส้น (กัน poke-through)
 		var px := clampf(owner_hero.global_position.x + owner_hero.aim.x * 16.0, 28.0, 452.0)
@@ -55,6 +65,7 @@ func receive_touch(hero: Hero, power: float) -> void:
 func reset() -> void:
 	owner_hero = null
 	_ignore_until = 0.0
+	heavy_t = 0.0
 	linear_velocity = Vector2.ZERO
 	angular_velocity = 0.0
 	global_position = START
