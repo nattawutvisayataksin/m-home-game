@@ -31,6 +31,10 @@ const ITEM_TEX_PATHS := {
 @onready var stamina1: ProgressBar = $UI/Stamina1
 @onready var stamina2: ProgressBar = $UI/Stamina2
 @onready var cam: Camera2D = $Cam
+@onready var score_panel: Panel = $UI/ScorePanel
+@onready var score_left_label: Label = $UI/ScorePanel/LeftScore
+@onready var score_right_label: Label = $UI/ScorePanel/RightScore
+@onready var timer_panel: Panel = $UI/TimerPanel
 
 var state := S.KICKOFF
 var score_left := 0
@@ -76,6 +80,7 @@ func _ready() -> void:
 	place_pieces()
 	_update_labels()
 	Sfx.start_crowd()
+	_refresh_hud_style()
 
 func _exit_tree() -> void:
 	Sfx.stop_crowd()
@@ -209,6 +214,8 @@ func _show_temporary_msg(text: String, secs: float) -> void:
 
 func _update_labels() -> void:
 	score_label.text = "%d  :  %d" % [score_left, score_right]
+	score_left_label.text = str(score_left)
+	score_right_label.text = str(score_right)
 	stamina1.value = hero1.stamina
 	stamina2.value = hero2.stamina
 	stamina2.visible = not _training
@@ -217,6 +224,19 @@ func _update_labels() -> void:
 	else:
 		var t := int(ceil(time_left))
 		timer_label.text = "%02d:%02d" % [t / 60, t % 60]
+		if time_left <= 10.0:
+			timer_label.add_theme_color_override("font_color", Color("#fecaca"))
+			timer_panel.modulate = Color("#f87171") if fmod(time_left, 1.0) < 0.5 else Color.WHITE
+		else:
+			timer_label.add_theme_color_override("font_color", Color("#fef3c7"))
+			timer_panel.modulate = Color.WHITE
+
+func _refresh_hud_style() -> void:
+	score_label.visible = false
+	timer_label.add_theme_color_override("font_color", Color("#fef3c7"))
+	timer_label.add_theme_color_override("font_shadow_color", Color(0.0, 0.0, 0.0, 0.65))
+	timer_label.add_theme_constant_override("shadow_offset_x", 1)
+	timer_label.add_theme_constant_override("shadow_offset_y", 1)
 
 # ขอเก็บพื้นที่สำหรับ online (ต่อ phase ถัดไป) — ระดับนี้ยังให้เล่นได้แม้ไม่ต่อเน็ต
 func _setup_online() -> void:

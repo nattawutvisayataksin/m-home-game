@@ -13,6 +13,8 @@ class_name Hero
 @export var skill_cooldown := float(2.5)
 @export_range(0.02, 0.3) var kick_window := 0.14
 @export var sprint_multiplier := float(1.75)
+@export var acceleration := float(900.0)
+@export var deceleration := float(1100.0)
 @export var stamina_drain := float(0.85)   # ต่อวินาทีตอนวิ่ง + sprint
 @export var stamina_regen := float(0.55)   # ต่อวินาทีตอนไม่ sprint
 @export var ai_level := int(0)
@@ -51,10 +53,13 @@ var _ai_sprint := bool(false)
 var _ai_prev_pos := Vector2.ZERO       # ยังตรวจ ติด collision
 var _unstuck_t := float(0.0)           # จังหวะหลบรอบหลังโดนตัน
 var _unstuck_dir := Vector2.ZERO
+var _walk_phase := float(0.0)
+var _visual_base_position := Vector2.ZERO
 
 func _ready() -> void:
 	motion_mode = CharacterBody2D.MOTION_MODE_FLOATING
 	add_to_group("hero")
+	_visual_base_position = sprite.position
 	if skin != null:
 		sprite.texture = skin
 	if player_id == 2 and ai_level == 0:
@@ -70,7 +75,9 @@ func _physics_process(delta: float) -> void:
 			_kick_active -= delta
 			kick_zone.position = aim * BALL_OFFSET
 			_apply_kick()
+		velocity = velocity.move_toward(Vector2.ZERO, deceleration * delta)
 		move_and_slide()
+		_update_locomotion_visual(delta)
 		return
 
 	var dir := Vector2.ZERO
@@ -114,7 +121,9 @@ func _physics_process(delta: float) -> void:
 		stamina = maxf(stamina - stamina_drain * delta, 0.0)
 	else:
 		stamina = minf(stamina + stamina_regen * delta, 1.0)
-	velocity = dir * speed
+	var target_velocity := dir * speed
+	var response := acceleration if dir != Vector2.ZERO else deceleration
+	velocity = velocity.move_toward(target_velocity, response * delta)
 
 	# ---- kick window ----
 	_kick_timer = maxf(_kick_timer - delta, 0.0)
@@ -132,6 +141,22 @@ func _physics_process(delta: float) -> void:
 			_apply_kick()
 	move_and_slide()
 	_claim_ball_if_free()
+	_update_locomotion_visual(delta)
+
+func _update_locomotion_visual(delta: float) -> void:
+	var moving := velocity.length() > 8.0
+	if moving:
+		_walk_phase = fmod(_walk_phase + delta * (7.0 + velocity.length() * 0.018), TAU)
+	else:
+		_walk_phase = move_toward(_walk_phase, 0.0, delta * 8.0)
+	var stride := sin(_walk_phase)
+	var bob := absf(stride) * (1.0 if moving else 0.0)
+	sprite.position = _visual_base_position + Vector2(0.0, -bob)
+	sprite.scale = Vector2(0.5 + bob * 0.006, 0.5 - bob * 0.006)
+
+	var shadow := get_node_or_null("Shadow") as Sprite2D
+	if shadow != null:
+		shadow.scale = Vector2(0.5 + bob * 0.025, 0.5 - bob * 0.015)
 
 func _prefix() -> String:
 	return "p1_" if player_id == 1 else "p2_"
@@ -312,6 +337,9 @@ func _ai_think(delta: float) -> void:
 func reset_to(pos: Vector2) -> void:
 	global_position = pos
 	velocity = Vector2.ZERO
+	_walk_phase = 0.0
+	sprite.position = _visual_base_position
+	sprite.scale = Vector2(0.5, 0.5)
 	stamina = 1.0
 	_stun_t = 0.0
 	_kick_timer = 0.0

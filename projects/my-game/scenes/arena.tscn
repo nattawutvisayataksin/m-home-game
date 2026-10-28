@@ -24,6 +24,9 @@ size = Vector2(8, 80)
 [sub_resource type="RectangleShape2D" id="4"]
 size = Vector2(8, 102)
 
+[sub_resource type="RectangleShape2D" id="6"]
+size = Vector2(24, 102)
+
 [sub_resource type="CircleShape2D" id="5"]
 radius = 5.0
 
@@ -58,14 +61,6 @@ shape = SubResource("3")
 [node name="RightLower" type="CollisionShape2D" parent="Walls"]
 position = Vector2(476, 226)
 shape = SubResource("9")
-
-[node name="LeftBackNet" type="CollisionShape2D" parent="Walls"]
-position = Vector2(-4, 135)
-shape = SubResource("4")
-
-[node name="RightBackNet" type="CollisionShape2D" parent="Walls"]
-position = Vector2(484, 135)
-shape = SubResource("4")
 
 [node name="Field" type="Node2D" parent="."]
 
@@ -104,13 +99,13 @@ texture = ExtResource("7")
 
 [node name="Shape" type="CollisionShape2D" parent="Goals/LeftGoal"]
 position = Vector2(-6, 135)
-shape = SubResource("4")
+shape = SubResource("6")
 
 [node name="RightGoal" type="Area2D" parent="Goals"]
 
 [node name="Shape" type="CollisionShape2D" parent="Goals/RightGoal"]
 position = Vector2(486, 135)
-shape = SubResource("4")
+shape = SubResource("6")
 
 [node name="Hero1" parent="." instance=ExtResource("3")]
 position = Vector2(150, 135)
@@ -134,7 +129,104 @@ patrol_max_y = 156.0
 texture_filter = 2
 scale = Vector2(-0.5, 0.5)
 
-[node name="UI" type="Node2D" parent="."]
+[node name="UI" type="CanvasLayer" parent="."]
+
+[node name="StadiumTitle" type="Label" parent="UI"]
+offset_left = 164.0
+offset_top = 2.0
+offset_right = 316.0
+offset_bottom = 14.0
+theme_override_colors/font_color = Color(0.74, 0.96, 0.82, 0.9)
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.65)
+theme_override_constants/shadow_offset_x = 1
+theme_override_constants/shadow_offset_y = 1
+theme_override_font_sizes/font_size = 8
+text = "KICK HERO  •  ARENA"
+horizontal_alignment = 1
+
+[node name="ScorePanel" type="Panel" parent="UI"]
+offset_left = 176.0
+offset_top = 15.0
+offset_right = 304.0
+offset_bottom = 47.0
+modulate = Color(0.04, 0.09, 0.18, 0.94)
+
+[node name="Header" type="Label" parent="UI/ScorePanel"]
+offset_left = 8.0
+offset_top = 2.0
+offset_right = 120.0
+offset_bottom = 12.0
+theme_override_colors/font_color = Color(0.98, 0.8, 0.25, 1)
+theme_override_font_sizes/font_size = 7
+text = "MATCH SCORE"
+horizontal_alignment = 1
+
+[node name="LeftTag" type="Label" parent="UI/ScorePanel"]
+offset_left = 8.0
+offset_top = 13.0
+offset_right = 42.0
+offset_bottom = 29.0
+theme_override_colors/font_color = Color(1, 0.43, 0.43, 1)
+theme_override_font_sizes/font_size = 8
+text = "RED"
+horizontal_alignment = 1
+
+[node name="LeftScore" type="Label" parent="UI/ScorePanel"]
+offset_left = 40.0
+offset_top = 9.0
+offset_right = 65.0
+offset_bottom = 31.0
+theme_override_colors/font_color = Color(1, 0.95, 0.86, 1)
+theme_override_font_sizes/font_size = 18
+text = "0"
+horizontal_alignment = 1
+
+[node name="Dash" type="Label" parent="UI/ScorePanel"]
+offset_left = 57.0
+offset_top = 12.0
+offset_right = 71.0
+offset_bottom = 30.0
+theme_override_colors/font_color = Color(0.75, 0.82, 0.9, 1)
+theme_override_font_sizes/font_size = 14
+text = "–"
+horizontal_alignment = 1
+
+[node name="RightScore" type="Label" parent="UI/ScorePanel"]
+offset_left = 63.0
+offset_top = 9.0
+offset_right = 88.0
+offset_bottom = 31.0
+theme_override_colors/font_color = Color(1, 0.95, 0.86, 1)
+theme_override_font_sizes/font_size = 18
+text = "0"
+horizontal_alignment = 1
+
+[node name="RightTag" type="Label" parent="UI/ScorePanel"]
+offset_left = 88.0
+offset_top = 13.0
+offset_right = 120.0
+offset_bottom = 29.0
+theme_override_colors/font_color = Color(0.4, 0.7, 1, 1)
+theme_override_font_sizes/font_size = 8
+text = "BLUE"
+horizontal_alignment = 1
+
+[node name="TimerPanel" type="Panel" parent="UI"]
+offset_left = 207.0
+offset_top = 50.0
+offset_right = 273.0
+offset_bottom = 70.0
+modulate = Color(0.04, 0.09, 0.18, 0.9)
+
+[node name="TimerCaption" type="Label" parent="UI/TimerPanel"]
+offset_left = 4.0
+offset_top = 2.0
+offset_right = 62.0
+offset_bottom = 9.0
+theme_override_colors/font_color = Color(0.62, 0.74, 0.84, 1)
+theme_override_font_sizes/font_size = 6
+text = "TIME"
+horizontal_alignment = 1
 
 [node name="Score" type="Label" parent="UI"]
 offset_left = 185.0
@@ -146,13 +238,13 @@ text = "0  :  0"
 horizontal_alignment = 1
 
 [node name="Timer" type="Label" parent="UI"]
-offset_left = 400.0
+offset_left = 4.0
 offset_top = 8.0
-offset_right = 476.0
-offset_bottom = 26.0
-theme_override_font_sizes/font_size = 12
+offset_right = 62.0
+offset_bottom = 20.0
+theme_override_font_sizes/font_size = 10
 text = "01:30"
-horizontal_alignment = 2
+horizontal_alignment = 1
 
 [node name="Stamina1" type="ProgressBar" parent="UI"]
 offset_left = 14.0
@@ -183,3 +275,25 @@ theme_override_font_sizes/font_size = 18
 text = ""
 horizontal_alignment = 1
 vertical_alignment = 1
+
+[node name="Ads" type="Node2D" parent="."]
+
+[node name="LeftAd" type="Label" parent="Ads"]
+position = Vector2(20, 74)
+rotation = -0.06
+theme_override_colors/font_color = Color(1, 0.86, 0.25, 1)
+theme_override_colors/font_outline_color = Color(0.05, 0.12, 0.2, 1)
+theme_override_constants/outline_size = 3
+theme_override_font_sizes/font_size = 10
+text = "KICK\nENERGY"
+horizontal_alignment = 1
+
+[node name="RightAd" type="Label" parent="Ads"]
+position = Vector2(398, 74)
+rotation = 0.06
+theme_override_colors/font_color = Color(0.48, 0.82, 1, 1)
+theme_override_colors/font_outline_color = Color(0.05, 0.12, 0.2, 1)
+theme_override_constants/outline_size = 3
+theme_override_font_sizes/font_size = 10
+text = "GOAL\nBOOST"
+horizontal_alignment = 1
