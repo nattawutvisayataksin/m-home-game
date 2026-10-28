@@ -30,20 +30,21 @@ const ITEM_TEX_PATHS := {
 @onready var msg_label: Label = $UI/Msg
 @onready var stamina1: ProgressBar = $UI/Stamina1
 @onready var stamina2: ProgressBar = $UI/Stamina2
+@onready var cam: Camera2D = $Cam
 
 var state := S.KICKOFF
 var score_left := 0
 var score_right := 0
 var time_left := MATCH_TIME
 var _announce := 2.0
-var _debug_tick := 0.0    # debug สถานะเป็นช่วง ๆ (headless เท่านั้น)
-var _elapsed := 0.0       # เวลาที่ผ่านไปในแมตช์ (เพื่อ debug/เทสต์)
+var _elapsed := 0.0       # เวลาที่ผ่านไปในแมตช์
 var _training := false
 var _online := false
 var _item_tex := {}             # kind -> Texture2D
 var _item_t := ITEM_SPAWN_FIRST # นับถอยหลังถึงไอเทมลูกถัดไป
 var _icon1: TextureRect         # ไอคอนไอเทมที่ P1 ถือ (UI)
 var _icon2: TextureRect         # ไอคอนไอเทมที่ P2 ถือ (UI)
+var _shake_t := 0.0             # เขย่าจอตอนได้ประตู (game feel)
 
 func _ready() -> void:
 	_headless_debug("ARENA READY — mode=%s" % Game.mode)
@@ -74,6 +75,10 @@ func _ready() -> void:
 	_icon2 = _make_icon(Vector2(450, 14))
 	place_pieces()
 	_update_labels()
+	Sfx.start_crowd()
+
+func _exit_tree() -> void:
+	Sfx.stop_crowd()
 
 func place_pieces() -> void:
 	ball.reset()
@@ -100,6 +105,7 @@ func _process(delta: float) -> void:
 			else:
 				state = S.PLAY
 				_headless_debug("KICKOFF → PLAY (บอลกลางสนาม)")
+				Sfx.play(&"whistle", 0.0)   # นกหวีดหย่อนบอล (pitch คงระดับ)
 				_show_msg("")
 		S.PLAY:
 			if not _training:
@@ -121,15 +127,14 @@ func _process(delta: float) -> void:
 		S.END:
 			pass
 	_update_labels()
+	# เขย่าจอ (กล้อง) ตอนได้ประตู — ห้ามขยับ root เด็ดขาด (transform root ไปตรึง RigidBody บอลค้าง!)
+	if _shake_t > 0.0:
+		_shake_t = maxf(_shake_t - delta, 0.0)
+		var a := _shake_t / 0.45
+		cam.offset = Vector2(randf_range(-4.0, 4.0), randf_range(-4.0, 4.0)) * a
+	else:
+		cam.offset = Vector2.ZERO
 	_elapsed += delta
-	_debug_tick -= delta
-	if _debug_tick <= 0.0 and DisplayServer.get_name() == "headless":
-		_debug_tick = 5.0
-		var owner_txt := "free"
-		if ball.owner_is_hero():
-			owner_txt = "P%d" % ball.owner_hero.player_id
-		print("[ARENA] tick t=%ds state=%s score=%d:%d owner=%s ball=%v gkY=%v" % [
-			int(_elapsed), state, score_left, score_right, owner_txt, ball.global_position, gk_left.global_position])
 
 	# ปุ่มลัด: R เริ่มใหม่ / M เมนู / Esc เมนู
 	if Input.is_action_just_pressed("ui_cancel") or Input.is_key_pressed(KEY_M):
@@ -165,9 +170,9 @@ func _on_goal_right(body: Node2D) -> void:
 
 func _flash_goal(text: String) -> void:
 	_headless_debug("GOAL → %s | %d : %d" % [text, score_left, score_right])
-	if DisplayServer.get_name() == "headless":
-		print("[ARENA] ball@=%v v=%v gkY=%v" % [ball.global_position, ball.linear_velocity, gk_left.global_position])
 	state = S.GOAL
+	Sfx.play(&"goal", 0.02)
+	_shake_t = 0.45
 	_show_msg(text)
 	_announce = 1.4
 
@@ -177,6 +182,7 @@ func _check_end() -> void:
 
 func _finish() -> void:
 	state = S.END
+	Sfx.play(&"whistle_end", 0.0)
 	var winner := "DRAW"
 	if score_left > score_right: winner = "LEFT WINS!"
 	elif score_right > score_left: winner = "RIGHT WINS!"
@@ -273,6 +279,7 @@ func _find_item_spot() -> Vector2:
 
 func _on_item_picked(hero: Hero, kind: StringName) -> void:
 	_item_log("pickup — P%d เก็บ %s" % [hero.player_id, kind])
+	Sfx.play(&"pickup", 0.08)
 	var icon := _icon1 if hero == hero1 else _icon2
 	icon.texture = _item_tex[kind]
 
@@ -288,6 +295,7 @@ func apply_item_effect(hero: Hero, kind: StringName) -> void:
 			_spawn_decoy(hero.global_position)
 		&"gate":
 			_spawn_gate(hero.player_id)
+	Sfx.play(&"power", 0.1)
 	var icon := _icon1 if hero == hero1 else _icon2
 	icon.texture = null
 
@@ -312,18 +320,19 @@ func _spawn_gate(player_id: int) -> void:
 	var sb := StaticBody2D.new()
 	var sh := CollisionShape2D.new()
 	var r := RectangleShape2D.new()
-	r.size = Vector2(4, 66)   # คลุมปากประตู y 104..166
+	r.size = Vector2(4, 102)  # คลุมปากประตู y 84..186
 	sh.shape = r
 	sb.add_child(sh)
-	for i in 4:
+	for i in 7:
 		var s := Sprite2D.new()
 		s.texture = _item_tex[&"gate"]
-		s.position = Vector2(0, -24 + i * 16)
+		s.position = Vector2(0, -48 + i * 16)
 		s.modulate = Color(1.0, 1.0, 1.0, 0.92)
 		sb.add_child(s)
 	var x := 26.0 if player_id == 1 else 454.0   # P1 เฝ้าซ้าย / P2 เฝ้าขวา
 	sb.position = Vector2(x, 135.0)
 	add_child(sb)
+	Sfx.play(&"gate", 0.04)
 	_despawn_later(sb, "gate หายไป")
 
 ## หน่วงหายไป — Timer เป็นลูกของตัวเอง เพื่อไม่มี coroutine ค้างหลัง scene โหลดใหม่

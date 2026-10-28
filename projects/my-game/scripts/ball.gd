@@ -8,12 +8,23 @@ const START := Vector2(240, 135)   # จุดวางบอลกลางส�
 var owner_hero: Hero = null
 var _ignore_until := 0.0   # วินาทีจากตอนเตะออก — ไม่ให้ใคร "ครอง" ใหม่ก่อนเวลานี้
 var heavy_t := 0.0         # ไอเทม "บอลหนัก" — เวลาที่เหลือ (>0 = บอลไหลลื่น ไกลกว่าเดิม)
+var _bounce_t := 0.0       # throttle เสียงเด้ง (กันสแปมตอนไถกับผนัง)
 
 const NORMAL_DAMP := 0.45  # ตรงกับ linear_damp ใน arena.tscn — แก้คู่กัน
 const HEAVY_DAMP := 0.15
 
+func _ready() -> void:
+	body_entered.connect(_on_body_entered)
+
+## ชนแรงพองาม (โพสต์/กำแพง/GK/ตัว hero) → เสียงเด้ง
+func _on_body_entered(_body: Node) -> void:
+	if _bounce_t <= 0.0 and linear_velocity.length() > 90.0:
+		_bounce_t = 0.15
+		Sfx.play(&"bounce")
+
 func _physics_process(delta: float) -> void:
 	# บอลหนัก: ลดแรงเสียดทานชั่วคราว → เตะแล้วลื่นไกลกว่าเดิม
+	_bounce_t = maxf(_bounce_t - delta, 0.0)
 	if heavy_t > 0.0:
 		heavy_t = maxf(heavy_t - delta, 0.0)
 		linear_damp = HEAVY_DAMP
@@ -21,12 +32,28 @@ func _physics_process(delta: float) -> void:
 		linear_damp = NORMAL_DAMP
 	if owner_hero != null and is_instance_valid(owner_hero):
 		# กาวบอล — clamp ไม่ให้ teleport เข้ากรอบโน้ต/หลังเส้น (กัน poke-through)
-		var px := clampf(owner_hero.global_position.x + owner_hero.aim.x * 16.0, 28.0, 452.0)
-		var py := clampf(owner_hero.global_position.y + owner_hero.aim.y * 16.0, 16.0, 254.0)
-		global_position = Vector2(px, py)
+		# และหาจุดวางที่ไม่ทับตัว hero อื่น (กันบอลติดคาใน collider คู่แข่งจนยิงไม่ออก)
+		var offset := owner_hero.aim * 16.0
+		for cand in [offset, owner_hero.aim * 10.0, offset.orthogonal() * 0.8 + owner_hero.aim * 8.0, -offset.orthogonal() * 0.8 + owner_hero.aim * 8.0, owner_hero.aim * -10.0]:
+			var spot := Vector2(
+				clampf(owner_hero.global_position.x + cand.x, 28.0, 452.0),
+				clampf(owner_hero.global_position.y + cand.y, 16.0, 254.0))
+			var blocked := false
+			for h in get_tree().get_nodes_in_group("hero"):
+				var hn := h as Node2D
+				if hn != null and hn != owner_hero and hn.global_position.distance_to(spot) < 14.0:
+					blocked = true
+					break
+			if not blocked:
+				global_position = spot
+				linear_velocity = Vector2.ZERO
+				angular_velocity = 0.0
+				sleeping = false   # ห้ามหลับ — ไม่งั้น Area2D (kick zone) ตรวจไม่เจอ
+				return
+		global_position = Vector2(clampf(owner_hero.global_position.x - owner_hero.aim.x * 10.0, 28.0, 452.0), clampf(owner_hero.global_position.y, 16.0, 254.0))
 		linear_velocity = Vector2.ZERO
 		angular_velocity = 0.0
-		sleeping = false   # ห้ามหลับ — ไม่งั้น Area2D (kick zone) ตรวจไม่เจอ
+		sleeping = false
 
 func owner_is_hero() -> bool:
 	return owner_hero != null and is_instance_valid(owner_hero)
@@ -46,7 +73,6 @@ func release(new_velocity: Vector2, ignore_secs := 0.35) -> void:
 	_ignore_until = _now() + ignore_secs
 	linear_velocity = new_velocity
 	sleeping = false
-
 ## Hero สัมผัสบอลด้วยปุ่มเตะ/สกิล:
 ##   คือเจ้าของ → ปล่อยยิงตาม power
 ##   มีเจ้าของคนอื่น → แย่ง! (บอลหลุด + เจ้าของเดิมมือหนักชั่วขณะ)
@@ -58,7 +84,11 @@ func receive_touch(hero: Hero, power: float) -> void:
 		var loser := owner_hero
 		if loser.has_method("stun"):
 			loser.stun(0.45)
-		release(hero.aim * maxf(power * 0.35, 120.0), 0.0)
+		# บอลฉีกหลุดเหมือนฟุตบอลจริง: ทิศหนีจากตัวเจ้าของเดิม ผสมทิศเล็งของคนแย่ง
+		# (กันบอลดีดสวนกลับเข้าตัวเจ้าของ → ติดคา ping-pong ระหว่างสองคน)
+		var away := (global_position - loser.global_position).normalized()
+		var steal_dir := away.lerp(hero.aim, 0.45).normalized()
+		release(steal_dir * maxf(power * 0.35, 120.0), 0.0)
 	else:
 		release(hero.aim * power, 0.0)
 

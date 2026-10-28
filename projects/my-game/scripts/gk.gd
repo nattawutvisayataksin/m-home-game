@@ -16,6 +16,7 @@ var _guard_x := 14.0   # แกน x ตายตัว (กัน drift เข�
 var _t := 0.0          # นาฬิกาเมโทรนอม — ทั้งสองฝั่งนับเท่ากัน → จังหวะตรงกันเป๊ะ
 var _save_log_t := 0.0 # throttle log เซฟ (ลดสแปมตอนบอลในตัว GK)
 var _clear_t := 0.0    # cooldown การผลักบอลออก (กันสแปมด้วย)
+var _save_sfx_t := 0.0 # throttle เสียงเซฟ (เกมจริง)
 
 func _ready() -> void:
 	_ball = get_tree().get_first_node_in_group("ball")
@@ -32,6 +33,15 @@ func _physics_process(delta: float) -> void:
 	velocity = Vector2(0.0, v)
 	move_and_slide()
 	position.x = _guard_x   # hard lock — GK ต้องอยู่บนเส้นประตูเสมอ
+	# เสียงเซฟ: บอลพุ่งชนตัว GK แรง (ทำงานทุกแพลตฟอร์ม — headless เล่นเงียบเอง)
+	_save_sfx_t = maxf(_save_sfx_t - delta, 0.0)
+	if _save_sfx_t <= 0.0:
+		for i in get_slide_collision_count():
+			var col := get_slide_collision(i).get_collider()
+			if col is Ball and (col as Ball).linear_velocity.length() > 140.0:
+				_save_sfx_t = 0.5
+				Sfx.play(&"ooh")
+				break
 	if DisplayServer.get_name() == "headless":
 		_punch_clear(delta)
 

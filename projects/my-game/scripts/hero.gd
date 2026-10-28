@@ -8,7 +8,7 @@ class_name Hero
 @export var player_id := int(1)
 @export var skin: Texture2D
 @export var run_speed := float(120.0)
-@export var kick_power := float(260.0)
+@export var kick_power := float(300.0)
 @export var skill_power := float(430.0)
 @export var skill_cooldown := float(2.5)
 @export_range(0.02, 0.3) var kick_window := 0.14
@@ -54,6 +54,7 @@ var _unstuck_dir := Vector2.ZERO
 
 func _ready() -> void:
 	motion_mode = CharacterBody2D.MOTION_MODE_FLOATING
+	add_to_group("hero")
 	if skin != null:
 		sprite.texture = skin
 	if player_id == 2 and ai_level == 0:
@@ -145,8 +146,8 @@ func _pick_shot_target(goal_attack: Vector2, attack_x: float, own_x: float) -> V
 		# GK ของฝั่งที่ยิงใส่ = ตัวที่อยู่ใกล้เส้นประตูฝ่ายโจมตี
 		if absf(gn.global_position.x - attack_x) < absf(gn.global_position.x - own_x):
 			gy = gn.global_position.y
-	var y_top := 108.0
-	var y_bot := 162.0
+	var y_top := 94.0    # กึ่งกลางโพรงบน (GK ครอบ 114–156 + ตัวสูง 20 → โพรงบอล 89–99)
+	var y_bot := 176.0   # กึ่งกลางโพรงล่าง (171–181) — margin โพสต์/GK ฝั่งละ 5px
 	var pick_top: bool
 	if ai_level <= 0:
 		pick_top = randf() < 0.5
@@ -159,13 +160,17 @@ func _pick_shot_target(goal_attack: Vector2, attack_x: float, own_x: float) -> V
 	return Vector2(attack_x, (y_top if pick_top else y_bot) + jitter)
 
 func _face_aim() -> void:
-	sprite.rotation = aim.angle() + PI / 2.0
+	# สไปรต์ยืนเต็มตัวมองด้านข้าง (วาดหันขวา) — พลิกซ้าย/ขวาตามทิศเล็ง ไม่หมุนราบ
+	sprite.rotation = 0.0
+	if aim.x != 0.0:
+		sprite.flip_h = aim.x < 0.0
 
 func _start_kick(power: float, cooldown: float) -> void:
 	_kick_now = power
 	_kick_timer = cooldown
 	_kick_active = kick_window
 	_kick_used = false
+	Sfx.play(&"kick")
 
 ## เตะ = ยิง (บอลของเรา/บอลว่าง) หรือ แย่ง (บอลของคนอื่น) — บอลตัดสินใจใน receive_touch
 ## ใช้ระยะตรง (บอลติดตัวจะ teleport ทุกเฟรม — Area2D อาจตรวจไม่ทันที่เสถียรใน headless)
@@ -270,6 +275,19 @@ func _ai_think(delta: float) -> void:
 			_ai_dir = Vector2.ZERO
 		else:
 			var target := goal_attack + (global_position - goal_attack).limit_length(120.0)
+			# เลี้ยงอ้อมคู่แข่งที่ยืนขวางแนวหน้า (ไม่ตรงดิ่งเข้าตัวเขาแล้วบอลติดคา)
+			for h in get_tree().get_nodes_in_group("hero"):
+				var hn := h as Hero
+				if hn == null or hn == self or not is_instance_valid(hn):
+					continue
+				var to_opp := hn.global_position - global_position
+				var fwd := (target - global_position).normalized()
+				var along := to_opp.dot(fwd)
+				if along > 0.0 and along < 70.0 and to_opp.length() < 50.0:
+					var side := fwd.orthogonal()
+					if to_opp.dot(side) < 0.0:
+						side = -side
+					target = global_position + (fwd * 0.45 + side * 0.9).normalized() * 70.0
 			_ai_dir = (target - global_position).limit_length(1.0)
 	elif ball.owner_is_hero():
 		# --- เขาครองบอล: ตามเพื่อแย่ง (sprint เข้าเตะ) ---

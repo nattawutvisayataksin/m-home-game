@@ -68,15 +68,15 @@ Hero แต่ละตัวมี **สกิลประจำตัว** + �
 
 ## ภาพกราฟิก (สไตล์)
 
-- **Pixel art 16×16-32×32 / sprite**, palette จัดชุด (sweetie16 / dawnbringer) ผ่าน pixelart-mcp
-- จอฐาน 480×270 logical (scale 3× ภาพเพิ่มชัดแบบ nearest)
-- ให้มี frames ของ Hero: idle / run / jump / kick / steal / skill แต่ละท่า (Web/อนิเมชันแบบ spritesheet)
-- สี ธัมสไตล์: สนามของสีดิน + เส้นเขียวสว่าง, นัยดีไซน์อกใจสวยงาม
+- **ART v2 — สไตล์ 2D นุ่ม (soft 2D):** วาดใหญ่แล้วย่อด้วย LINEAR filter — Hero/GK 48×64 ยืนเต็มตัวมองด้านข้าง (base หันขวา + `flip_h`), บอล 40×40, สนาม field 480×270 — ขอบนุ่มไม่หยักแบบตารางพิกเซล (ไม่ใช่ pixel art)
+- จอฐาน 480×270 logical (canvas_items stretch, window 1440×810)
+- ตัวละครหน้าตาต่างกัน: P1 เสื้อแดงผมสั้นดำ / P2 ผมยาวทองชุดน้ำเงิน / GK เหลืองส้มถุงมือขาว
+- ต้นฉบับวาดเก็บ `assets-library/` (sprites/v2 + textures) — ในเกมใช้ copy ที่ `assets/`
+- เฟสถัดไป (ยังไม่ทำ): frames idle/run/kick เป็น spritesheet นุ่มต่อเนื่อง
 
-### Sprite Hero ชุดใหม่ (pixellab, 2026-10)
+### Sprite ชุดเดิม (pixel art 16×16 — เลิกใช้, เก็บไว้อ้างอิง)
 
-- สร้างด้วย `create_image_pro_flash` (pixellab MCP) ขนาด 32×32, `view "high top-down"`, หันหน้าเข้าหาผู้เล่น (south-facing) — รูปแบบเดียวกับของเดิม เลยใช้สูตรหมุน `sprite.rotation = aim.angle() + PI/2` ได้เลยโดยไม่แก้โค้ด
-- แดง (P1) สร้างจาก AI, ฟ้า (P2) รีเพ้นด้วยสคริปต์ในเครื่อง (ฟรี ไม่เปลืองโควต้า)
+- สร้างด้วย `create_image_pro_flash` (pixellab MCP) ขนาด 32×32, `view "high top-down"`, หันหน้าเข้าหาผู้เล่น (south-facing) — รูปแบบเดิมใช้สูตรหมุน `sprite.rotation = aim.angle() + PI/2` (ART v2 เปลี่ยนเป็น flip_h แล้ว)
 - ย่อ 32→16 ด้วยกฎ "สีเสียงข้างมากต่อบล็อก 2×2" (majority vote ระวังคมกว่า averaging)
 - กฎรีเพ้นแดง→ฟ้า: จำแนกสีชุดแดงด้วยเงื่อนไข `R > G+50, R > B+40, G-B < 30` (ตัดสีเนื้อออก) → สว่าง→`#4d6dbe`, เงา→`#33538e`
 - ต้นฉบับ/ของเก่าเก็บใน `assets_legacy/` (มี `.gdignore` กัน Godot import)
@@ -91,8 +91,8 @@ Hero แต่ละตัวมี **สกิลประจำตัว** + �
 - [x] sprite ชุดจริงจาก pixelart-mcp (lint 90+ ทุกชิ้น)
 - [x] จบเกมครบรอบ (score to 3 / timer) — Local + vs AI 3 ระดับ + Training
 - [ ] Online 1v1 sync (โครง host/join พร้อม — เหลือ rpc input/state)
-- [ ] ไอเทมกลางสนาม + Ultimate ต่อ Hero
-- [ ] เสียง + อนิเมชัน (ระยะแรก)
+- [ ] Ultimate ต่อ Hero (ไอเทมกลางสนามทำแล้ว — ITEMS v1)
+- [x] เสียงครบ (SFX v1 — สังเคราะห์ WAV 10 ไฟล์ + autoload) / อนิเมชัน (ระยะแรก) ยังเหลือ
 
 ## Changelog สมดุล / กลไก
 
@@ -173,3 +173,35 @@ Hero แต่ละตัวมี **สกิลประจำตัว** + �
 - Push build/web → branch `gh-pages` (orphan temp repo) → Pages ชี้ source แล้วอัตโนมัติ (API 409 "already enabled" + ตรวจ GET — source ชี้ gh-pages อยู่พอดี)
 - **ลิงก์เล่น:** https://nattawutvisayataksin.github.io/m-home-game/ — ยืนยัน: หน้า HTTP 200 + `index.wasm` 37.68 MB (`application/wasm` ถูกต้อง) + pck/js ครบ — nothreads build รันบน static host ได้โดยไม่ต้อง COOP/COEP
 - **อัปเดตเว็บ:** export Web ใหม่ → copy `build/web/*` ทับ temp repo → commit + push `gh-pages` (ตาม ReadFirst.md ขั้นตอน)
+
+### ART v2 (2026-10-28) — ภาพใหม่ทั้งเกม สไตล์ 2D นุ่ม (ตามคำสั่ง: "ภาพใหม่หมด ไม่ pixel art, hero ยืนเต็มตัว") ✅
+
+**เปลี่ยนสไตล์:** ไม่ใช่ pixel art ขนาดเล็กอีกต่อไป — วาด "ใหญ่แล้วย่อด้วย LINEAR" ให้ขอบนุ่มตาสบาย: Hero/GK 48×64 (scale 0.5 → 24×32 บนจอ), บอล 40×40 (scale 0.3), shadow ใหม่ทุกชิ้น, field 480×270 วาดใหม่ (โพรงประตู 2 ฝั่ง 102px ตรง collision + เขตโทษ + วงกลาง)
+
+- **Hero สองตัวหน้าตาต่างกัน:** P1 เสื้อแดง ผมสั้นดำ / P2 ผมยาวทอง เสื้อน้ำเงิน ผิวคล้ำ — ทั้งคู่ "ยืนเต็มตัวมองด้านข้าง" (วาดหันขวา + `flip_h` พลิกตามทิศเล็ง — ไม่หมุนราบเหมือนเดิม) แก้ `hero.gd _face_aim()`: `rotation=0, flip_h = aim.x < 0`
+- **GK:** เสื้อเหลืองส้มแขนยาว + ถุงมือขาวใหญ่ (signature คีปเปอร์) — GKRight พลิก `scale.x = -0.5` ใน scene
+- **เรขาคณิต v2:** ปากประตู y 84–186 (102px), GK patrol 114–156 → โพรงบอลบน 89–99 / ล่าง 171–181 → เป้ายิง AI **94/176** (margin โพสต์/GK ฝั่งละ 5px ทั้งสองมุม), `kick_power 300`
+- project: `default_texture_filter=1 (Linear)` + `snap_2d_transforms=false` — ตัวเกมไม่คมเป็นตารางแล้ว
+- **บทเรียน workflow วาด:** ไล่เฉดเชิงมือ (3 ชั้นชุดเสื้อ/ผิว) → `outline_sprite` → `apply_spaa edges-only` → ตา/ปากด้วย `draw_pixels` ท้ายสุด (เอฟเฟกต์กระดุมแต้มภายหลังกลบได้)
+
+### SFX v1 (2026-10-28) — เสียงครบทุกจุด ✅
+
+- **สังเคราะห์เอง (pure Python stdlib — ไม่ใช้ไลบรารี):** `kick` (ทุ้ม 130Hz ตกเป็น 60 + คลิกสั้น), `bounce` (นุ่มสั้น), `whistle_start` (เขย่า 2350Hz สั่น 23Hz 0.8 วิ), `whistle_end` (3 จังหวะ), `goal` (crowd roar lowpassed + "เฮ้อ" โน้มขึ้น 2.2 วิ), `ooh` (เสียงคนอุ้ยลง), `pickup` (ดิ้งสองโน้ต 880→1318), `gate` (ชิงอัปขึ้น 200→900), `power` (พาวพุ่ง 500→1400), `crowd` (แฟนบอลลูป 6 วิ crossfade ไร้รอยต่อ) — ไฟล์ `assets/sfx/*.wav` 16-bit mono 44.1kHz
+- **autoload `sfx.gd`:** พูล 10 ช่อง `AudioStreamPlayer` (เสียงทับเล่นกันเองได้ ไม่ตัดกัน), **pitch jitter ±5%** ต่อการเล่น (SFX variation — เสียงเตะ/เด้งไม่ซ้ำแบบเดิม), นกหวีด jitter 0, `start_crowd()/stop_crowd()` ลูปแฟนเชียร์ -16dB
+- **hook ครบ:** hero `_start_kick` (เตะทุกกรณี), ball `body_entered` (เด้งเมื่อ v>90, throttle 0.15), gk (เซฟ v>140 ทุกแพลตฟอร์ม), arena (นกหวีดหย่อนบอล / goal roar + เขย่าจอ 0.45 วิ / whistle_end / pickup / power / gate / crowd เข้า-ออกสนาม)
+
+### BUGFIX ร้ายแรง (2026-10-28) — root-position shake ตรึง RigidBody บอลนิ่งทั้งเกม ✅
+
+**อาการ:** v2 test ทุกโหมด 0:0 บอลแช่นิ่ง (เวอร์ชันเก่าก็พอได้ประตู) — frame-log พิสูจน์: บอล `pos=(162.504181, 120.380585)` **ซ้ำเป๊ะหลายเฟรม** ทั้งที่ `v=(-262, -77)` — physics integration ไม่ทำงานเลย
+
+**ต้นตอ:** เพิ่มเขย่าจอตอนประตูด้วยการเขียน `position` ของ root `Arena` (Node2D) ทุกเฟรม → ทุกเฟรม engine ดัน transform ล่าสุดของ node ทั้ง subtree กลับเข้า physics server → **RigidBody (บอล) ถูกตรึงกลับที่เดิมตอน integrate** (CharacterBody hero/GK ไม่กระทบ — ขยับด้วย node เอง)
+
+**แก้ถูกทาง:** เขย่าผ่าน **`Camera2D.offset`** (`$Cam` node ใหม่ใน arena.tscn) — กล้องขยับ โลก/ฟิสิกส์ไม่โดนแตะเลย + ลบ code เขย่า root ทิ้ง
+
+> **กฎเหล็ก:** ห้ามเขียน `position`/`transform` ของ root ที่มี RigidBody ลูกหลานทุกเฟรม — เขย่าจอใช้กล้องเท่านั้น
+
+### BALANCE9 + POKE FIX (2026-10-28) — สมดุลปิดรอบ ART/SFX ✅
+
+- **บอลติดคาในตัวคู่แข่ง (wedge bug):** AI เลี้ยงบอลตรงเข้าตัว P1 (idle) → บอลติดใน collider → solver ตรึง → ยิงไม่ออก → วงล็อกตลอดแมตช์ แก้ 2 ชั้น: (1) **ball glue avoidance** — กาวบอลหา "จุดวาง" 5 ตำแหน่ง (หน้า/ใกล้/เฉียง 2 ฝั่ง/หลัง) ที่ไม่ทับตัว hero อื่น (radius 14px, group "hero"); (2) **AI ดริบเบิลอ้อม** — คู่แข่งยืนขวางแนวหน้า 70px → เลี้ยงเฉียงออกข้าง (fwd×0.45 + side×0.9)
+- **poke ทิศหลุด:** เดิมบอลแย่งหลุดตามทิศเล็งของคนแย่ง — ถ้าแย่งตัวตรง บอลดีดสวนเข้าตัวเจ้าของ ping-pong ไม่จบ → แก้: บอลฉีกทิศ "หนีจากตัวเจ้าของเดิม" (บอล-เจ้าของ) ผสมทิศเล็งคนแย่ง 45/55 — บอลหลุดออกทั้งคู่
+- **ผลเทสต์ (แมตช์เต็ม 3 โหมด):** easy **0:3** (เซฟ 5) / normal **0:3** (28) / hard **0:3** (19) — เกณฑ์ "ทุกโหมดครบ 3 ประตูก่อนหมดเวลา, เซฟต่ำ, ไม่มี SCRIPT ERROR" **ผ่านครบ** ความยากยังต่างผ่านคุณภาพ AI (easy ยิงโดน GK ถี่กว่า ยิงพลาดมุมมากกว่า)
