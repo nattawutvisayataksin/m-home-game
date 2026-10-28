@@ -38,10 +38,11 @@ uv run python .agents/skills/godot-nodes-scenes/scripts/check_godot_project.py $
 # คัดกรอง parse error
 & $gd --headless --path $proj --quit
 
-# เทสต์แมตช์เต็มทีละโหมด (ประมาณ 100 วิ ต่อโหมด, หยุดหลัง 6000 เฟรม)
-& $gd --headless --path $proj "res://scenes/arena.tscn" --quit-after 6000 -- easy
-& $gd --headless --path $proj "res://scenes/arena.tscn" --quit-after 6000 -- normal
-& $gd --headless --path $proj "res://scenes/arena.tscn" --quit-after 6000 -- hard
+# เทสต์แมตช์เต็มทีละโหมด — เกมจบเองหลัง MATCH END (self-quit ~93–110 วิ ต่อโหมด)
+# ⚠ headless บนเครื่องนี้รัน ~150fps (ไม่ติด vsync) → --quit-after 6000 = ~40 วิเกมเท่านั้น ไม่จบแมตช์ — ใช้ ≥ 20000
+& $gd --headless --path $proj "res://scenes/arena.tscn" --quit-after 20000 -- easy
+& $gd --headless --path $proj "res://scenes/arena.tscn" --quit-after 20000 -- normal
+& $gd --headless --path $proj "res://scenes/arena.tscn" --quit-after 20000 -- hard
 & $gd --headless --path $proj "res://scenes/arena.tscn" --quit-after 1200 -- training
 
 # เตะเกมจริง (หน้าต่าง)

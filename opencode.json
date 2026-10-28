@@ -6,15 +6,15 @@
         "type": "local",
         "command": ["npx", "-y", "@coding-solo/godot-mcp"],
         "environment": {
-          "GODOT_PATH": "C:\\Users\\admin\\AppData\\Local\\Microsoft\\WinGet\\Packages\\GodotEngine.GodotEngine_Microsoft.Winget.Source_8wekyb3d8bbwe\\Godot_v4.7.2-stable_win64_console.exe"
+          "GODOT_PATH": "C:\\Users\\Administrator\\AppData\\Local\\Microsoft\\WinGet\\Packages\\GodotEngine.GodotEngine_Microsoft.Winget.Source_8wekyb3d8bbwe\\Godot_v4.7.2-stable_win64_console.exe"
         }
       },
       "pixelart-mcp": {
         "type": "local",
         "command": [
-          "C:\\Users\\admin\\AppData\\Local\\Microsoft\\WinGet\\Packages\\astral-sh.uv_Microsoft.Winget.Source_8wekyb3d8bbwe\\uv.exe",
+          "C:\\Users\\Administrator\\AppData\\Local\\Microsoft\\WinGet\\Packages\\astral-sh.uv_Microsoft.Winget.Source_8wekyb3d8bbwe\\uv.exe",
           "--directory",
-          "C:\\Users\\admin\\Desktop\\m-home-game\\mcp-servers\\pixelart-mcp",
+          "C:\\Users\\Administrator\\Desktop\\opencode\\m-home-game\\mcp-servers\\pixelart-mcp",
           "run",
           "-m",
           "pixelart_mcp"
@@ -23,13 +23,21 @@
       "blender-asset-mcp": {
         "type": "local",
         "command": [
-          "C:\\Users\\admin\\AppData\\Local\\Microsoft\\WinGet\\Packages\\astral-sh.uv_Microsoft.Winget.Source_8wekyb3d8bbwe\\uvx.exe",
+          "C:\\Users\\Administrator\\AppData\\Local\\Microsoft\\WinGet\\Packages\\astral-sh.uv_Microsoft.Winget.Source_8wekyb3d8bbwe\\uvx.exe",
           "--python",
           "3.12",
           "--from",
           "git+https://github.com/yi00it/blender-asset-mcp",
           "blender-asset-mcp"
         ]
+      },
+      "pixellab": {
+        "type": "remote",
+        "url": "https://api.pixellab.ai/mcp",
+        "oauth": false,
+        "headers": {
+          "Authorization": "Bearer {env:PIXELLAB_API_KEY}"
+        }
       }
     }
   }
