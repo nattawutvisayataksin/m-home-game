@@ -159,3 +159,11 @@ Hero แต่ละตัวมี **สกิลประจำตัว** + �
 - **ประวัติ iter:** รอบ 1 AI ไม่เก็บเลย (ลืมใส่ logic ไล่เก็บ) → รอบ 2 easy/hard เก็บได้, normal 0/2 (บอลถล่มฝั่งซ้ายตลอด ไอเทม spawn ฝั่งขวาไกลเกิน seek) → รอบ 3: ขยาย seek + แถบ spawn กลางสนามแคบลง (150–330 → 180–300) — ผ่านทุกโหมด
 - เอฟเฟกต์หายด้วย Timer เป็นลูกของ node เอง + `is_instance_valid` (กัน coroutine ค้างตอน scene โหลดใหม่)
 - ระบบพร้อม online phase: spawn งดตอน online จน sync ได้
+
+### EXPORT v1 (2026-10-28) — Export Windows + Web (เกมเล่นได้จริงนอก editor ครั้งแรก) ✅
+
+- **ติดตั้ง export templates** `4.7.2.stable` ตรงเวอร์ชัน (ดาวน์โหลด tpz 1222 MB จาก GitHub release → tar -xf → คัดลอก 35 ไฟล์ไป `%APPDATA%\Godot\export_templates\4.7.2.stable\`) — ไม่มีไฟล์แยกต่อแพลตฟอร์มบน GitHub (single-platform download เป็นฟีเจอร์ editor เท่านั้น)
+- **export_presets.cfg** (เขียนเอง — ไฟล์ใหม่): preset "Windows Desktop" (x86_64) + "Web" (`thread_support=false` — รันบน static host ได้ไม่ต้อง COOP/COEP, `canvas_resize_policy=2` ยืดตามจอ)
+- **ผล export (headless CLI `--export-release`):** Windows `KickHeroArena.exe` 104 MB + `.pck` 0.05 MB / Web `index.html` + `index.wasm` 37.7 MB + `index.pck` 0.05 MB — build/ ถูก .gitignore (ไฟล์ binary สร้างใหม่ได้)
+- **สั่ง export ซ้ำ:** `godot --headless --path <proj> --export-release "Windows Desktop" build\windows\KickHeroArena.exe` (สร้าง `build\windows\` ก่อน — Godot ไม่สร้าง dir ให้) และ `--export-release "Web" build\web\index.html`
+- **Smoke test:** .exe รัน `--quit-after 600` EXIT=0 เปิดหน้าต่างเล่นได้จริง / เว็บเสิร์ฟ `python -m http.server` HTTP 200 ทุกไฟล์ (index.html/js/wasm/pck) — ทดสอบ wasm ใน browser จริง = ทำตอน upload (itch.io)

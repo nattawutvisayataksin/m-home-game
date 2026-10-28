@@ -13,3 +13,6 @@ mcp-servers/
 # Temp / system
 Thumbs.db
 *.blend1
+
+# Export outputs (สร้างใหม่ด้วย export_presets.cfg ได้ — ไฟล์ binary ใหญ่)
+projects/my-game/build/
