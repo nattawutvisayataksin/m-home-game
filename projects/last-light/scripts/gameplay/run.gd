@@ -119,6 +119,13 @@ func _notification(what: int) -> void:
 
 func _draw() -> void:
 	draw_rect(Rect2(0.0, 0.0, 360.0, 640.0), Color("#202722"))
+	# side buildings (low contrast)
+	draw_rect(Rect2(0.0, 60.0, 38.0, 470.0), Color("#2a2f28"))
+	draw_rect(Rect2(322.0, 60.0, 38.0, 470.0), Color("#2a2f28"))
+	for i: int in range(6):
+		var wy: float = 90.0 + float(i) * 70.0
+		draw_rect(Rect2(8.0, wy, 10.0, 6.0), Color("#5b513c", 0.35))
+		draw_rect(Rect2(338.0, wy + 14.0, 12.0, 5.0), Color("#5b513c", 0.35))
 	draw_rect(Rect2(38.0, 76.0, 284.0, 454.0), Color("#343a32"))
 	draw_rect(Rect2(42.0, 76.0, 276.0, 454.0), Color("#3d4036"), false, 2.0)
 	for i: int in range(7):
@@ -128,6 +135,10 @@ func _draw() -> void:
 		var x: float = float((i * 83 + 29) % 360)
 		var y: float = float((i * 137 + 41) % 520)
 		draw_rect(Rect2(x, y, 3.0, 2.0), Color(0.65, 0.58, 0.42, 0.25))
+	# debris
+	draw_rect(Rect2(52.0, 470.0, 14.0, 4.0), Color("#465044"))
+	draw_rect(Rect2(280.0, 462.0, 18.0, 5.0), Color("#465044"))
+	draw_rect(Rect2(120.0, 476.0, 22.0, 3.0), Color("#465044"))
 	draw_rect(Rect2(18.0, 480.0, 324.0, 50.0), Color("#5b513c"))
 	for layer: int in range(_barricade_level + 1):
 		var barricade_y: float = 516.0 - float(layer) * 9.0
