@@ -55,8 +55,9 @@ $env:GODOT_PATH = 'D:\Tools\Godot\Godot_v4.7.2-stable_win64.exe'
 
 ## MCP และ skills ที่คงไว้
 
-- `agent\skills\`, `.agents\skills\`, `.claude\`, `mcp-servers\` และ `opencode.json` เป็น tooling ไม่ใช่ game data
-- `opencode.json` ปัจจุบันมี path executable/uv ที่เฉพาะเครื่อง; เครื่องใหม่ต้องปรับ local path ของ Godot และ Pixel-art MCP ให้ตรงเครื่องก่อนใช้
+- `agent\skills\`, `.agents\skills\`, `.claude\`, `mcp-servers\pixelart-mcp\` และ `opencode.json` เป็น tooling; source ของ Pixel-art MCP อยู่ใน repository
+- `.venv\`, Python cache และ nested `.git` metadata ไม่ถูก commit; ติดตั้ง `uv` และเปิด workspace จาก root เพื่อให้ `opencode.json` รัน MCP
+- `opencode.json` ใช้ `npx`, `uv`, `uvx` และ `godot` จาก `PATH`; ติดตั้ง runtime เหล่านี้บนเครื่องใหม่ และเพิ่ม Godot 4.7.2 ลง `PATH` หากชื่อ executable ไม่ใช่ `godot`
 - อย่าลบหรือย้ายเครื่องมือเพื่อจัดโครงเกม; project asset และ source ใหม่ทั้งหมดอยู่ใต้ `projects\last-light\`
 - Pixel-art MCP ใช้เมื่อ art brief ผ่านการตรวจ; Godot MCP ใช้เปิด/ตรวจ scene; Blender MCP เป็นทางเลือก ไม่ใช่ dependency ของการรันเกม
 - generated art/music/SFX อยู่ใน project; ใช้ `scripts\generate_pixel_art.py` และ `scripts\generate_sfx.py` เมื่อต้องสร้างซ้ำ

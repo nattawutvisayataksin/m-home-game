@@ -1,0 +1,204 @@
+# pixelart-mcp
+
+A local MCP server for creating pixel art — no paid software, no external apps.
+Canvases are ordinary PNG files on disk, edited with Pillow. One canvas pixel is
+one image pixel; exports upscale with nearest-neighbor so pixels stay crisp.
+
+The server encodes pixel-art *craft* in its tools, so models — including small
+ones — don't have to be artists to produce good sprites: hue-shifted shading
+ramps, one-call auto-shading (sphere / cylinder / bevel), dithered gradients,
+symmetry mirroring, text-grid drawing and reading, curated palettes, and an
+on-demand technique guide (`pixel_guide`) with a staged workflow
+(size → palette → silhouette → flats → shading → details → finish).
+
+Sprites animate the same way: rig one drawing into jointed parts and the server
+generates the whole cycle from it — limbs swing from the hip and shoulder, knees
+and elbows fold, feet stay planted — so an 8-frame walk costs one drawing
+rather than eight.
+
+## Tools
+
+### Craft (color, shading, knowledge)
+
+| Tool | Purpose |
+|---|---|
+| `pixel_guide` | Technique playbook: workflow, sizing, color, shading, dithering, materials, characters, scenes, animation |
+| `pixel_build_ramp` | One base color → professional dark→light ramp (hue-shifted shadows/highlights) |
+| `pixel_shade_region` | Flat regions → shaded 3D form in one call: `form` (any organic silhouette), `sphere`, `cylinder_upright`, `cylinder_side`, `bevel` |
+| `pixel_draw_gradient` | Linear/radial gradients with ordered dithering (`bayer4`, `checker`); can target one flat color or fade out via `transparent` |
+| `pixel_paint_grid` | Draw from a text grid + character→color legend — the reliable way to place shapes |
+| `pixel_ascii_view` | Read the canvas back as a labeled character grid with exact coordinates |
+| `pixel_mirror_canvas` | Draw half a symmetric subject, mirror it across an axis |
+| `pixel_palettes` | Curated, pre-harmonized palettes (sweetie16, pico8, dawnbringer16, slso8, nes) |
+| `pixel_draw_polygon` | Angular silhouettes from a handful of vertices (hulls, roofs, blades, mountains) |
+| `pixel_draw_curve` | Quadratic/cubic Bézier strokes for organic contours (necks, tails, hair, flames) |
+| `pixel_apply_spaa` | Sub-pixel anti-aliasing: softens diagonal staircases; uses partial alpha on transparent backgrounds |
+| `pixel_batch` | Run many drawing operations on one canvas in a single call — the default way to draw |
+| `pixel_lint` | Score a piece for consistency (near-duplicate colors, stray specks, color budget, half-finished outline) and fix the safe ones |
+
+### Drawing
+
+| Tool | Purpose |
+|---|---|
+| `pixel_create_canvas` | New PNG canvas (up to 1024x1024), any background or transparent |
+| `pixel_draw_pixels` | Batch-set individual pixels, per-point colors supported |
+| `pixel_draw_line` / `pixel_draw_rect` / `pixel_draw_ellipse` | Shape primitives, filled or outlined |
+| `pixel_flood_fill` | Paint-bucket fill of a contiguous region |
+| `pixel_replace_color` | Exact-match palette swap across the canvas |
+| `pixel_apply_palette` | Snap all colors to the nearest entry of a given palette |
+| `pixel_outline_sprite` | Auto 1px outline: `solid` color or `selective` (darkened neighbor colors) |
+
+### Canvas surgery
+
+| Tool | Purpose |
+|---|---|
+| `pixel_copy_region` | Copy/composite a rect within or between canvases (`over` / `replace`) |
+| `pixel_shift_canvas` | Shift art by (dx, dy), optionally wrapping at edges |
+| `pixel_resize_canvas` | Grow/crop canvas bounds with a 9-way anchor, art unscaled |
+| `pixel_scale_canvas` | Nearest-neighbor rescale (squash-and-stretch friendly) |
+| `pixel_transform_canvas` | Flip / rotate the whole canvas |
+
+### Animation
+
+| Tool | Purpose |
+|---|---|
+| `pixel_define_rig` | Name the jointed parts of a drawn sprite, with a labelled preview showing joints and flagging art no part covers |
+| `pixel_render_motion` | Generate a whole animation loop from one rigged sprite |
+| `pixel_motions` | Built-in cycles: `walk`, `run`, `idle`, `bob`, `squash_land` |
+| `pixel_duplicate_canvas` | Start the next frame from the current one |
+| `pixel_onion_view` | Current frame over faded ghosts of up to 3 earlier frames |
+| `pixel_view_frames` | Filmstrip contact sheet of many frames in one image |
+| `pixel_export_gif` | Looping GIF with per-frame durations and ping-pong mode |
+| `pixel_export_spritesheet` | Pack frames into a grid PNG for game engines |
+| `pixel_slice_spritesheet` | Split an existing sheet back into frame canvases |
+
+#### Rigging: one drawing, N frames
+
+Nobody draws 240 frames. Draw the character **once**, name its parts, and let
+the server composite the cycle:
+
+```
+pixel_define_rig  →  pixel_render_motion motion='walk'  →  pixel_export_gif
+```
+
+Limbs **swing, they don't slide**. Every part has a pivot (its joint, by
+default the top-center of its box) and may name a `parent`: a shin hangs from
+its thigh, a forearm from its upper arm, so rotating the thigh carries the shin
+and the knee then folds by its own angle — forward kinematics. Leave a child's
+`at_x`/`at_y` unset and its joint snaps onto the parent's bottom row.
+
+Rotation is [RotSprite](https://en.wikipedia.org/wiki/Pixel-art_scaling_algorithms#RotSprite):
+the part is upscaled 8× with Scale2x and sampled back down at the new angle, so
+a rotated limb only ever reuses the drawn palette and keeps a clean edge. Walk
+and run use **ground lock**: each frame is shifted so its lowest pixel sits on
+the rest pose's floor, so planted feet never sink or float and the body bob
+falls out of the leg angles instead of being keyed by hand. Offsets round to
+whole pixels and the same rig always renders byte-identical frames.
+
+Draw the limbs in a **parts bin** beside the sprite rather than on the body. A
+part is a rectangle of source pixels, so limbs drawn on top of each other can
+never be boxed apart — but a true side view needs them to overlap once placed.
+`at_x`/`at_y` place a binned part on the body; `frame_width`/`frame_height`
+keep the bin out of the rendered frames. See
+[`benchmarks/examples/demo_walk.py`](benchmarks/examples/demo_walk.py) for a
+complete 8-frame walk with jointed knees and elbows from a single 48×48 sheet,
+and [`demo_dusk.py`](benchmarks/examples/demo_dusk.py) for a full 128×96 scene —
+parallax, a walking figure, a guttering lantern, flapping birds, a tumbling
+leaf and twinkling stars, all 24 frames of it composited from one 224×200
+sheet.
+
+Loops close seamlessly under two rules: layers that tile scroll **exactly one
+tile period** per loop, and sprites that don't tile **start and end
+off-frame**, so the wrap lands where nobody can see it.
+
+Motion channels: `angle` (degrees about the pivot; positive swings a hanging
+limb forward, toward +x), `dx`, `dy`, `squash` (interpolated), `flip`, `rot`
+(90° steps), `visible`, `use` (held — swap in a separately drawn pose). Read
+`pixel_guide topic='animation'` first.
+
+### Inspection & export
+
+| Tool | Purpose |
+|---|---|
+| `pixel_view_canvas` | Render the canvas as an image; `grid: true` adds labeled 8px coordinate gridlines |
+| `pixel_canvas_info` | Dimensions + palette report without rendering |
+| `pixel_export_png` | Nearest-neighbor upscaled PNG export |
+
+Mutating tools accept `preview: true` to return a rendered image of the result
+in the same call, and `preview_diff: true` to return only the region that
+changed (roughly 90% fewer image tokens while iterating on a detail; falls back
+to the full canvas when the change is large). Colors are hex (`#1a1c2c`,
+`#1a1c2cff`), CSS names (`crimson`), or `transparent` (which erases).
+
+## Design principle
+
+Describe shapes, don't enumerate pixels. Every tool exists so a model can
+express an artistic intent in one call rather than hundreds of coordinates: a
+mountain is 5 polygon vertices, a dragon's neck is one Bézier, a sky is one
+dithered gradient, a shaded sphere is one `pixel_shade_region` call. The staged
+workflow in `pixel_guide` (silhouette → flats → shading → details → finish)
+mirrors how pixel artists actually construct a piece, and `pixel_apply_spaa` is
+the hand-finishing pass at the end.
+
+## Token cost
+
+A finished piece is 20–30 operations. The dominant cost is not the tool schemas
+(~18k tokens, sent once and cached by the client) but the **round trips** — every
+separate call re-sends the whole conversation. So:
+
+- **`pixel_batch` is the default way to draw.** Send a whole stage as one call.
+  Operations run in order, share the batch's `path`, and produce output
+  byte-identical to running them individually.
+- **`preview_diff: true`** returns only the region a call changed, rendered
+  small — roughly 90% fewer image tokens while iterating on a detail.
+- **High-level tools over pixel lists.** One `pixel_draw_polygon` can place
+  thousands of pixels that would otherwise be enumerated by hand.
+- **`pixel_canvas_info`** takes `top_n` to trim its palette report.
+
+Client-side knobs matter too and are worth setting: prompt caching (tool schemas
+are a stable prefix, so they cache well) and per-session tool allow-listing.
+Deliberately *not* done here: compressing the tool descriptions. They carry the
+craft guidance — light direction, material recipes, when to dither — that lets
+smaller models draw well, so shrinking them trades quality for tokens the client
+is already caching.
+
+## Benchmarks
+
+[benchmarks/BENCHMARKS.md](benchmarks/BENCHMARKS.md) defines 20 standard
+subjects (detailed apple, glass bottle with water, medieval knight, Spider-Man,
+Iron Man in sunlight, campfire, dragon, ice cave, ...) with per-subject
+must-haves and a 7-dimension rubric — run them across models or server versions
+to measure whether a tooling change actually improves the art.
+`benchmarks/examples/` holds reference pieces drawn with the craft toolset, and
+`benchmarks/runs/` holds completed runs with the script for every piece.
+
+Two scripts make the comparison mechanical:
+
+- `bench_stills.py ROOT...` re-renders every scripted piece for each checkout
+  (in a scratch copy) and lints them all with one ruler, side by side;
+  `--out DIR` adds a visual comparison sheet.
+- `bench_motion.py SHEET FRAME_W [SOURCE]` checks an animation: torn joints,
+  palette leaks, floor jitter, and how evenly the motion flows frame to frame.
+
+Unit tests: `uv run python -m unittest`.
+
+## Setup
+
+Requires [uv](https://docs.astral.sh/uv/). Register with Claude Code:
+
+```bash
+claude mcp add pixelart -s user -- uv --directory /path/to/pixelart-mcp run -m pixelart_mcp
+```
+
+Or in any MCP client config:
+
+```json
+{
+  "mcpServers": {
+    "pixelart": {
+      "command": "uv",
+      "args": ["--directory", "/path/to/pixelart-mcp", "run", "-m", "pixelart_mcp"]
+    }
+  }
+}
+```

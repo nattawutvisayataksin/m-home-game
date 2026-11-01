@@ -10,8 +10,11 @@ projects/last-light/export_credentials.cfg
 __pycache__/
 *.pyc
 
-# Cloned MCP servers (ติดตั้งใหม่ได้ตาม ReadFirst.md — มี .git ของตัวเอง nested อยู่)
-mcp-servers/
+# MCP local environments and nested Git metadata
+mcp-servers/**/.venv/
+mcp-servers/**/__pycache__/
+mcp-servers/**/*.pyc
+mcp-servers/**/.git
 
 # Temp / system
 Thumbs.db
