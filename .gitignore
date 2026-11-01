@@ -1,0 +1,23 @@
+# Godot
+.godot/
+**/.godot/
+*.import
+projects/last-light/build/
+projects/last-light/export_credentials.cfg
+
+# Python / uv
+.venv/
+__pycache__/
+*.pyc
+
+# Cloned MCP servers (ติดตั้งใหม่ได้ตาม ReadFirst.md — มี .git ของตัวเอง nested อยู่)
+mcp-servers/
+
+# Temp / system
+Thumbs.db
+*.blend1
+*.keystore
+*.jks
+*.p12
+.env
+.env.*

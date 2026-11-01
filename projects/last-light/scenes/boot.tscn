@@ -1,0 +1,51 @@
+[gd_scene format=3]
+
+[node name="Boot" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Background" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.043, 0.063, 0.105, 1)
+
+[node name="Center" type="CenterContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="Stack" type="VBoxContainer" parent="Center"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="Title" type="Label" parent="Center/Stack"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.329, 0.902, 0.878, 1)
+theme_override_font_sizes/font_size = 30
+text = "LAST LIGHT"
+horizontal_alignment = 1
+
+[node name="Subtitle" type="Label" parent="Center/Stack"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.78, 0.84, 0.91, 1)
+text = "VERTICAL SURVIVAL SHOOTER"
+horizontal_alignment = 1
+
+[node name="Status" type="Label" parent="Center/Stack"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.55, 0.64, 0.75, 1)
+text = "PRE-PRODUCTION SCAFFOLD"
+horizontal_alignment = 1
