@@ -14,11 +14,13 @@ signal move_axis_changed(value: float)
 var _integrity_label: Label
 var _resonance_label: Label
 var _wave_label: Label
+var _kills_label: Label
 var _time_label: Label
 var _weapon_label: Label
 var _pulse_button: Button
 var _overclock_button: Button
 var _boss_health_bar: ProgressBar
+var _resonance_bar: ProgressBar
 var _pause_button: Button
 var _resume_button: Button
 var _restart_button: Button
@@ -64,8 +66,9 @@ func _ready() -> void:
 	_integrity_label = _make_label("BEACON 5")
 	_resonance_label = _make_label("RESONANCE 0%")
 	_wave_label = _make_label("WAVE 1")
+	_kills_label = _make_label("KILLS 0")
 	_time_label = _make_label("05:00")
-	for label: Label in [_integrity_label, _resonance_label, _wave_label, _time_label]:
+	for label: Label in [_integrity_label, _resonance_label, _wave_label, _kills_label, _time_label]:
 		label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		top_bar.add_child(label)
 
@@ -84,12 +87,22 @@ func _ready() -> void:
 	_pause_button.pressed.connect(func() -> void: pause_pressed.emit())
 	weapon_row.add_child(_pause_button)
 
+	_resonance_bar = ProgressBar.new()
+	_resonance_bar.set_anchors_preset(Control.PRESET_TOP_WIDE)
+	_resonance_bar.offset_left = 12.0
+	_resonance_bar.offset_top = 72.0
+	_resonance_bar.offset_right = -12.0
+	_resonance_bar.offset_bottom = 78.0
+	_resonance_bar.max_value = 100.0
+	_resonance_bar.show_percentage = false
+	_safe_root.add_child(_resonance_bar)
+
 	_boss_health_bar = ProgressBar.new()
 	_boss_health_bar.set_anchors_preset(Control.PRESET_TOP_WIDE)
 	_boss_health_bar.offset_left = 12.0
-	_boss_health_bar.offset_top = 74.0
+	_boss_health_bar.offset_top = 80.0
 	_boss_health_bar.offset_right = -12.0
-	_boss_health_bar.offset_bottom = 88.0
+	_boss_health_bar.offset_bottom = 90.0
 	_boss_health_bar.show_percentage = false
 	_safe_root.add_child(_boss_health_bar)
 	_boss_health_bar.hide()
@@ -158,12 +171,21 @@ func _unhandled_input(event: InputEvent) -> void:
 		pause_pressed.emit()
 
 
+func update_kills(kills: int) -> void:
+	_kills_label.text = tr("KILLS_LABEL") % kills
+
+
 func update_status(integrity: int, resonance: int, weapon_level: int, wave: int, can_upgrade: bool, time_remaining: int) -> void:
 	_integrity_label.text = tr("BEACON_LABEL") % integrity
 	_resonance_label.text = tr("RESONANCE_LABEL") % resonance
 	_wave_label.text = tr("WAVE_LABEL") % wave
 	_time_label.text = "%02d:%02d" % [time_remaining / 60, time_remaining % 60]
 	_weapon_label.text = tr("WEAPON_LABEL") % weapon_level
+	_resonance_bar.value = float(resonance)
+	if resonance >= 100:
+		_resonance_bar.modulate = Color(1.0, 0.95, 0.5)
+	else:
+		_resonance_bar.modulate = Color(1.0, 1.0, 1.0)
 	_pulse_button.disabled = resonance < 100
 	_overclock_button.disabled = resonance < 100 or not can_upgrade
 
@@ -185,13 +207,14 @@ func update_boss_health(current: int, maximum: int) -> void:
 		_boss_health_bar.hide()
 
 
-func show_result(won: bool, salvage_earned: int = 0, profile: Dictionary = {}) -> void:
+func show_result(won: bool, salvage_earned: int = 0, profile: Dictionary = {}, kills: int = 0, breaches: int = 0, wave: int = 0, duration_seconds: int = 0) -> void:
 	_result_visible = true
 	_overlay.show()
 	_overlay_title.text = tr("MISSION_COMPLETE") if won else tr("BEACON_LOST")
-	_result_detail.text = "%s\n%s" % [
+	_result_detail.text = "%s\n%s\n%s" % [
 		tr("SALVAGE_EARNED") % salvage_earned,
 		tr("SALVAGE_TOTAL") % int(profile.get("salvage", 0)),
+		"KILLS %d   BREACHES %d   WAVE %d   TIME %02d:%02d" % [kills, breaches, wave, duration_seconds / 60, duration_seconds % 60],
 	]
 	_resume_button.hide()
 	_pulse_button.disabled = true

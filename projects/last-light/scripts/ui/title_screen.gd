@@ -16,7 +16,10 @@ var _profile_summary: Label
 var _volume_slider: HSlider
 var _language_option: OptionButton
 var _reduce_flash: CheckButton
+var _reduce_motion: CheckButton
 var _large_text: CheckButton
+var _sfx_slider: HSlider
+var _music_slider: HSlider
 var _settings := ConfigFile.new()
 
 
@@ -33,6 +36,23 @@ func _build_screen() -> void:
 	background.color = Color("#202722")
 	background.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(background)
+
+	var dust := CPUParticles2D.new()
+	dust.amount = 18
+	dust.lifetime = 8.0
+	dust.preprocess = 4.0
+	dust.emission_shape = CPUParticles2D.EMISSION_SHAPE_RECTANGLE
+	dust.emission_rect_extents = Vector2(180.0, 320.0)
+	dust.direction = Vector2(0.0, -1.0)
+	dust.spread = 30.0
+	dust.initial_velocity_min = 4.0
+	dust.initial_velocity_max = 12.0
+	dust.gravity = Vector2(0.0, -1.0)
+	dust.scale_amount_min = 0.5
+	dust.scale_amount_max = 1.2
+	dust.color = Color(0.85, 0.78, 0.55, 0.12)
+	dust.position = Vector2(180.0, 320.0)
+	add_child(dust)
 
 	_safe_root = MarginContainer.new()
 	_safe_root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -123,6 +143,28 @@ func _build_screen() -> void:
 	_volume_slider.value_changed.connect(_on_volume_changed)
 	settings_stack.add_child(_volume_slider)
 
+	var sfx_label := Label.new()
+	sfx_label.text = tr("SFX_VOLUME")
+	settings_stack.add_child(sfx_label)
+	_sfx_slider = HSlider.new()
+	_sfx_slider.min_value = -30.0
+	_sfx_slider.max_value = 0.0
+	_sfx_slider.step = 1.0
+	_sfx_slider.value = float(_settings.get_value("audio", "sfx_db", 0.0))
+	_sfx_slider.value_changed.connect(_on_sfx_volume_changed)
+	settings_stack.add_child(_sfx_slider)
+
+	var music_label := Label.new()
+	music_label.text = tr("MUSIC_VOLUME")
+	settings_stack.add_child(music_label)
+	_music_slider = HSlider.new()
+	_music_slider.min_value = -30.0
+	_music_slider.max_value = 0.0
+	_music_slider.step = 1.0
+	_music_slider.value = float(_settings.get_value("audio", "music_db", -12.0))
+	_music_slider.value_changed.connect(_on_music_volume_changed)
+	settings_stack.add_child(_music_slider)
+
 	var language_row := HBoxContainer.new()
 	var language_label := Label.new()
 	language_label.text = tr("LANGUAGE")
@@ -141,6 +183,12 @@ func _build_screen() -> void:
 	_reduce_flash.button_pressed = bool(_settings.get_value("accessibility", "reduce_flashes", false))
 	_reduce_flash.toggled.connect(_on_reduce_flashes_changed)
 	settings_stack.add_child(_reduce_flash)
+
+	_reduce_motion = CheckButton.new()
+	_reduce_motion.text = tr("REDUCE_MOTION")
+	_reduce_motion.button_pressed = bool(_settings.get_value("accessibility", "reduce_motion", false))
+	_reduce_motion.toggled.connect(_on_reduce_motion_changed)
+	settings_stack.add_child(_reduce_motion)
 
 	_large_text = CheckButton.new()
 	_large_text.text = tr("LARGE_TEXT")
@@ -190,7 +238,7 @@ func _refresh_barricade_button(_profile: Dictionary = {}) -> void:
 		return
 	var progression_service: Node = get_node("/root/ProgressionService")
 	var profile: Dictionary = progression_service.call("get_profile")
-	_profile_summary.text = tr("PROFILE_SUMMARY") % [profile["salvage"], profile["victories"]]
+	_profile_summary.text = tr("PROFILE_SUMMARY") % [profile["salvage"], profile["victories"]] + "\n" + tr("BEST_WAVE_LABEL") % int(profile.get("best_wave", 1))
 	var level: int = int(profile.get("barricade_level", 0))
 	var cost: int = int(progression_service.call("get_barricade_upgrade_cost"))
 	if cost == 0:
@@ -227,6 +275,27 @@ func _on_volume_changed(value: float) -> void:
 
 func _on_reduce_flashes_changed(enabled: bool) -> void:
 	_settings.set_value("accessibility", "reduce_flashes", enabled)
+	_save_settings()
+
+
+func _on_reduce_motion_changed(enabled: bool) -> void:
+	_settings.set_value("accessibility", "reduce_motion", enabled)
+	_save_settings()
+
+
+func _on_sfx_volume_changed(value: float) -> void:
+	var idx: int = AudioServer.get_bus_index("SFX")
+	if idx >= 0:
+		AudioServer.set_bus_volume_db(idx, value)
+	_settings.set_value("audio", "sfx_db", value)
+	_save_settings()
+
+
+func _on_music_volume_changed(value: float) -> void:
+	var idx: int = AudioServer.get_bus_index("Music")
+	if idx >= 0:
+		AudioServer.set_bus_volume_db(idx, value)
+	_settings.set_value("audio", "music_db", value)
 	_save_settings()
 
 
@@ -281,6 +350,14 @@ func _load_settings() -> void:
 		push_warning("Could not load settings: %s" % error_string(error))
 	var master_db: float = float(_settings.get_value("audio", "master_db", 0.0))
 	AudioServer.set_bus_volume_db(0, clampf(master_db, -30.0, 0.0))
+	var sfx_db: float = float(_settings.get_value("audio", "sfx_db", 0.0))
+	var sfx_idx: int = AudioServer.get_bus_index("SFX")
+	if sfx_idx >= 0:
+		AudioServer.set_bus_volume_db(sfx_idx, clampf(sfx_db, -30.0, 0.0))
+	var music_db: float = float(_settings.get_value("audio", "music_db", -12.0))
+	var music_idx: int = AudioServer.get_bus_index("Music")
+	if music_idx >= 0:
+		AudioServer.set_bus_volume_db(music_idx, clampf(music_db, -30.0, 0.0))
 	TranslationServer.set_locale(str(_settings.get_value("localization", "locale", "en")))
 
 

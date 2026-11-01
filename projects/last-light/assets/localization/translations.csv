@@ -8,7 +8,10 @@ POWER_HELP,EMERGENCY BLAST  SPACE     WEAPON UPGRADE  E,ระเบิดฉุ
 AUTOFIRE_HELP,Auto-fire is enabled,ปืนยิงอัตโนมัติ
 TITLE_SUBTITLE,HOLD THE LINE,ปกป้องแนวสุดท้าย
 MASTER_VOLUME,Master volume,ระดับเสียงหลัก
+SFX_VOLUME,SFX volume,ระดับเสียงเอฟเฟกต์
+MUSIC_VOLUME,Music volume,ระดับเสียงเพลง
 REDUCE_FLASHES,Reduce screen flashes,ลดแสงวาบบนหน้าจอ
+REDUCE_MOTION,Reduce motion,ลดการสั่นไหว
 LARGE_TEXT,Large text,ข้อความขนาดใหญ่
 LANGUAGE,Language,ภาษา
 BACK,BACK,กลับ
@@ -27,6 +30,7 @@ BEACON_LABEL,SHELTER %d,ที่พักพิง %d
 RESONANCE_LABEL,PARTS %d%%,อะไหล่ %d%%
 WAVE_LABEL,WAVE %d,ระลอก %d
 WEAPON_LABEL,WEAPON LV %d,อาวุธ ระดับ %d
+KILLS_LABEL,KILLS %d,กำจัด %d
 PULSE_BUTTON,EMERGENCY BLAST  [SPACE],ระเบิดฉุกเฉิน  [SPACE]
 OVERCLOCK_BUTTON,UPGRADE WEAPON  [E],อัปเกรดอาวุธ  [E]
 RESUME,RESUME,เล่นต่อ
@@ -38,6 +42,7 @@ BEACON_LOST,SHELTER LOST,Shelter ถูกทำลาย
 SALVAGE_EARNED,+%d SALVAGE,ได้รับเศษซาก +%d
 SALVAGE_TOTAL,TOTAL SALVAGE %d,เศษซากทั้งหมด %d
 RECORDS,RUNS %d   VICTORIES %d   BEST WAVE %d,เล่น %d ครั้ง   ชนะ %d ครั้ง   ระลอกสูงสุด %d
+BEST_WAVE_LABEL,BEST WAVE %d,ระลอกสูงสุด %d
 UI_FONT_SCALE,UI text size,ขนาดข้อความ UI
 NORMAL_TEXT,Normal,ปกติ
 LARGE_TEXT_OPTION,Large,ใหญ่

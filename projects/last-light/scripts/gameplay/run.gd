@@ -42,11 +42,13 @@ var _warden: DrifterEnemy
 var _spawn_index: int = 0
 var _last_displayed_second: int = -1
 var _reduce_flashes: bool = false
+var _reduce_motion: bool = false
 var _barricade_level: int = 0
 var _save_error_message: String = ""
 var _rng := RandomNumberGenerator.new()
 var _shake_time: float = 0.0
 var _shake_strength: float = 0.0
+var _low_health_warned: bool = false
 
 
 func _ready() -> void:
@@ -108,6 +110,11 @@ func _unhandled_input(event: InputEvent) -> void:
 		activate_pulse()
 	elif event.is_action_pressed("upgrade_weapon"):
 		upgrade_weapon()
+
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_APPLICATION_FOCUS_OUT and not is_over and not is_paused:
+		_pause_run()
 
 
 func _draw() -> void:
@@ -195,6 +202,28 @@ func _create_world_containers() -> void:
 	_effects_container = Node2D.new()
 	_effects_container.name = "Effects"
 	add_child(_effects_container)
+	_create_ambient_dust()
+
+
+func _create_ambient_dust() -> void:
+	var dust := CPUParticles2D.new()
+	dust.name = "AmbientDust"
+	dust.amount = 26
+	dust.lifetime = 6.0
+	dust.preprocess = 3.0
+	dust.emission_shape = CPUParticles2D.EMISSION_SHAPE_RECTANGLE
+	dust.emission_rect_extents = Vector2(140.0, 200.0)
+	dust.direction = Vector2(0.0, -1.0)
+	dust.spread = 25.0
+	dust.initial_velocity_min = 6.0
+	dust.initial_velocity_max = 18.0
+	dust.gravity = Vector2(0.0, -2.0)
+	dust.scale_amount_min = 0.6
+	dust.scale_amount_max = 1.4
+	dust.color = Color(0.65, 0.58, 0.42, 0.18)
+	dust.z_index = -1
+	dust.position = Vector2(180.0, 320.0)
+	add_child(dust)
 
 
 func _create_audio() -> void:
@@ -324,6 +353,8 @@ func _spawn_warden() -> void:
 	_warden.boss_defeated.connect(_on_warden_defeated)
 	_warden.health_changed.connect(_hud.update_boss_health)
 	_enemy_container.add_child(_warden)
+	_audio.play_sfx("boss")
+	_audio.intensify()
 	_hud.show_boss_health(_warden.max_health)
 
 
@@ -341,6 +372,7 @@ func _on_enemy_defeated(charge_reward: int) -> void:
 	if is_over:
 		return
 	enemies_defeated += 1
+	_hud.update_kills(enemies_defeated)
 	var previous_resonance: int = resonance
 	resonance = mini(resonance + charge_reward, RESONANCE_REQUIRED)
 	if previous_resonance < RESONANCE_REQUIRED and resonance >= RESONANCE_REQUIRED:
@@ -354,6 +386,10 @@ func _on_warden_defeated() -> void:
 	if is_over:
 		return
 	_spawn_pulse_effect()
+	if _warden != null:
+		_spawn_effect(_warden.global_position, 5)
+		_spawn_effect(_warden.global_position, 3)
+	_trigger_shake(0.5)
 	_end_run(true)
 
 
@@ -366,6 +402,10 @@ func _on_enemy_breached(integrity_damage: int) -> void:
 	_trigger_shake(0.35)
 	integrity = maxi(integrity - integrity_damage, 0)
 	integrity_changed.emit(integrity)
+	if integrity <= 2 and not _low_health_warned and integrity > 0:
+		_low_health_warned = true
+		_audio.play_sfx("warning")
+		_trigger_shake(0.2)
 	_publish_status()
 	if integrity <= 0:
 		_end_run(false)
@@ -397,8 +437,16 @@ func _spawn_hit_effect(at: Vector2) -> void:
 	_spawn_effect(at, 0)
 
 
-func _on_enemy_destroyed(at: Vector2) -> void:
-	_spawn_effect(at, 3)
+func _on_enemy_destroyed(at: Vector2, color: Color) -> void:
+	_audio.play_sfx("death")
+	if _reduce_flashes:
+		return
+	var effect := Node2D.new()
+	effect.set_script(EFFECT_SCRIPT)
+	effect.global_position = at
+	effect.set("effect_kind", 3)
+	effect.set_meta("burst_color", color)
+	_effects_container.add_child(effect)
 
 
 func _spawn_muzzle_flash(at: Vector2) -> void:
@@ -414,7 +462,7 @@ func _spawn_breach_flash() -> void:
 
 
 func _trigger_shake(duration: float) -> void:
-	if _reduce_flashes:
+	if _reduce_flashes or _reduce_motion:
 		return
 	_shake_time = duration
 	_shake_strength = 6.0
@@ -486,6 +534,7 @@ func _load_accessibility_settings() -> void:
 	if error != OK and error != ERR_FILE_NOT_FOUND:
 		push_warning("Could not load accessibility settings: %s" % error_string(error))
 	_reduce_flashes = bool(settings.get_value("accessibility", "reduce_flashes", false))
+	_reduce_motion = bool(settings.get_value("accessibility", "reduce_motion", false))
 
 
 func _end_run(won: bool) -> void:
@@ -514,7 +563,7 @@ func _end_run(won: bool) -> void:
 		wave,
 		int(elapsed_seconds)
 	))
-	_hud.show_result(won, salvage_earned, progression_service.call("get_profile"))
+	_hud.show_result(won, salvage_earned, progression_service.call("get_profile"), enemies_defeated, breaches, wave, int(elapsed_seconds))
 	if not _save_error_message.is_empty():
 		_hud.show_save_error(_save_error_message)
 	run_ended.emit()

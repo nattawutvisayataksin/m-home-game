@@ -45,13 +45,14 @@ func _draw() -> void:
 		draw_line(Vector2(-32.0, 0.0), Vector2(32.0, 0.0), Color(1.0, 0.35, 0.28, alpha), 3.0)
 	elif effect_kind == 3:
 		# death burst
+		var burst_color: Color = get_meta("burst_color", Color(1.0, 0.55, 0.3))
 		var radius: float = lerpf(4.0, 34.0, progress)
-		draw_arc(Vector2.ZERO, radius, 0.0, TAU, 16, Color(1.0, 0.55, 0.3, fade * 0.9), 2.0)
+		draw_arc(Vector2.ZERO, radius, 0.0, TAU, 16, Color(burst_color.r, burst_color.g, burst_color.b, fade * 0.9), 2.0)
 		for i in range(6):
 			var angle: float = TAU * float(i) / 6.0
 			var dist: float = lerpf(0.0, 26.0, progress)
 			var p: Vector2 = Vector2(cos(angle), sin(angle)) * dist
-			draw_circle(p, 2.0 * fade, Color(1.0, 0.85, 0.5, fade))
+			draw_circle(p, 2.0 * fade, Color(minf(burst_color.r + 0.3, 1.0), minf(burst_color.g + 0.3, 1.0), minf(burst_color.b + 0.3, 1.0), fade))
 	elif effect_kind == 4:
 		# muzzle flash
 		var radius: float = lerpf(2.0, 9.0, progress)

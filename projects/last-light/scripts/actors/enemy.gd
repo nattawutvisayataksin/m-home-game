@@ -2,7 +2,7 @@ extends Area2D
 class_name DrifterEnemy
 
 signal defeated(charge_reward: int)
-signal destroyed(position: Vector2)
+signal destroyed(position: Vector2, color: Color)
 signal breached(integrity_damage: int)
 signal boss_warning(target_x: float)
 signal boss_attack(target_x: float)
@@ -32,6 +32,7 @@ var _dash_timer: float = 0.0
 var _dash_active: bool = false
 var _warden_attack_timer: float = 7.0
 var _warden_warning: bool = false
+var _warden_phase2: bool = false
 var _warning_x: float = 180.0
 var _resonance_reward: int = 25
 
@@ -89,6 +90,7 @@ func _physics_process(delta: float) -> void:
 		_process_dasher(delta)
 	else:
 		global_position.y += descent_speed * delta
+		global_position.x = clampf(_origin_x + sin(_elapsed * 2.4) * 3.0, _horizontal_bounds.x, _horizontal_bounds.y)
 	if global_position.y >= _breach_y:
 		_active = false
 		breached.emit(integrity_damage)
@@ -116,19 +118,20 @@ func _process_dasher(delta: float) -> void:
 
 
 func _process_warden(delta: float) -> void:
-	global_position.x = 180.0 + sin(_elapsed * 0.72) * 76.0
-	global_position.y = 170.0 + sin(_elapsed * 1.1) * 10.0
+	var speed_mul: float = 1.6 if _warden_phase2 else 1.0
+	global_position.x = 180.0 + sin(_elapsed * 0.72 * speed_mul) * (76.0 if not _warden_phase2 else 96.0)
+	global_position.y = 170.0 + sin(_elapsed * 1.1 * speed_mul) * 10.0
 	_warden_attack_timer -= delta
 	if _warden_attack_timer <= 0.0:
 		if not _warden_warning:
 			_warden_warning = true
 			_warning_x = 180.0
 			boss_warning.emit(_warning_x)
-			_warden_attack_timer = 1.0
+			_warden_attack_timer = 0.7 if _warden_phase2 else 1.0
 		else:
 			_warden_warning = false
 			boss_attack.emit(_warning_x)
-			_warden_attack_timer = 6.0
+			_warden_attack_timer = 4.0 if _warden_phase2 else 6.0
 	_telegraph.visible = _warden_warning
 	if _warden_warning:
 		_telegraph.position.x = _warning_x - global_position.x
@@ -140,11 +143,15 @@ func take_damage(amount: int, grant_charge: bool = true) -> bool:
 	health = maxi(health - amount, 0)
 	health_changed.emit(health, max_health)
 	struck.emit(global_position)
+	if archetype == Archetype.WARDEN and not _warden_phase2 and health <= maxi(max_health / 2, 1):
+		_warden_phase2 = true
+		_core.color = Color("#ff2a2a")
+		_telegraph.default_color = Color("#ff4f4f")
 	_flash_hit()
 	if health == 0:
 		_active = false
 		defeated.emit(_resonance_reward if grant_charge else 0)
-		destroyed.emit(global_position)
+		destroyed.emit(global_position, _core.color)
 		if archetype == Archetype.WARDEN:
 			boss_defeated.emit()
 		queue_free()

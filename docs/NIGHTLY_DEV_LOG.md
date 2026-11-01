@@ -39,8 +39,34 @@ gameplay rules. All automated tests remain green.
   without the Android SDK) no longer aborts scripts that otherwise exit 0. Explicit
   exit-code checks are retained.
 
+## Batch 2 (continued overnight)
+
+### Additional game feel & polish
+- Projectile trail (fading cyan dots) on every shot.
+- Ambient dust particles on run scene and title screen.
+- Parts resonance meter (progress bar) in HUD, highlights when full.
+- Boss phase 2: faster movement + faster attacks + red core when below 50% health.
+- Drifter idle sway; colored death bursts (per-enemy color).
+- Warden defeat celebration: pulse + burst + shake.
+- Low-health Shelter warning (SFX + shake) when integrity <= 2.
+- Focus-loss auto-pause (window blur).
+- Result screen now shows kills / breaches / wave / time.
+- Title profile summary shows best wave.
+
+### Audio
+- New SFX: `death`, `boss` (regenerated via generate_sfx.py).
+- Audio director: `intensify()` raises music volume on boss spawn; plays boss/death SFX.
+- Settings: separate SFX and Music volume sliders; persisted.
+
+### Accessibility
+- New `reduce_motion` setting; gates screen shake.
+- Master/SFX/Music volume all persisted and applied on load.
+
+### Localization
+- Added keys: SFX_VOLUME, MUSIC_VOLUME, REDUCE_MOTION, KILLS_LABEL, BEST_WAVE_LABEL.
+
 ## Verification
-- `.\scripts\dev.ps1 -Action check` → 0 errors, 0 warnings (79 files).
+- `.\scripts\dev.ps1 -Action check` → 0 errors, 0 warnings (81 files).
 - `.\scripts\dev.ps1 -Action import` → exit 0.
 - `.\scripts\test.ps1` → Phase 1 smoke, Phase 3 save, Phase 4 stress all PASSED.
 

@@ -9,6 +9,8 @@ const SOUND_PATHS: Dictionary = {
 	"pulse": "res://assets/audio/sfx/pulse.wav",
 	"warning": "res://assets/audio/sfx/warning.wav",
 	"breach": "res://assets/audio/sfx/breach.wav",
+	"death": "res://assets/audio/sfx/death.wav",
+	"boss": "res://assets/audio/sfx/boss.wav",
 }
 const MUSIC_PATH: String = "res://assets/audio/music/beacon_ambient.wav"
 
@@ -51,6 +53,11 @@ func play_sfx(key: String) -> void:
 	_next_player = (_next_player + 1) % _players.size()
 	player.stream = _streams[key]
 	player.play()
+
+
+func intensify() -> void:
+	if is_instance_valid(_music_player):
+		_music_player.volume_db = -6.0
 
 
 func _start_ambient_music() -> void:
