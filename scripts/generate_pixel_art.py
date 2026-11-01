@@ -78,20 +78,32 @@ def _chunk(kind: bytes, payload: bytes) -> bytes:
 
 def make_survivor() -> Canvas:
     image = Canvas(32, 32)
-    image.rect(11, 3, 21, 10, "H")
-    image.rect(10, 2, 22, 6, "G")
-    image.rect(12, 6, 14, 8, "W")
-    image.rect(18, 6, 20, 8, "W")
-    image.polygon([(9, 10), (23, 10), (27, 21), (22, 25), (10, 25), (5, 21)], "G")
-    image.rect(7, 12, 10, 20, "C")
-    image.rect(22, 12, 25, 20, "C")
-    image.rect(11, 24, 15, 30, "S")
-    image.rect(17, 24, 21, 30, "S")
-    image.rect(11, 28, 15, 31, "O")
-    image.rect(17, 28, 21, 31, "O")
-    image.rect(25, 11, 28, 24, "M")
-    image.rect(24, 8, 29, 13, "A")
+    # helmet
+    image.rect(10, 2, 22, 7, "G")
+    image.rect(11, 1, 21, 3, "O")
+    image.rect(12, 4, 14, 6, "W")
+    image.rect(18, 4, 20, 6, "W")
+    image.rect(10, 7, 22, 9, "M")
+    # face/neck
+    image.rect(12, 8, 20, 11, "H")
+    # torso vest
+    image.polygon([(9, 11), (23, 11), (26, 22), (22, 26), (10, 26), (6, 22)], "G")
+    image.rect(11, 13, 21, 16, "C")
+    image.rect(13, 17, 15, 19, "A")
+    image.rect(17, 17, 19, 19, "A")
+    # arms
+    image.rect(6, 13, 9, 21, "C")
+    image.rect(23, 13, 26, 21, "C")
+    # legs/boots
+    image.rect(11, 25, 15, 30, "S")
+    image.rect(17, 25, 21, 30, "S")
+    image.rect(10, 28, 16, 31, "O")
+    image.rect(16, 28, 22, 31, "O")
+    # rifle
+    image.rect(25, 10, 29, 23, "M")
+    image.rect(24, 8, 30, 12, "A")
     image.rect(26, 5, 28, 9, "O")
+    image.rect(23, 13, 25, 15, "O")
     return image
 
 
@@ -102,11 +114,14 @@ def make_drifter() -> Canvas:
     image.rect(25, 14, 30, 19, "I")
     image.rect(10, 10, 13, 13, "O")
     image.rect(20, 10, 23, 13, "O")
+    image.rect(11, 11, 12, 12, "R")
+    image.rect(21, 11, 22, 12, "R")
     image.rect(12, 19, 21, 22, "R")
     image.rect(14, 19, 16, 22, "W")
     image.rect(18, 19, 20, 22, "W")
     image.rect(11, 26, 14, 30, "O")
     image.rect(20, 25, 23, 29, "O")
+    image.rect(13, 23, 19, 25, "O")
     return image
 
 
@@ -117,7 +132,10 @@ def make_skitter() -> Canvas:
     image.polygon([(22, 10), (30, 5), (27, 15), (31, 21), (22, 20)], "G")
     image.rect(13, 9, 16, 12, "O")
     image.rect(19, 9, 22, 12, "O")
+    image.rect(14, 10, 15, 11, "R")
+    image.rect(20, 10, 21, 11, "R")
     image.rect(15, 15, 20, 18, "R")
+    image.rect(16, 16, 19, 17, "W")
     image.rect(8, 21, 12, 29, "O")
     image.rect(21, 21, 25, 29, "O")
     image.rect(11, 23, 15, 26, "S")
@@ -130,10 +148,12 @@ def make_dasher() -> Canvas:
     image.polygon([(5, 9), (15, 4), (24, 7), (30, 15), (25, 22), (17, 21), (12, 28), (5, 25), (2, 17)], "S")
     image.rect(20, 10, 26, 15, "I")
     image.rect(23, 11, 25, 13, "R")
+    image.rect(22, 12, 24, 14, "W")
     image.polygon([(4, 22), (1, 29), (12, 26), (16, 20)], "O")
     image.rect(10, 24, 13, 30, "O")
     image.rect(24, 19, 28, 24, "O")
     image.rect(16, 12, 19, 17, "R")
+    image.rect(17, 13, 18, 16, "W")
     return image
 
 
@@ -145,11 +165,14 @@ def make_warden() -> Canvas:
     image.rect(39, 22, 46, 28, "O")
     image.rect(20, 23, 23, 26, "R")
     image.rect(41, 23, 44, 26, "R")
+    image.rect(21, 24, 22, 25, "W")
+    image.rect(42, 24, 43, 25, "W")
     image.polygon([(23, 34), (41, 34), (37, 43), (27, 43)], "R")
     image.rect(27, 35, 30, 40, "W")
     image.rect(34, 35, 37, 40, "W")
     image.polygon([(5, 23), (0, 17), (9, 21), (14, 30), (6, 34)], "I")
     image.polygon([(59, 23), (64, 17), (55, 21), (50, 30), (58, 34)], "I")
+    image.rect(29, 44, 35, 48, "R")
     return image
 
 

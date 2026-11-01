@@ -2,6 +2,7 @@ extends Area2D
 class_name DrifterEnemy
 
 signal defeated(charge_reward: int)
+signal destroyed(position: Vector2)
 signal breached(integrity_damage: int)
 signal boss_warning(target_x: float)
 signal boss_attack(target_x: float)
@@ -139,14 +140,25 @@ func take_damage(amount: int, grant_charge: bool = true) -> bool:
 	health = maxi(health - amount, 0)
 	health_changed.emit(health, max_health)
 	struck.emit(global_position)
+	_flash_hit()
 	if health == 0:
 		_active = false
 		defeated.emit(_resonance_reward if grant_charge else 0)
+		destroyed.emit(global_position)
 		if archetype == Archetype.WARDEN:
 			boss_defeated.emit()
 		queue_free()
 		return true
 	return false
+
+
+func _flash_hit() -> void:
+	if not is_node_ready():
+		return
+	if _sprite != null:
+		var tween: Tween = create_tween()
+		tween.tween_property(_sprite, "modulate", Color(2.4, 2.4, 2.4, 1.0), 0.04)
+		tween.tween_property(_sprite, "modulate", Color(1.0, 1.0, 1.0, 1.0), 0.12)
 
 
 func is_boss() -> bool:

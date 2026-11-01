@@ -5,7 +5,7 @@ param(
     [string]$Mode = 'release'
 )
 
-$ErrorActionPreference = 'Stop'
+$ErrorActionPreference = 'Continue'
 $root = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
 $project = Join-Path $root 'projects\last-light'
 $godot = $env:GODOT_PATH

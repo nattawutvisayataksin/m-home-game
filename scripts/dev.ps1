@@ -3,7 +3,7 @@ param(
     [string]$Action = 'run'
 )
 
-$ErrorActionPreference = 'Stop'
+$ErrorActionPreference = 'Continue'
 $root = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
 $project = Join-Path $root 'projects\last-light'
 

@@ -45,6 +45,8 @@ var _reduce_flashes: bool = false
 var _barricade_level: int = 0
 var _save_error_message: String = ""
 var _rng := RandomNumberGenerator.new()
+var _shake_time: float = 0.0
+var _shake_strength: float = 0.0
 
 
 func _ready() -> void:
@@ -64,6 +66,24 @@ func _ready() -> void:
 
 
 func _process(delta: float) -> void:
+	if _shake_time > 0.0:
+		_shake_time = maxf(_shake_time - delta, 0.0)
+		var amt: float = _shake_strength * (_shake_time / 0.35)
+		var ox: float = _rng.randf_range(-amt, amt)
+		var oy: float = _rng.randf_range(-amt, amt)
+		if _enemy_container != null:
+			_enemy_container.position = Vector2(ox, oy)
+		if _projectile_container != null:
+			_projectile_container.position = Vector2(ox * 0.6, oy * 0.6)
+		if _effects_container != null:
+			_effects_container.position = Vector2(ox * 0.8, oy * 0.8)
+		if _shake_time <= 0.0:
+			if _enemy_container != null:
+				_enemy_container.position = Vector2.ZERO
+			if _projectile_container != null:
+				_projectile_container.position = Vector2.ZERO
+			if _effects_container != null:
+				_effects_container.position = Vector2.ZERO
 	if is_over or is_paused:
 		return
 	elapsed_seconds += delta
@@ -136,6 +156,7 @@ func upgrade_weapon() -> bool:
 		return false
 	resonance -= RESONANCE_REQUIRED
 	_audio.play_sfx("upgrade")
+	_spawn_upgrade_burst(_player.global_position + Vector2.UP * 8.0)
 	weapon_changed.emit(_player.weapon_level)
 	_publish_status()
 	return true
@@ -262,6 +283,7 @@ func _spawn_enemy() -> void:
 		definition.resonance_reward
 	)
 	enemy.defeated.connect(_on_enemy_defeated)
+	enemy.destroyed.connect(_on_enemy_destroyed)
 	enemy.breached.connect(_on_enemy_breached)
 	enemy.struck.connect(_spawn_hit_effect)
 	enemy.struck.connect(_on_enemy_struck)
@@ -293,6 +315,7 @@ func _spawn_warden() -> void:
 		boss_definition.resonance_reward
 	)
 	_warden.defeated.connect(_on_enemy_defeated)
+	_warden.destroyed.connect(_on_enemy_destroyed)
 	_warden.breached.connect(_on_enemy_breached)
 	_warden.struck.connect(_spawn_hit_effect)
 	_warden.struck.connect(_on_enemy_struck)
@@ -308,6 +331,7 @@ func _on_shot_requested(origin: Vector2, damage: int) -> void:
 	if is_over:
 		return
 	_audio.play_sfx("shot")
+	_spawn_muzzle_flash(origin)
 	var projectile := PROJECTILE_SCENE.instantiate() as PlayerProjectile
 	projectile.launch(origin, damage)
 	_projectile_container.add_child(projectile)
@@ -321,6 +345,7 @@ func _on_enemy_defeated(charge_reward: int) -> void:
 	resonance = mini(resonance + charge_reward, RESONANCE_REQUIRED)
 	if previous_resonance < RESONANCE_REQUIRED and resonance >= RESONANCE_REQUIRED:
 		_audio.play_sfx("charge")
+		_spawn_upgrade_burst(_player.global_position + Vector2(0.0, -12.0))
 	resonance_changed.emit(resonance)
 	_publish_status()
 
@@ -337,6 +362,8 @@ func _on_enemy_breached(integrity_damage: int) -> void:
 		return
 	breaches += 1
 	_audio.play_sfx("breach")
+	_spawn_breach_flash()
+	_trigger_shake(0.35)
 	integrity = maxi(integrity - integrity_damage, 0)
 	integrity_changed.emit(integrity)
 	_publish_status()
@@ -353,6 +380,7 @@ func _on_boss_warning(target_x: float) -> void:
 
 
 func _on_boss_attack(target_x: float) -> void:
+	_trigger_shake(0.25)
 	if absf(_player.global_position.x - target_x) <= 32.0:
 		_on_enemy_breached(1)
 
@@ -367,6 +395,29 @@ func _on_save_failed(message: String) -> void:
 
 func _spawn_hit_effect(at: Vector2) -> void:
 	_spawn_effect(at, 0)
+
+
+func _on_enemy_destroyed(at: Vector2) -> void:
+	_spawn_effect(at, 3)
+
+
+func _spawn_muzzle_flash(at: Vector2) -> void:
+	_spawn_effect(at, 4)
+
+
+func _spawn_upgrade_burst(at: Vector2) -> void:
+	_spawn_effect(at, 5)
+
+
+func _spawn_breach_flash() -> void:
+	_spawn_effect(Vector2(180.0, BREACH_Y), 6)
+
+
+func _trigger_shake(duration: float) -> void:
+	if _reduce_flashes:
+		return
+	_shake_time = duration
+	_shake_strength = 6.0
 
 
 func _spawn_pulse_effect() -> void:
@@ -402,6 +453,13 @@ func _publish_status() -> void:
 func _pause_run() -> void:
 	if is_over or is_paused:
 		return
+	_shake_time = 0.0
+	if _enemy_container != null:
+		_enemy_container.position = Vector2.ZERO
+	if _projectile_container != null:
+		_projectile_container.position = Vector2.ZERO
+	if _effects_container != null:
+		_effects_container.position = Vector2.ZERO
 	is_paused = true
 	_spawn_timer.paused = true
 	get_tree().paused = true
@@ -434,6 +492,13 @@ func _end_run(won: bool) -> void:
 	if is_over:
 		return
 	is_over = true
+	_shake_time = 0.0
+	if _enemy_container != null:
+		_enemy_container.position = Vector2.ZERO
+	if _projectile_container != null:
+		_projectile_container.position = Vector2.ZERO
+	if _effects_container != null:
+		_effects_container.position = Vector2.ZERO
 	mission_won = won
 	_spawn_timer.stop()
 	_player.set_active(false)
