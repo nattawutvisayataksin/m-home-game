@@ -65,10 +65,15 @@ gameplay rules. All automated tests remain green.
 ### Localization
 - Added keys: SFX_VOLUME, MUSIC_VOLUME, REDUCE_MOTION, KILLS_LABEL, BEST_WAVE_LABEL.
 
+## Batch 3 (continued overnight)
+
+### Tests
+- Added `phase5_gamefeel_test.gd` verifying ambient dust, boss spawn, phase 2 transition, win + result overlay. test.ps1 updated to run it.
+
 ## Verification
-- `.\scripts\dev.ps1 -Action check` → 0 errors, 0 warnings (81 files).
+- `.\scripts\dev.ps1 -Action check` → 0 errors, 0 warnings (82 files).
 - `.\scripts\dev.ps1 -Action import` → exit 0.
-- `.\scripts\test.ps1` → Phase 1 smoke, Phase 3 save, Phase 4 stress all PASSED.
+- `.\scripts\test.ps1` → Phase 1, 3, 4, 5 all PASSED.
 
 ## Notes / deferred
 - Android SDK/JDK still not installed; Android export remains deferred per roadmap.
