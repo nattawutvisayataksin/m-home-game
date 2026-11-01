@@ -3,9 +3,10 @@
 ## Repository และ path
 
 - Repository: `https://github.com/nattawutvisayataksin/m-home-game.git`
-- Clone หลังจากชุดงานนี้ถูก sync ขึ้น remote แล้ว; root repository คือ workspace หลัก
+- ใช้ root repository เป็น workspace หลัก; changes ของ session นี้ต้อง commit/push ก่อนเครื่องอื่นจะดึงได้
 - Godot project อยู่ที่ `projects\last-light\project.godot`
 - เปิด `README.md` และ `START_HERE.md` ก่อนเริ่มงาน
+- สำหรับงานภาพ ให้เริ่มจาก [ART_HANDOFF.md](./ART_HANDOFF.md) และ [ART_DIRECTION.md](./ART_DIRECTION.md); มี prompt พร้อมใช้สำหรับ Codex อยู่ใน handoff
 - path ใน source ใช้ `res://`; save ใช้ `user://`; ห้ามอ้าง `C:\Users\...` หรือ path เครื่องปัจจุบันในเกม
 
 ```powershell
@@ -20,8 +21,9 @@ Set-Location m-home-game
 1. Godot **4.7.2 stable** (ให้ตรงกับ project skeleton)
 2. Git
 3. Python 3.10+ สำหรับ project checker (helper จะใช้ venv ของ Pixel-art MCP ถ้ามี; ถ้าไม่มีให้ติดตั้ง Python ไว้ใน PATH)
-4. สำหรับ MCP: ติดตั้ง runtime ที่ MCP server ต้องการ (เช่น Node/uv ตาม config ของ server)
-5. Android export ภายหลัง: Godot export templates รุ่นเดียวกัน, Android SDK/JDK; ไม่ต้องติดตั้งใน Phase 0
+4. Python 3.10+ ใช้กับ project checker และ asset generators (standard library)
+5. สำหรับ MCP: ติดตั้ง runtime ที่ MCP server ต้องการ (เช่น Node/uv ตาม config ของ server)
+6. Android SDK/JDK ยังไม่ต้องติดตั้ง; งาน Android ถูกพักจนกว่า core loop บน Windows จะผ่าน playtest
 
 ## ตรวจและรัน
 
@@ -31,6 +33,7 @@ Set-Location m-home-game
 .\scripts\dev.ps1 -Action check
 .\scripts\dev.ps1 -Action run
 .\scripts\dev.ps1 -Action import
+.\scripts\test.ps1
 ```
 
 กำหนด `GODOT_PATH` เป็น path ของ executable Godot บนเครื่องนั้น หากไม่ได้อยู่ใน `PATH`:
@@ -42,17 +45,28 @@ $env:GODOT_PATH = 'D:\Tools\Godot\Godot_v4.7.2-stable_win64.exe'
 
 แทน path ตัวอย่างด้วยตำแหน่งติดตั้งจริง ห้าม commit path นี้ลง source
 
+สร้าง build:
+
+```powershell
+.\scripts\export.ps1 -Platform Windows -Mode release
+```
+
+ไฟล์ output อยู่ใน `projects\last-light\build\`; directory นี้ถูก ignore. Android export และ keystore เป็นงานภายหลัง ไม่ใช่ขั้นตอนปัจจุบัน
+
 ## MCP และ skills ที่คงไว้
 
 - `agent\skills\`, `.agents\skills\`, `.claude\`, `mcp-servers\` และ `opencode.json` เป็น tooling ไม่ใช่ game data
 - `opencode.json` ปัจจุบันมี path executable/uv ที่เฉพาะเครื่อง; เครื่องใหม่ต้องปรับ local path ของ Godot และ Pixel-art MCP ให้ตรงเครื่องก่อนใช้
 - อย่าลบหรือย้ายเครื่องมือเพื่อจัดโครงเกม; project asset และ source ใหม่ทั้งหมดอยู่ใต้ `projects\last-light\`
 - Pixel-art MCP ใช้เมื่อ art brief ผ่านการตรวจ; Godot MCP ใช้เปิด/ตรวจ scene; Blender MCP เป็นทางเลือก ไม่ใช่ dependency ของการรันเกม
+- generated art/music/SFX อยู่ใน project; ใช้ `scripts\generate_pixel_art.py` และ `scripts\generate_sfx.py` เมื่อต้องสร้างซ้ำ
+- ฟอนต์ Noto Sans Thai ใช้ SIL OFL; license copy อยู่ใน `projects\last-light\assets\fonts\OFL.txt`
+- profile อยู่ใน `user://profile.json`; settings อยู่ใน `user://settings.cfg`; logs อยู่ใน `user://logs\`
 
 ## ข้อกำหนดก่อนส่งงาน
 
 - รัน `.\scripts\dev.ps1 -Action check` หลังเพิ่ม/ย้าย scene, resource หรือ script
 - ทดสอบเปิดโปรเจกต์และดู error ใน Godot; checker ไม่แทน engine runtime test
 - ไม่ commit `.godot/`, `build/`, keystore, password, export credential หรือข้อมูลส่วนตัว
-- ทำ Windows build ก่อน แล้วจึงทดสอบ Android บนอุปกรณ์จริง; รายงานเวอร์ชันเครื่องมือ/ผลทดสอบจริง
+- ทดสอบ survival-defense loop บน Windows ตาม [PLAYTEST_PLAN.md](./PLAYTEST_PLAN.md); ค่อยกลับมาทำ Android หลัง core loop ผ่าน playtest
 - ตรวจ Git diff ก่อน commit ให้แน่ใจว่ามีเฉพาะการเปลี่ยนแปลงของโปรเจกต์ปัจจุบัน

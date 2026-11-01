@@ -1,13 +1,19 @@
 ; Engine configuration file.
-; LAST LIGHT project scaffold — see docs/GDD.md before implementing gameplay.
+; LAST LIGHT: portrait on-foot survival defense prototype.
 
 config_version=5
 
 [application]
 
-config/name="LAST LIGHT: Last Line"
-run/main_scene="res://scenes/boot.tscn"
+config/name="LAST LIGHT: Shelter 09"
+config/version="1.0.0"
+run/main_scene="res://scenes/ui/title.tscn"
 config/features=PackedStringArray("4.7", "GL Compatibility")
+
+[autoload]
+
+DiagnosticService="*res://scripts/systems/diagnostic_service.gd"
+ProgressionService="*res://scripts/systems/progression_service.gd"
 
 [display]
 
@@ -17,6 +23,16 @@ window/size/window_width_override=540
 window/size/window_height_override=960
 window/stretch/mode="canvas_items"
 window/stretch/aspect="keep"
+window/handheld/orientation=1
+window/energy_saving/keep_screen_on=true
+
+[audio]
+
+default_bus_layout="res://assets/audio/audio_bus_layout.tres"
+
+[internationalization]
+
+locale/translations=PackedStringArray("res://assets/localization/translations.en.translation", "res://assets/localization/translations.th.translation")
 
 [rendering]
 

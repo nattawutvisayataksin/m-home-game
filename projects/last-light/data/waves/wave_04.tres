@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="WaveDefinition" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/wave_definition.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+wave_number = 4
+spawn_interval = 1.15
+enemy_health_bonus = 1
+enemy_speed_bonus = 6.0
+available_enemy_ids = Array[StringName]([&"drifter", &"skitter", &"dasher"])

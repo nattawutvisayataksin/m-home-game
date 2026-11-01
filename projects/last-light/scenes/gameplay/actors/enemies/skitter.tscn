@@ -1,0 +1,7 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="PackedScene" path="res://scenes/gameplay/actors/enemies/drifter.tscn" id="1_base"]
+
+[node name="Skitter" instance=ExtResource("1_base")]
+archetype = 1
+descent_speed = 38.0

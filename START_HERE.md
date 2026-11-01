@@ -2,14 +2,14 @@
 
 ## เป้าหมาย
 
-สร้างเกม 2D vertical survival shooter สำหรับ Windows และ Android ที่เข้าใจได้ในไม่กี่วินาที เล่นหนึ่งรอบได้ในไม่กี่นาที และมีการตัดสินใจเด่นหนึ่งอย่าง: ใช้พลังที่เต็มเกจเพื่อเสริมอาวุธระยะยาว หรือรักษาแนวด้วยคลื่นป้องกันทันที
+สร้างเกม 2D survival-defense ที่ผู้เล่นเดินเท้าป้องกัน Shelter จากฝูงศัตรู เลื่อนซ้าย–ขวา ยิงอัตโนมัติ อัปเกรดอาวุธระหว่างคลื่น และเสริม Barricade ระหว่างรอบ
 
 ## สถานะปัจจุบัน
 
-- ✅ ตัดสินใจ engine, ภาพรวม gameplay, แพลตฟอร์ม และผู้เล่นเป้าหมายแล้ว
-- ✅ เขียน GDD, story, art direction, architecture, roadmap และคู่มือร่าง
-- ✅ สร้าง Godot project skeleton ที่เปิดได้และกำหนด path แบบ relative
-- ⏳ ยังไม่ได้สร้าง gameplay, art/audio จริง, Android export preset หรือ build สำหรับแจกจ่าย
+- ✅ เปลี่ยน visual direction จากยานเป็นผู้รอดชีวิต/ฝูงติดเชื้อและแนว Shelter
+- ✅ อัปเกรดปืนซ้ำได้สูงสุดเลเวล 6 ในรอบ และเสริม Barricade ระหว่างรอบได้ 2 ระดับ
+- ✅ profile schema v3 migration พร้อม automated gameplay/save/stress tests
+- ⏳ รอ Windows playtest; Android และ export ถูกพักไว้
 
 ## แหล่งข้อมูลหลัก
 
@@ -22,6 +22,8 @@
 | งานเรียงลำดับและ Definition of Done | [docs/ROADMAP.md](./docs/ROADMAP.md) |
 | วิธีเล่นและ controls | [docs/PLAYER_MANUAL.md](./docs/PLAYER_MANUAL.md) |
 | ตั้งเครื่องอื่น | [docs/HANDOFF.md](./docs/HANDOFF.md) |
+| เช็กลิสต์ทดสอบจริง | [docs/PLAYTEST_PLAN.md](./docs/PLAYTEST_PLAN.md) |
+| Release gates | [docs/RELEASE_CHECKLIST.md](./docs/RELEASE_CHECKLIST.md) |
 
 เมื่อเอกสารขัดกัน ให้ GDD เป็นแหล่งตัดสินด้าน design, Architecture เป็นแหล่งตัดสินด้าน implementation และบันทึกการเปลี่ยนแปลงที่มีผลต่อ scope ไว้ใน Roadmap
 
@@ -37,14 +39,15 @@
 ```powershell
 .\scripts\dev.ps1 -Action import
 .\scripts\dev.ps1 -Action check
+.\scripts\test.ps1
 ```
 
-Godot project อยู่ที่ `projects\last-light\project.godot` เสมอ ส่วน save ของเกมเมื่อมีระบบแล้วต้องอยู่ใน `user://` ไม่เขียนลง `res://` หรือโฟลเดอร์ asset
+Godot project อยู่ที่ `projects\last-light\project.godot` เสมอ save ของเกมอยู่ใน `user://` ไม่เขียนลง `res://` หรือโฟลเดอร์ asset. ตอนนี้ยังไม่ต้องตั้ง Android SDK/JDK หรือ export; ทดสอบ core loop บน Windows ก่อน
 
 ## แนวทางการทำงาน
 
 1. ทำ prototype core loop ให้ครบก่อนทำ content จำนวนมาก
 2. ใช้ InputMap actions และ resource data แทนการผูก gameplay กับปุ่มหรือค่าที่ hardcode
-3. ทำ HUD แบบ responsive; gameplay field คงสัดส่วน 9:16 เพื่อความยุติธรรมบน PC และมือถือ
+3. ทำ HUD แบบ responsive; gameplay field คงสัดส่วน 9:16
 4. ใช้ asset ที่สร้างเองหรือมีสิทธิ์ใช้เท่านั้น และเก็บไฟล์ต้นฉบับแยกจาก export
-5. ทดสอบด้วย build จริงบน Windows และ Android ก่อนประกาศว่า platform นั้นพร้อม
+5. ยืนยันความสนุกและความชัดเจนของ core loop บน Windows ก่อนเพิ่มคอนเทนต์หรือเริ่ม Android

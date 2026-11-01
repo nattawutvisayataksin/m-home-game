@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="EnemyDefinition" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/enemy_definition.gd" id="1"]
+[ext_resource type="PackedScene" path="res://scenes/gameplay/actors/enemies/dasher.tscn" id="2"]
+
+[resource]
+script = ExtResource("1")
+enemy_id = &"dasher"
+scene = ExtResource("2")
+archetype = 2
+minimum_wave = 3
+health = 1
+descent_speed = 31.0
+resonance_reward = 25

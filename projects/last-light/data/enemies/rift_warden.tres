@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="EnemyDefinition" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/enemy_definition.gd" id="1"]
+[ext_resource type="PackedScene" type_hint="PackedScene" path="res://scenes/gameplay/actors/enemies/warden.tscn" id="2"]
+
+[resource]
+script = ExtResource("1")
+enemy_id = &"rift_warden"
+scene = ExtResource("2")
+archetype = 3
+minimum_wave = 5
+health = 90
+descent_speed = 0.0
+resonance_reward = 0

@@ -1,0 +1,28 @@
+[gd_resource type="Resource" script_class="MissionDefinition" load_steps=13 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/mission_definition.gd" id="1"]
+[ext_resource type="Script" path="res://scripts/data/enemy_definition.gd" id="2"]
+[ext_resource type="Resource" path="res://data/enemies/drifter.tres" id="3"]
+[ext_resource type="Resource" path="res://data/enemies/skitter.tres" id="4"]
+[ext_resource type="Resource" path="res://data/enemies/dasher.tres" id="5"]
+[ext_resource type="Resource" path="res://data/enemies/rift_warden.tres" id="6"]
+[ext_resource type="Script" path="res://scripts/data/wave_definition.gd" id="7"]
+[ext_resource type="Resource" path="res://data/waves/wave_01.tres" id="8"]
+[ext_resource type="Resource" path="res://data/waves/wave_02.tres" id="9"]
+[ext_resource type="Resource" path="res://data/waves/wave_03.tres" id="10"]
+[ext_resource type="Resource" path="res://data/waves/wave_04.tres" id="11"]
+[ext_resource type="Resource" path="res://data/waves/wave_05.tres" id="12"]
+
+[resource]
+script = ExtResource("1")
+mission_id = &"beacon_09"
+duration_seconds = 300
+boss_start_seconds = 240
+wave_duration_seconds = 60
+starting_integrity = 5
+starting_spawn_interval = 1.35
+minimum_spawn_interval = 0.98
+spawn_interval_reduction_per_wave = 0.08
+enemy_roster = Array[ExtResource("2")]([ExtResource("3"), ExtResource("4"), ExtResource("5")])
+wave_definitions = Array[ExtResource("7")]([ExtResource("8"), ExtResource("9"), ExtResource("10"), ExtResource("11"), ExtResource("12")])
+boss_definition = ExtResource("6")

@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="WeaponDefinition" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/weapon_definition.gd" id="1"]
+[ext_resource type="Resource" path="res://data/upgrades/overclock.tres" id="2"]
+
+[resource]
+script = ExtResource("1")
+weapon_id = &"beacon_cannon"
+base_damage = 1
+base_fire_interval = 0.42
+overclock = ExtResource("2")

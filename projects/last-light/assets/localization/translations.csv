@@ -1,0 +1,47 @@
+keys,en,th
+START_MISSION,START MISSION,เริ่มภารกิจ
+SETTINGS,SETTINGS,ตั้งค่า
+ARCHIVE,FIELD ARCHIVE,บันทึกภาคสนาม
+QUIT,QUIT,ออกจากเกม
+MOVE_HELP,MOVE  A / D  OR  ARROWS,เคลื่อนที่  A / D  หรือปุ่มลูกศร
+POWER_HELP,EMERGENCY BLAST  SPACE     WEAPON UPGRADE  E,ระเบิดฉุกเฉิน  SPACE     อัปเกรดอาวุธ  E
+AUTOFIRE_HELP,Auto-fire is enabled,ปืนยิงอัตโนมัติ
+TITLE_SUBTITLE,HOLD THE LINE,ปกป้องแนวสุดท้าย
+MASTER_VOLUME,Master volume,ระดับเสียงหลัก
+REDUCE_FLASHES,Reduce screen flashes,ลดแสงวาบบนหน้าจอ
+LARGE_TEXT,Large text,ข้อความขนาดใหญ่
+LANGUAGE,Language,ภาษา
+BACK,BACK,กลับ
+ENGLISH,English,English
+THAI,ไทย,ไทย
+PROFILE_SUMMARY,SALVAGE %d   VICTORIES %d,เศษซาก %d   ชนะ %d ครั้ง
+ARCHIVE_TITLE,FIELD ARCHIVE,บันทึกภาคสนาม
+ARCHIVE_LOCKED,Locked — earn %d Salvage,ล็อกอยู่ — สะสมเศษซาก %d
+LORE_SIGNAL_TITLE,THE FIRST SIGNAL,สัญญาณแรก
+LORE_SIGNAL_BODY,Shelter 09's battered radio finally reached another settlement. Mira's reply proved someone was still out there.,วิทยุเก่าของ Shelter 09 ติดต่อชุมชนอื่นได้สำเร็จ เสียงตอบกลับของมีรายืนยันว่าข้างนอกยังมีผู้รอดชีวิต
+LORE_WARDEN_TITLE,WARDEN PATTERN,รูปแบบของผู้พิทักษ์
+LORE_WARDEN_BODY,The Warden marks the ground before it charges. Leave the warning lane and keep the Shelter behind you.,Warden ทำเครื่องหมายบนพื้นก่อนพุ่งชน ออกจากแนวเตือนและอย่าปล่อยให้มันถึง Shelter
+LORE_LAST_LIGHT_TITLE,LAST LIGHT,แสงสุดท้าย
+LORE_LAST_LIGHT_BODY,Shelter 09 is no fortress. It is one more night of safety, bought by people who refuse to leave each other behind.,Shelter 09 ไม่ใช่ป้อมปราการ แต่มันคือค่ำคืนที่ปลอดภัยอีกคืน ซึ่งเกิดจากคนที่ไม่ยอมทิ้งกันไว้ข้างหลัง
+BEACON_LABEL,SHELTER %d,ที่พักพิง %d
+RESONANCE_LABEL,PARTS %d%%,อะไหล่ %d%%
+WAVE_LABEL,WAVE %d,ระลอก %d
+WEAPON_LABEL,WEAPON LV %d,อาวุธ ระดับ %d
+PULSE_BUTTON,EMERGENCY BLAST  [SPACE],ระเบิดฉุกเฉิน  [SPACE]
+OVERCLOCK_BUTTON,UPGRADE WEAPON  [E],อัปเกรดอาวุธ  [E]
+RESUME,RESUME,เล่นต่อ
+RESTART,RESTART,เริ่มใหม่
+TITLE,TITLE,หน้าแรก
+PAUSED,PAUSED,หยุดชั่วคราว
+MISSION_COMPLETE,MISSION COMPLETE,ภารกิจสำเร็จ
+BEACON_LOST,SHELTER LOST,Shelter ถูกทำลาย
+SALVAGE_EARNED,+%d SALVAGE,ได้รับเศษซาก +%d
+SALVAGE_TOTAL,TOTAL SALVAGE %d,เศษซากทั้งหมด %d
+RECORDS,RUNS %d   VICTORIES %d   BEST WAVE %d,เล่น %d ครั้ง   ชนะ %d ครั้ง   ระลอกสูงสุด %d
+UI_FONT_SCALE,UI text size,ขนาดข้อความ UI
+NORMAL_TEXT,Normal,ปกติ
+LARGE_TEXT_OPTION,Large,ใหญ่
+SAVE_FAILED,Save failed,บันทึกไม่สำเร็จ
+BARRICADE_UPGRADE,REINFORCE BASE  LV %d  ·  %d SALVAGE,เสริมแนวป้องกัน  ระดับ %d  ·  เศษซาก %d
+BARRICADE_MAX,BASE DEFENSE MAX  LV %d,แนวป้องกันสูงสุด  ระดับ %d
+BASE_SAVE_FAILED,BASE UPGRADE SAVE FAILED,บันทึกการอัปเกรดฐานไม่สำเร็จ
