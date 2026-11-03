@@ -1,5 +1,40 @@
 # Nightly Development Log — LAST LIGHT
 
+## Entry — TD-1 finish + title menu + marketing/handoff kit (2026-11-03, working session)
+
+**Author:** AI agent
+**Scope:** Data migration (.tres), tower upgrade/sell, 3D title menu, brand logo, marketing kit, AI-handoff docs. All suites green.
+
+### TD-1 closed out (implementation complete, pending live-play verification)
+- Balance data moved to `.tres`: `data/enemies/*.tres` (4), `data/towers/*.tres` (3), `data/waves/wave_01..08.tres` via typed Resource classes in `scripts/data/` (`TDEnemyDefinition` / `TDTowerDefinition` / `TDWaveDefinition`). `td_run.gd` no longer carries unit balance — it preloads definitions and wires them.
+- Economics stayed as named constants in `td_run.gd` (START_PARTS 120, START_INTEGRITY 10, WAVE_CLEAR_BONUS 20, INTEGRITY_BONUS 5, SELL_REFUND_RATIO 0.7) — session config, not unit balance.
+- Tower upgrade/sell: `td_tower.gd` gained `level` (max 2), `can_upgrade()`, `apply_upgrade()` (damage ×1.5^lv, rate ×0.8^lv, range +0.6/lv, slow ×0.85^lv — factors live in TDTowerDefinition). `td_run.gd` routes LMB on occupied slot → upgrade, RMB → sell (refund 70% of invested; invested tracking accumulates upgrade costs). Slot state is parallel arrays (`_slot_towers/_disks/_occupied/_invested`). Metrics got `tower_upgraded` / `tower_sold` events.
+- Title menu added (`scenes/ui/title.tscn` + `scripts/ui/title_menu.gd`, main scene switched): เริ่มการรบ / วิธีการเล่น / เรื่องราว / ออกจากเกม, bbcode content panels, Esc closes, Thai-first copy from STORY.md.
+
+### Branding
+- Vector logo `projects/last-light-3d/assets/brand/logo_emblem.svg` (+ copy in `docs/art/`): amber lantern over the Shelter 09 silhouette with a signal beam, dark badge; rendered as the title-screen emblem.
+
+### Tests
+- `phase1_3d_smoke.gd` updated for the .tres structure (spawn interval from wave definition, slot-tower registration).
+- New `phase2_td_data_title_test.gd`: .tres sanity (ids, positive stats, upgrade costs, wave composition keys must exist in ENEMY_DEFS), upgrade accounting (cost charged, invested accumulates, range grows, level cap respected), sell accounting (70% refund, slot reusable), title menu flow (panels toggle, one at a time, `_start_mission()` reaches the run with baseline economy).
+- Visual check: title screen verified via **in-engine viewport capture** (`tests/dev_title_selfshot.gd`) — logo/subtitle/tagline/buttons and the how-to panel all render correctly. This is now the standard way to do visual checks on this machine (a desktop capture attempt caught one of the user's unrelated windows again; that image was discarded and whole-desktop captures are banned for good).
+
+### Marketing + handoff
+- `docs/MARKETING.md`: positioning/taglines (TH+EN), itch/Steam store copy, feature bullets, brand palette + logo usage rules, channel plan, trailer hooks, launch checklist.
+- `AGENTS.md` (root) + `docs/AI_HANDOFF.md`: repo map, commands, conventions, scope guards, known TODOs, decided vs. open questions — prepared for Codex / Copilot / Antigravity.
+
+### Final verification
+- `.\scripts\dev-3d.ps1 -Action check` → 0 errors (10 scripts).
+- `.\scripts\test-3d.ps1` → PHASE 1 + PHASE 2 PASSED.
+- 2D suites untouched this session (no `projects/last-light/` code changes).
+
+### Next up
+- Live play-verify TD-1 (wave pacing/economy) and record findings + metrics-driven balance notes.
+- TD-2 Blender asset pass once the AI Bridge is reachable.
+- Pause menu, settings/accessibility for the 3D build.
+
+---
+
 ## Entry — 3D Tower Defense pivot (2026-11-03, working session)
 
 **Author:** AI agent (with Game Director approval)

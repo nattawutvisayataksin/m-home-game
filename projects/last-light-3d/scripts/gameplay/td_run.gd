@@ -2,45 +2,42 @@ extends Node3D
 class_name TDRun
 
 ## Greybox 3D tower-defense run: builds the scene in code, drives waves and
-## economy, mediates placement. Data constants live at the top in ONE place so
-## they can be moved into .tres resources at the vertical-slice phase.
+## economy, mediates placement. Balance numbers live in data/*.tres resources
+## (enemy/tower/wave definitions); this script only wires them together.
 
 signal run_ended(won: bool)
 
 const HUD_SCRIPT: Script = preload("res://scripts/ui/td_hud.gd")
 const METRICS_SCRIPT: Script = preload("res://scripts/systems/run_metrics.gd")
-const ENEMY_SCRIPT: Script = preload("res://scripts/actors/td_enemy.gd")
-const TOWER_SCRIPT: Script = preload("res://scripts/actors/td_tower.gd")
 
-# --- Greybox balance data (source of truth until .tres migration) ---
+const ENEMY_DEFS := {
+	&"drifter": preload("res://data/enemies/drifter.tres"),
+	&"skitter": preload("res://data/enemies/skitter.tres"),
+	&"dasher": preload("res://data/enemies/dasher.tres"),
+	&"warden": preload("res://data/enemies/warden.tres"),
+}
+const TOWER_DEFS := {
+	TDTower.Kind.FIELD_TURRET: preload("res://data/towers/field_turret.tres"),
+	TDTower.Kind.SONIC_RESONATOR: preload("res://data/towers/sonic_resonator.tres"),
+	TDTower.Kind.TANGLE_EMITTER: preload("res://data/towers/tangle_emitter.tres"),
+}
+const WAVES := [
+	preload("res://data/waves/wave_01.tres"),
+	preload("res://data/waves/wave_02.tres"),
+	preload("res://data/waves/wave_03.tres"),
+	preload("res://data/waves/wave_04.tres"),
+	preload("res://data/waves/wave_05.tres"),
+	preload("res://data/waves/wave_06.tres"),
+	preload("res://data/waves/wave_07.tres"),
+	preload("res://data/waves/wave_08.tres"),
+]
+
+# --- Greybox economy constants (session config, not unit balance) ---
 const START_PARTS: int = 120
 const START_INTEGRITY: int = 10
 const WAVE_CLEAR_BONUS: int = 20
 const INTEGRITY_BONUS: int = 5
-
-const ENEMY_STATS: Dictionary = {
-	&"drifter": {"health": 40.0, "speed": 1.6, "bounty": 12, "damage": 1, "archetype": 0},
-	&"skitter": {"health": 20.0, "speed": 2.8, "bounty": 8, "damage": 1, "archetype": 1},
-	&"dasher": {"health": 30.0, "speed": 1.3, "bounty": 15, "damage": 1, "archetype": 2},
-	&"warden": {"health": 900.0, "speed": 0.8, "bounty": 300, "damage": 3, "archetype": 3},
-}
-
-const TOWER_STATS: Dictionary = {
-	TDTower.Kind.FIELD_TURRET: {"cost": 80, "range": 5.5, "damage": 6.0, "interval": 0.45, "splash": 0.0, "slow": 1.0},
-	TDTower.Kind.SONIC_RESONATOR: {"cost": 120, "range": 6.0, "damage": 10.0, "interval": 1.8, "splash": 2.8, "slow": 1.0},
-	TDTower.Kind.TANGLE_EMITTER: {"cost": 60, "range": 4.0, "damage": 0.0, "interval": 0.0, "splash": 0.0, "slow": 0.7},
-}
-
-const WAVES: Array[Dictionary] = [
-	{"composition": {&"drifter": 6}, "spacing": 1.0, "hp_bonus": 0.0},
-	{"composition": {&"drifter": 6, &"skitter": 4}, "spacing": 0.8, "hp_bonus": 0.15},
-	{"composition": {&"drifter": 8, &"skitter": 6}, "spacing": 0.7, "hp_bonus": 0.30},
-	{"composition": {&"dasher": 4, &"drifter": 6}, "spacing": 0.7, "hp_bonus": 0.45},
-	{"composition": {&"skitter": 12, &"drifter": 4}, "spacing": 0.5, "hp_bonus": 0.60},
-	{"composition": {&"dasher": 6, &"skitter": 6, &"drifter": 6}, "spacing": 0.6, "hp_bonus": 0.75},
-	{"composition": {&"drifter": 12, &"dasher": 4, &"skitter": 8}, "spacing": 0.5, "hp_bonus": 0.90},
-	{"composition": {&"warden": 1, &"drifter": 8}, "spacing": 1.6, "hp_bonus": 1.10},
-]
+const SELL_REFUND_RATIO: float = 0.7
 
 const PATH_POINTS: PackedVector3Array = [
 	Vector3(-14.0, 0.0, 12.0),
@@ -75,20 +72,34 @@ var is_over: bool = false
 var _hud: TDHud
 var _enemy_container: Node3D
 var _projectile_container: Node3D
-var _towers: Array[TDTower] = []
+var _slot_towers: Array[TDTower] = []
 var _slot_disks: Array[MeshInstance3D] = []
 var _slot_occupied: Array[bool] = []
+var _slot_invested: Array[int] = []
 var _selected_kind: int = TDTower.Kind.FIELD_TURRET
 var _hovered_slot: int = -1
-var _last_clicked_slot: int = -1  # test seam; set by place handlers
+var _last_clicked_slot: int = -1  # test seam; set by place/upgrade handlers
 var _spawn_queue: Array[StringName] = []
 var _spawn_cooldown: float = 0.0
 var _spawn_spacing: float = 1.0
 var _spawned_alive: int = 0
 var _metrics: RunMetrics
+var _preview_default: String = ""
 
 var _camera: Camera3D
 var _ghost: MeshInstance3D
+
+
+func _enemy_def(enemy_id: StringName) -> TDEnemyDefinition:
+	return ENEMY_DEFS[enemy_id] as TDEnemyDefinition
+
+
+func _tower_def(kind: int) -> TDTowerDefinition:
+	return TOWER_DEFS[kind] as TDTowerDefinition
+
+
+func _wave_def(wave_index: int) -> TDWaveDefinition:
+	return WAVES[wave_index - 1] as TDWaveDefinition
 
 
 func _ready() -> void:
@@ -98,7 +109,8 @@ func _ready() -> void:
 	_build_camera_and_light()
 	_build_env()
 	_build_hud()
-	_hud.show_wave_preview(_composition_text(1))
+	_preview_default = _composition_text(1)
+	_hud.show_wave_preview(_preview_default)
 	_hud.update_status(parts, integrity, 0, WAVES.size())
 	_metrics.record(&"run_started", {"starting_integrity": integrity})
 
@@ -169,7 +181,8 @@ func _paint_path_shelter_and_slots() -> void:
 		add_child(disk)
 		_slot_disks.append(disk)
 		_slot_occupied.append(false)
-		disk.set_meta("slot_index", slot_index)
+		_slot_invested.append(0)
+		_slot_towers.append(null)
 
 
 func _build_camera_and_light() -> void:
@@ -204,10 +217,10 @@ func _build_env() -> void:
 
 	# ghost preview ring shown on hovered slot for the selected tower type
 	_ghost = MeshInstance3D.new()
-	var selected_stats: Dictionary = TOWER_STATS[_selected_kind]
+	var selected_stats: TDTowerDefinition = _tower_def(_selected_kind)
 	var ghost_cylinder := CylinderMesh.new()
-	ghost_cylinder.top_radius = selected_stats["range"]
-	ghost_cylinder.bottom_radius = selected_stats["range"]
+	ghost_cylinder.top_radius = selected_stats.range_radius
+	ghost_cylinder.bottom_radius = selected_stats.range_radius
 	ghost_cylinder.height = 0.04
 	var ghost_material := StandardMaterial3D.new()
 	ghost_material.albedo_color = Color(0.8, 0.8, 0.55, 0.25)
@@ -221,10 +234,10 @@ func _build_env() -> void:
 func _composition_text(wave_index: int) -> String:
 	if wave_index < 1 or wave_index > WAVES.size():
 		return "-"
-	var composition: Dictionary = WAVES[wave_index - 1]["composition"]
+	var wave: TDWaveDefinition = _wave_def(wave_index)
 	var labels: Array[String] = []
-	for enemy_id: StringName in composition.keys():
-		labels.append("%s x%d" % [String(enemy_id).capitalize(), composition[enemy_id]])
+	for enemy_id: StringName in wave.composition.keys():
+		labels.append("%s x%d" % [String(enemy_id).capitalize(), wave.composition[enemy_id]])
 	return ", ".join(labels)
 
 
@@ -252,10 +265,17 @@ func _on_tower_selected(kind: int) -> void:
 func _unhandled_input(event: InputEvent) -> void:
 	if is_over:
 		return
-	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
-		var slot: int = _slot_from_mouse(event.position)
-		if slot >= 0 and not _slot_occupied[slot]:
-			place_tower(slot, _selected_kind)
+	if event is InputEventMouseButton and event.pressed:
+		var mouse_event := event as InputEventMouseButton
+		var slot: int = _slot_from_mouse(mouse_event.position)
+		if mouse_event.button_index == MOUSE_BUTTON_LEFT:
+			if slot >= 0:
+				if _slot_occupied[slot]:
+					upgrade_tower(slot)
+				else:
+					place_tower(slot, _selected_kind)
+		elif mouse_event.button_index == MOUSE_BUTTON_RIGHT and slot >= 0 and _slot_occupied[slot]:
+			sell_tower(slot)
 	elif event is InputEventKey and event.pressed and not event.echo:
 		var key := event as InputEventKey
 		match key.physical_keycode:
@@ -273,10 +293,10 @@ func _unhandled_input(event: InputEvent) -> void:
 
 func _select_kind(kind: int) -> void:
 	_selected_kind = kind
-	var stats: Dictionary = TOWER_STATS[kind]
+	var stats: TDTowerDefinition = _tower_def(kind)
 	var ghost_cylinder := _ghost.mesh as CylinderMesh
-	ghost_cylinder.top_radius = stats["range"]
-	ghost_cylinder.bottom_radius = stats["range"]
+	ghost_cylinder.top_radius = stats.range_radius
+	ghost_cylinder.bottom_radius = stats.range_radius
 
 
 func _slot_from_mouse(screen_position: Vector2) -> int:
@@ -301,24 +321,25 @@ func _slot_from_mouse(screen_position: Vector2) -> int:
 func place_tower(slot_index: int, kind: int) -> bool:
 	if is_over or slot_index < 0 or slot_index >= SLOTS.size() or _slot_occupied[slot_index]:
 		return false
-	var stats: Dictionary = TOWER_STATS[kind]
-	if parts < int(stats["cost"]):
+	var stats: TDTowerDefinition = _tower_def(kind)
+	if parts < stats.cost:
 		return false
-	parts -= int(stats["cost"])
-	_slot_occupied[slot_index] = true
+	parts -= stats.cost
 	var tower := TDTower.new()
 	tower.setup(
-		kind,
-		stats["range"],
-		stats["damage"],
-		stats["interval"],
-		stats["splash"],
-		stats["slow"],
+		stats.tower_kind,
+		stats.range_radius,
+		stats.damage,
+		stats.fire_interval,
+		stats.splash_radius,
+		stats.slow_factor,
 		_projectile_container
 	)
 	add_child(tower)
 	tower.global_position = SLOTS[slot_index]
-	_towers.append(tower)
+	_slot_towers[slot_index] = tower
+	_slot_occupied[slot_index] = true
+	_slot_invested[slot_index] = stats.cost
 	var disk := _slot_disks[slot_index] as MeshInstance3D
 	var disk_material := disk.material_override as StandardMaterial3D
 	disk_material.albedo_color = Color(0.35, 0.8, 0.4, 0.5)
@@ -326,6 +347,53 @@ func place_tower(slot_index: int, kind: int) -> bool:
 	_metrics.record(&"tower_placed", {"kind": kind, "slot": slot_index, "parts_after": parts})
 	_last_clicked_slot = slot_index
 	_hovered_slot = -1
+	return true
+
+
+func upgrade_tower(slot_index: int) -> bool:
+	if is_over or slot_index < 0 or slot_index >= SLOTS.size():
+		return false
+	var tower: TDTower = _slot_towers[slot_index]
+	if tower == null or not tower.can_upgrade():
+		return false
+	var stats: TDTowerDefinition = _tower_def(tower.kind)
+	var cost: int = stats.upgrade_costs[tower.level]
+	if parts < cost:
+		return false
+	parts -= cost
+	_slot_invested[slot_index] += cost
+	var next_level: int = tower.level + 1
+	tower.apply_upgrade(
+		stats.damage * pow(stats.upgrade_damage_factor, next_level),
+		stats.fire_interval * pow(stats.upgrade_rate_factor, next_level),
+		stats.range_radius + stats.upgrade_range_bonus * float(next_level),
+		stats.slow_factor * pow(stats.upgrade_slow_factor, next_level),
+		next_level
+	)
+	_hud.update_status(parts, integrity, wave_number, WAVES.size())
+	_metrics.record(&"tower_upgraded", {"kind": tower.kind, "level": tower.level, "cost": cost, "parts_after": parts})
+	_last_clicked_slot = slot_index
+	return true
+
+
+func sell_tower(slot_index: int) -> bool:
+	if is_over or slot_index < 0 or slot_index >= SLOTS.size():
+		return false
+	var tower: TDTower = _slot_towers[slot_index]
+	if tower == null:
+		return false
+	var refund: int = int(float(_slot_invested[slot_index]) * SELL_REFUND_RATIO)
+	parts += refund
+	tower.queue_free()
+	_slot_towers[slot_index] = null
+	_slot_occupied[slot_index] = false
+	_slot_invested[slot_index] = 0
+	var disk := _slot_disks[slot_index] as MeshInstance3D
+	var disk_material := disk.material_override as StandardMaterial3D
+	disk_material.albedo_color = Color(0.75, 0.66, 0.4, 0.5)
+	_hud.update_status(parts, integrity, wave_number, WAVES.size())
+	_metrics.record(&"tower_sold", {"slot": slot_index, "refund": refund, "parts_after": parts})
+	_last_clicked_slot = slot_index
 	return true
 
 
@@ -340,15 +408,16 @@ func _physics_process(delta: float) -> void:
 
 
 func _update_slows() -> void:
-	for node: Node in get_tree().get_nodes_in_group("td_enemies"):
-		var enemy := node as TDEnemy
-		if enemy == null or not is_instance_valid(enemy):
+	for slot_index: int in range(_slot_towers.size()):
+		var tower: TDTower = _slot_towers[slot_index]
+		if tower == null or not is_instance_valid(tower) or tower.kind != TDTower.Kind.TANGLE_EMITTER:
 			continue
-		enemy.slow_factor = 1.0
-		for tower: TDTower in _towers:
-			if tower.kind == TDTower.Kind.TANGLE_EMITTER and enemy.alive:
-				if enemy.global_position.distance_to(tower.global_position) <= tower.range_radius:
-					enemy.slow_factor = minf(enemy.slow_factor, tower.slow_factor)
+		for node: Node in get_tree().get_nodes_in_group("td_enemies"):
+			var enemy := node as TDEnemy
+			if enemy == null or not is_instance_valid(enemy):
+				continue
+			if enemy.alive and enemy.global_position.distance_to(tower.global_position) <= tower.range_radius:
+				enemy.slow_factor = minf(enemy.slow_factor, tower.slow_factor)
 
 
 func _update_hover() -> void:
@@ -356,13 +425,22 @@ func _update_hover() -> void:
 	var slot: int = _slot_from_mouse(mouse_position)
 	if slot != _hovered_slot:
 		_hovered_slot = slot
+		if slot >= 0:
+			if _slot_occupied[slot]:
+				_hud.show_wave_preview("Occupied: LMB upgrade, RMB sell")
+			else:
+				_hud.show_wave_preview(_preview_default)
+		else:
+			var default_text: String = _composition_text(wave_number + 1) if not is_combat else _composition_text(wave_number)
+			_preview_default = default_text if not is_combat else _preview_default
+			_hud.show_wave_preview(default_text)
 	var has_selection: bool = _hovered_slot >= 0 and not _slot_occupied[_hovered_slot]
 	_ghost.visible = has_selection
 	var ghost_material := _ghost.material_override as StandardMaterial3D
-	var selected_stats: Dictionary = TOWER_STATS[_selected_kind]
+	var selected_stats: TDTowerDefinition = _tower_def(_selected_kind)
 	if _ghost.visible:
 		_ghost.global_position = SLOTS[_hovered_slot] + Vector3(0.0, 0.1, 0.0)
-	var afford: bool = parts >= int(selected_stats["cost"])
+	var afford: bool = parts >= selected_stats.cost
 	if not afford and has_selection:
 		ghost_material.albedo_color = Color(0.8, 0.3, 0.3, 0.25)
 	else:
@@ -376,12 +454,11 @@ func start_wave() -> void:
 		return
 	wave_number += 1
 	is_combat = true
-	var wave: Dictionary = WAVES[wave_number - 1]
-	_spawn_spacing = float(wave["spacing"])
+	var wave: TDWaveDefinition = _wave_def(wave_number)
+	_spawn_spacing = wave.spawn_interval
 	_spawn_queue.clear()
-	var composition: Dictionary = wave["composition"]
-	for enemy_id: StringName in composition.keys():
-		var count: int = int(composition[enemy_id])
+	for enemy_id: StringName in wave.composition.keys():
+		var count: int = int(wave.composition[enemy_id])
 		for _index: int in range(count):
 			_spawn_queue.append(enemy_id)
 	_hud.set_combat_state(true)
@@ -398,17 +475,16 @@ func _spawn_tick(delta: float) -> void:
 		return
 	_spawn_cooldown = _spawn_spacing
 	var enemy_id: StringName = _spawn_queue.pop_front()
-	var stats: Dictionary = ENEMY_STATS[enemy_id]
-	var bonus: float = float(WAVES[wave_number - 1]["hp_bonus"])
+	var stats: TDEnemyDefinition = _enemy_def(enemy_id)
+	var wave: TDWaveDefinition = _wave_def(wave_number)
 	var enemy := TDEnemy.new()
-	var archetype: TDEnemy.Archetype = stats["archetype"]
 	enemy.setup(
 		PATH_POINTS,
-		archetype,
-		stats["health"] * (1.0 + bonus),
-		stats["speed"],
-		int(stats["bounty"]),
-		int(stats["damage"])
+		stats.archetype,
+		stats.base_health * (1.0 + wave.health_bonus),
+		stats.speed,
+		stats.bounty,
+		stats.integrity_damage
 	)
 	enemy.died.connect(_on_enemy_died)
 	enemy.leaked.connect(_on_enemy_leaked)
@@ -425,7 +501,8 @@ func _clear_wave() -> void:
 		_end_run(true)
 		return
 	_hud.set_combat_state(false)
-	_hud.show_wave_preview(_composition_text(wave_number + 1))
+	_preview_default = _composition_text(wave_number + 1)
+	_hud.show_wave_preview(_preview_default)
 
 
 func _on_enemy_died(enemy: TDEnemy) -> void:
@@ -459,7 +536,7 @@ func _end_run(won: bool) -> void:
 		"wave": wave_number,
 		"integrity_remaining": integrity,
 		"parts": parts,
-		"towers": _towers.size(),
+		"towers": _slot_occupied.filter(func(occupied: bool) -> bool: return occupied).size(),
 	})
 	_metrics.save_file()
 	_hud.show_result(won, parts)

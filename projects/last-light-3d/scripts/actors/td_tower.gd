@@ -6,12 +6,15 @@ extends Node3D
 
 enum Kind { FIELD_TURRET, SONIC_RESONATOR, TANGLE_EMITTER }
 
+const MAX_LEVEL: int = 2
+
 var kind: Kind = Kind.FIELD_TURRET
 var damage: float = 0.0
 var fire_interval: float = 1.0
 var range_radius: float = 5.0
 var splash_radius: float = 0.0
 var slow_factor: float = 1.0
+var level: int = 0
 
 var _cooldown: float = 0.0
 var _projectile_parent: Node3D
@@ -28,6 +31,26 @@ func setup(tower_kind: Kind, new_range: float, new_damage: float,
 	slow_factor = slow
 	_projectile_parent = projectile_parent
 	_build_body()
+
+
+func can_upgrade() -> bool:
+	return level < MAX_LEVEL
+
+
+## Applies a new level with recomputed stats. Caller owns cost math.
+func apply_upgrade(new_damage: float, new_interval: float, new_range: float,
+		new_slow: float, new_level: int) -> void:
+	damage = new_damage
+	fire_interval = new_interval
+	range_radius = new_range
+	slow_factor = new_slow
+	level = new_level
+	_refresh_visual_level()
+
+
+func _refresh_visual_level() -> void:
+	# Greybox level cue: scale the body slightly with each upgrade.
+	scale = Vector3.ONE * (1.0 + 0.2 * float(level))
 
 
 func _build_body() -> void:

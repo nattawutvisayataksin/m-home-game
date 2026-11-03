@@ -1,0 +1,62 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="badge" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#161c28"/>
+      <stop offset="1" stop-color="#0d1118"/>
+    </linearGradient>
+    <radialGradient id="halo" cx="0.5" cy="0.42" r="0.55">
+      <stop offset="0" stop-color="#ffd98a" stop-opacity="0.85"/>
+      <stop offset="0.35" stop-color="#e8a95c" stop-opacity="0.35"/>
+      <stop offset="1" stop-color="#e8a95c" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="ring" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0.62" stop-color="#000000" stop-opacity="0"/>
+      <stop offset="0.88" stop-color="#e8a95c" stop-opacity="0.18"/>
+      <stop offset="1" stop-color="#e8a95c" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="beam" x1="0" y1="1" x2="0" y2="0">
+      <stop offset="0" stop-color="#ffe4a8" stop-opacity="0.75"/>
+      <stop offset="1" stop-color="#ffe4a8" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="flame" x1="0" y1="1" x2="0" y2="0">
+      <stop offset="0" stop-color="#f2a13c"/>
+      <stop offset="1" stop-color="#ffd98a"/>
+    </linearGradient>
+  </defs>
+
+  <!-- badge -->
+  <rect x="24" y="24" width="464" height="464" rx="64" fill="url(#badge)" stroke="#3a4252" stroke-width="8"/>
+  <circle cx="256" cy="256" r="180" fill="url(#ring)"/>
+
+  <!-- signal beam up from the shelter antenna -->
+  <path d="M256 300 L236 96 L276 96 Z" fill="url(#beam)"/>
+
+  <!-- warm halo behind the lantern -->
+  <circle cx="256" cy="216" r="150" fill="url(#halo)"/>
+
+  <!-- shelter silhouette with antenna -->
+  <g fill="#262d3d" stroke="#8ea0b4" stroke-width="7" stroke-linejoin="round">
+    <path d="M118 428 L118 366 L196 316 L316 316 L394 366 L394 428 Z"/>
+  </g>
+  <g fill="#1a2030">
+    <rect x="238" y="300" width="36" height="120" rx="6"/>
+    <rect x="336" y="372" width="24" height="56" rx="4"/>
+    <rect x="152" y="372" width="42" height="56" rx="4"/>
+  </g>
+  <rect x="238" y="286" width="36" height="18" rx="5" fill="#e8a95c"/>
+  <circle cx="256" cy="278" r="10" fill="#ffd98a"/>
+
+  <!-- lantern -->
+  <g>
+    <rect x="206" y="132" width="100" height="164" rx="34" fill="#10151f" stroke="#8ea0b4" stroke-width="8"/>
+    <rect x="226" y="118" width="60" height="20" rx="9" fill="#8ea0b4"/>
+    <path d="M256 302 C 189 302 189 302 189 296 C 189 282 323 282 323 296 C 323 302 323 302 256 302 Z" fill="#10151f"/>
+    <path d="M246 132 C 246 118 266 118 266 132 L 266 150 L 246 150 Z" fill="#ffd98a"/>
+    <path d="M256 286 C 226 258 226 222 256 190 C 286 222 286 258 256 286 Z" fill="url(#flame)"/>
+    <path d="M256 286 C 240 268 240 244 256 224 C 272 244 272 268 256 286 Z" fill="#fff3cf"/>
+  </g>
+
+  <!-- base bar echoes the defense line -->
+  <rect x="118" y="440" width="276" height="14" rx="7" fill="#75654a"/>
+  <rect x="120" y="442" width="272" height="10" rx="5" fill="none" stroke="#a28a5e" stroke-width="2"/>
+</svg>

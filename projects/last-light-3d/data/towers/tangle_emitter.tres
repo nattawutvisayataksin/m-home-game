@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="TDTowerDefinition" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/td_tower_definition.gd" id="1_def"]
+
+[resource]
+script = ExtResource("1_def")
+tower_kind = 2
+display_name = "Tangle Emitter"
+cost = 60
+range_radius = 4
+damage = 0
+fire_interval = 0
+splash_radius = 0
+slow_factor = 0.7
+upgrade_costs = Array[int]([60, 110])

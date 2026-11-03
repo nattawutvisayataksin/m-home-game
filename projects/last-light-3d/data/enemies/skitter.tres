@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="TDEnemyDefinition" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/td_enemy_definition.gd" id="1_def"]
+
+[resource]
+script = ExtResource("1_def")
+enemy_id = &"skitter"
+archetype = 1
+base_health = 20
+speed = 2.8
+bounty = 8
+integrity_damage = 1

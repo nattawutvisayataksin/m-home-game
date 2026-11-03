@@ -54,13 +54,14 @@
 - test automation เดินตาม PLAYTEST_PLAN metrics ที่ ROADMAP ระบุได้ โดยไม่ต้องเปิด Editor
 - **ทำแล้ว:** phase6_metrics_test.gd และการบันทึก event จาก run จริงของฉบับ 2D (เครื่องมือใช้ร่วมวางแผน 3D)
 
-### Phase TD-1 — Greybox 3D TD core loop (implementation ready; ผ่านเมื่อ core loop เล่นซ้ำได้ 2 คลื่นโดยไม่ softlock)
+### Phase TD-1 — Greybox 3D TD core loop (✅ implementation เสร็จ 2026-11-03; ผ่านเมื่อ core loop เล่นซ้ำได้ 2 คลื่นโดยไม่ softlock — รอ verify ผ่านการเล่นจริง)
 
 - Scene 3D: กล้อง isometric fixed, แสง/ฟ้า/ฉากประกอบขั้นต้น, เส้นทาง waypoint หนึ่งเส้น
 - ศัตรู primitive เดินตามเส้นทาง (Drifter/Skitter/Dasher ปรับจากค่าใหม่ TD), leak → Integrity
 - ป้อม 3 ชนิด (Turret / Resonator / Tangle) วางบน slot, targeting first, auto-fire, Parts economy
 - Wave spawner data-driven, next-wave preview, prep/run state แยกชัด, HUD ขั้นต่ำ (Parts/Integrity/wave/start wave)
 - ตัวเลขทั้งหมดเป็น data (ค่าเริ่มใน script constants ได้ใน greybox แต่ต้องเก็บไว้ที่เดียว) และเขียน smoke test headless
+- **ทำแล้ว:** ตัวเลข enemy/tower/wave ย้ายไป data `.tres` 15 ไฟล์ (`data/{enemies,towers,waves}/` + Resource classes ใน `scripts/data/`) พร้อม upgrade ระดับ 2 / ขายคืน 70% และหน้า title menu (เริ่มเกม / วิธีเล่น / เรื่องราว / ออก); ตัวเลขเศรษฐกิจของ session (start Parts/Integrity, wave bonus, refund ratio) ยังเป็น constants กลุ่มเดียวใน `td_run.gd` โดยชัดแจ้งว่าไม่ใช่ unit balance
 
 ### Phase TD-2 — Vertical slice (Blender low-poly + polish)
 

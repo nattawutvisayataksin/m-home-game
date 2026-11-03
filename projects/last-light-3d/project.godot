@@ -7,7 +7,7 @@ config_version=5
 [application]
 
 config/name="LAST LIGHT: Last Defense (3D Greybox)"
-run/main_scene="res://scenes/gameplay/run.tscn"
+run/main_scene="res://scenes/ui/title.tscn"
 config/features=PackedStringArray("4.7")
 
 [display]

@@ -39,7 +39,7 @@ func _run_tests() -> void:
 		return
 	if not _check(run.place_tower(3, TDTower.Kind.FIELD_TURRET) == false, "Placed twice into the same slot."):
 		return
-	if not _check(run._towers.size() == 1, "Tower was not registered in the run."):
+	if not _check(run._slot_towers[3] != null and is_instance_valid(run._slot_towers[3]), "Tower was not registered in the run."):
 		return
 
 	# Wave lifecycle.
@@ -48,9 +48,10 @@ func _run_tests() -> void:
 		return
 
 	# Spawning: fast-forward ticks without waiting real time.
+	var spawn_interval: float = (run.WAVES[0] as TDWaveDefinition).spawn_interval
 	var guard: int = 0
 	while not run._spawn_queue.is_empty() and guard < 500:
-		run._spawn_tick(run.WAVES[0]["spacing"])
+		run._spawn_tick(spawn_interval)
 		guard += 1
 	if not _check(guard > 0 and run._spawned_alive > 0, "Spawn tick produced no enemies."):
 		return
