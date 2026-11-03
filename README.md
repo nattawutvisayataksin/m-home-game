@@ -48,4 +48,4 @@ Android export presets ยังอยู่ใน repository แต่ไม่
 
 ## ข้อเสนอการพัฒนาขั้นถัดไป
 
-ลำดับถัดไปคือทดสอบ survival-defense loop บน Windows ตาม [PLAYTEST_PLAN.md](./docs/PLAYTEST_PLAN.md) แล้วจึงปรับความสนุก/สมดุลก่อนเพิ่ม content หรือเริ่ม Android
+จาก Game Director (2026-11-03): เปลี่ยนทิศทางเป็น **3D Tower Defense** — คง IP เดิม, เริ่มโปรเจกต์ใหม่ `projects\last-light-3d\` ตาม [GDD_3DTD.md](./docs/GDD_3DTD.md) และ [ROADMAP.md](./docs/ROADMAP.md) (หัวข้อ "3D Tower Defense pivot") ฉบับ 2D นี้ยังเปิดเล่นเพื่อ reference และเก็บ playtest baseline ผ่านระบบ RunMetrics ที่เพิ่มเข้ามา

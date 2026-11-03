@@ -1,5 +1,42 @@
 # Nightly Development Log — LAST LIGHT
 
+## Entry — 3D Tower Defense pivot (2026-11-03, working session)
+
+**Author:** AI agent (with Game Director approval)
+**Scope:** Direction pivot + metric tooling + new 3D project core. All suites green.
+
+### Decisions (Game Director)
+- Continue as **3D tower defense (towers only)**, keep LAST LIGHT IP, low-poly stylized art from Blender, fixed isometric camera, Windows mouse+keyboard first, Android stays deferred.
+- New parallel project `projects/last-light-3d/`; the 2D build stays playable as reference.
+- Design baseline: `docs/GDD_3DTD.md`; scope change recorded in `docs/ROADMAP.md` ("3D Tower Defense pivot", Phases TD-0..TD-2).
+
+### 2D build — RunMetrics (Phase TD-0 ✅)
+- `scripts/systems/run_metrics.gd`: schema-versioned plain-JSON recorder → `user://metrics/<run_id>.json`; records run start/upgrade/blast/breach (with integrity after)/boss spawn/run end + finalized summary (won, wave, integrity, kills, breaches, salvage).
+- Hooked into `scripts/gameplay/run.gd`; the playtest metrics listed in ROADMAP are now captured automatically. Verified real JSON output on disk.
+- New `tests/phase6_metrics_test.gd` + added to `scripts/test.ps1` (6 suites total).
+
+### 3D project — Greybox core loop (Phase TD-1 implementation started ✅)
+- `projects/last-light-3d/` — Godot 4.7.2, GL Compatibility, 1280x720.
+- Built in code: fixed iso camera + sun + sky/fog environment, ground, waypoint path (single lane, 5 waypoints), Shelter blockhouse, 12 highlighted placement slots.
+- Enemies `td_enemy.gd` (Drifter/Skitter/Dasher/Warden archetypes; waypoint walker carrying overshoot; leak → Integrity), towers `td_tower.gd` (Field Turret / Sonic Resonator splash / Tangle slow aura; first-progress targeting), projectiles `td_projectile.gd` (homing + splash).
+- Run director `td_run.gd`: placement via ray-plane slot picking with range ghost + red tint when unaffordable, Parts economy (start 120; costs 80/120/60; wave bonus 20 + 5×integrity), 8 data-driven waves incl. Warden finale, prep/combat state machine, defeat/victory overlay, restart.
+- HUD `td_hud.gd`: Parts/Integrity/wave labels, wave preview, tower-select buttons (1/2/3), Start Wave (Space), result overlay.
+- RunMetrics integrated (tower_placed/enemy_killed/enemy_leaked/wave events).
+- Tests: `tests/phase1_3d_smoke.gd` (placement cost, double-place rejection, spawn tick, kill bounty, leak→integrity, force-end overlay + metrics side record) via `scripts/test-3d.ps1`; parser check via new `scripts/dev-3d.ps1 -Action check|run|import`.
+- Visual check: launched the real window and inspected a live capture — HUD labels, path strips, slot disks, Shelter and lighting render correctly in one frame. (Screenshot of the whole desktop captured the user's other windows instead in one attempt; those were discarded unread and screen captures were stopped.)
+
+### Final verification
+- `.\scripts\dev-3d.ps1 -Action check` → 0 errors (6 scripts).
+- `.\scripts\test-3d.ps1` → PHASE 1 3D-SMOKE TEST PASSED.
+- `.\scripts\dev.ps1 -Action check` → 0 errors, 0 warnings (87 files).
+- `.\scripts\test.ps1` → Phase 1/3/4/5/6 all PASSED.
+
+### Next up (pending)
+- Iteration session on 3D greybox (wave pacing vs. economy; playtest with human + metrics).
+- Migrate greybox constants into `.tres` data (TD-1 exit criteria), then Phase TD-2 Blender low-poly assets.
+
+---
+
 **Date:** 2026-11-01 (overnight session)
 **Author:** AI agent (autonomous, with Game Director approval)
 **Scope:** Fun-first polish pass on Windows prototype; no combat-value/schema/input/progression changes.

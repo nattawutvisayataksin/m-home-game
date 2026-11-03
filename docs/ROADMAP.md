@@ -41,6 +41,39 @@
 
 **ผ่านเมื่อ:** ผู้เล่นใหม่เข้าใจการควบคุมและเห็นการเลือกใช้ Parts; run จบได้ทั้งชนะและแพ้; visual/audio ไม่บังข้อมูลสำคัญ
 
+## 3D Tower Defense pivot — active (2026-11-03)
+
+จากคำตัดสิน Game Director: พัฒนาต่อเป็นเกม **3D tower defense วางป้อมล้วน** คง IP/เหตุของ Shelter 09 และ Hollows; สร้างในโปรเจกต์ใหม่ `projects\last-light-3d\` ขนานกับ 2D (2D คงสถานะ playable เพื่อ reference และเก็บ playtest baseline)
+
+- **ตัวเลือกที่ล็อกแล้ว:** low-poly stylized (Blender), วางป้อมล้วน ไม่มี hero unit, กล้อง isometric fixed, Windows mouse+keyboard ก่อน, Android ยังพัก
+- **Design baseline:** [GDD_3DTD.md](./GDD_3DTD.md) เป็นแหล่งตัดสินด้าน design ของโปรเจกต์ 3D ต่อจากนี้; [GDD.md](./GDD.md) คงเป็น baseline ของฉบับ 2D เดิม
+
+### Phase TD-0 — Playground/Metric readiness ✅
+
+- ระบบ `RunMetrics` บันทึก user://metrics/ แบบ plain JSON (schema version ผูกทุกไฟล์): wave/reason จบรอบ, integrity และ breach timeline, kill, Parts choice timeline (upgrade/blast), สถานะช่วง boss
+- test automation เดินตาม PLAYTEST_PLAN metrics ที่ ROADMAP ระบุได้ โดยไม่ต้องเปิด Editor
+- **ทำแล้ว:** phase6_metrics_test.gd และการบันทึก event จาก run จริงของฉบับ 2D (เครื่องมือใช้ร่วมวางแผน 3D)
+
+### Phase TD-1 — Greybox 3D TD core loop (implementation ready; ผ่านเมื่อ core loop เล่นซ้ำได้ 2 คลื่นโดยไม่ softlock)
+
+- Scene 3D: กล้อง isometric fixed, แสง/ฟ้า/ฉากประกอบขั้นต้น, เส้นทาง waypoint หนึ่งเส้น
+- ศัตรู primitive เดินตามเส้นทาง (Drifter/Skitter/Dasher ปรับจากค่าใหม่ TD), leak → Integrity
+- ป้อม 3 ชนิด (Turret / Resonator / Tangle) วางบน slot, targeting first, auto-fire, Parts economy
+- Wave spawner data-driven, next-wave preview, prep/run state แยกชัด, HUD ขั้นต่ำ (Parts/Integrity/wave/start wave)
+- ตัวเลขทั้งหมดเป็น data (ค่าเริ่มใน script constants ได้ใน greybox แต่ต้องเก็บไว้ที่เดียว) และเขียน smoke test headless
+
+### Phase TD-2 — Vertical slice (Blender low-poly + polish)
+
+- Asset low-poly จริงจาก Blender: ป้อม/ศัตรู/Shelter/ฉากถนน; import pipeline + import check
+- Boss Rift Warden + telegraphs, audio buses ผูกเดิม, VFX 3D ให้เคารพตัวเลือก reduce-motion และ reduce-flash
+- Localization ไทย/อังกฤษ, save linkage จาก ProfileRepository (barricade level)
+- Playtest มนุษย์ ผ่านเมื่อ: ผู้เล่นใหม่วางป้อมแรก < 25 วินาที และอธิบาย leak ได้
+
+### ระเบียบการตัดสินข้ามฉบับ
+
+- เมื่อเอกสารขัดกันสำหรับโปรเจกต์ 3D: GDD_3DTD > GDD (2D) ตามหัวข้อ design; Architecture ของ 2D ใช้กับ 2D เท่านั้น ส่วน 3D จะเขียน Architecture ใหม่ที่ Phase TD-1 ผ่าน
+- การ playtest ที่เก็บด้วย RunMetrics ช่วยให้เทียบ baseline ความยากของฉบับ 2D เป็นข้อมูลตั้งต้นของฉบับ 3D ได้
+
 ## Phase 3 — Progression และ production foundation ✅
 
 - Salvage, meta unlocks ที่ไม่ทำให้ balance พัง, versioned atomic save

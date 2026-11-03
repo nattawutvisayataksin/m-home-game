@@ -13,6 +13,7 @@ const PROJECTILE_SCENE: PackedScene = preload("res://scenes/gameplay/projectiles
 const HUD_SCRIPT: Script = preload("res://scripts/ui/hud.gd")
 const EFFECT_SCRIPT: Script = preload("res://scripts/gameplay/combat_effect.gd")
 const AUDIO_DIRECTOR_SCRIPT: Script = preload("res://scripts/systems/audio_director.gd")
+const METRICS_SCRIPT: Script = preload("res://scripts/systems/run_metrics.gd")
 
 const FIELD_LEFT: float = 26.0
 const FIELD_RIGHT: float = 334.0
@@ -49,12 +50,16 @@ var _rng := RandomNumberGenerator.new()
 var _shake_time: float = 0.0
 var _shake_strength: float = 0.0
 var _low_health_warned: bool = false
+var _metrics: RunMetrics
 
 
 func _ready() -> void:
+	_metrics = METRICS_SCRIPT.new()
+	_metrics.begin()
 	var profile: Dictionary = get_node("/root/ProgressionService").call("get_profile")
 	_barricade_level = int(profile.get("barricade_level", 0))
 	integrity = MISSION.starting_integrity + _barricade_level
+	_metrics.record(&"run_started", {"starting_integrity": integrity})
 	_configure_input_actions()
 	_rng.randomize()
 	_load_accessibility_settings()
@@ -157,6 +162,7 @@ func activate_pulse() -> bool:
 		return false
 	resonance -= RESONANCE_REQUIRED
 	_audio.play_sfx("pulse")
+	_metrics.record(&"blast_used")
 	_spawn_pulse_effect()
 	for node: Node in get_tree().get_nodes_in_group("last_light_enemies"):
 		var enemy := node as DrifterEnemy
@@ -174,6 +180,7 @@ func upgrade_weapon() -> bool:
 		return false
 	resonance -= RESONANCE_REQUIRED
 	_audio.play_sfx("upgrade")
+	_metrics.record(&"upgrade_used", {"weapon_level": _player.weapon_level})
 	_spawn_upgrade_burst(_player.global_position + Vector2.UP * 8.0)
 	weapon_changed.emit(_player.weapon_level)
 	_publish_status()
@@ -366,6 +373,7 @@ func _spawn_warden() -> void:
 	_enemy_container.add_child(_warden)
 	_audio.play_sfx("boss")
 	_audio.intensify()
+	_metrics.record(&"boss_spawned", {"boss_health": _warden.max_health})
 	_hud.show_boss_health(_warden.max_health)
 
 
@@ -412,7 +420,7 @@ func _on_enemy_breached(integrity_damage: int) -> void:
 	_spawn_breach_flash()
 	_trigger_shake(0.35)
 	integrity = maxi(integrity - integrity_damage, 0)
-	integrity_changed.emit(integrity)
+	_metrics.record(&"breach", {"integrity_after": integrity, "damage": integrity_damage, "wave": wave})
 	if integrity <= 2 and not _low_health_warned and integrity > 0:
 		_low_health_warned = true
 		_audio.play_sfx("warning")
@@ -561,6 +569,7 @@ func _end_run(won: bool) -> void:
 		_effects_container.position = Vector2.ZERO
 	mission_won = won
 	_spawn_timer.stop()
+	_metrics.record(&"run_ended", {"won": won, "wave": wave, "integrity_remaining": integrity, "kills": enemies_defeated, "breaches": breaches})
 	_player.set_active(false)
 	for node: Node in get_tree().get_nodes_in_group("last_light_enemies"):
 		if node.has_method("deactivate"):
@@ -574,6 +583,16 @@ func _end_run(won: bool) -> void:
 		wave,
 		int(elapsed_seconds)
 	))
+	_metrics.finalize_run({
+		"won": won,
+		"wave": wave,
+		"integrity_remaining": integrity,
+		"kills": enemies_defeated,
+		"breaches": breaches,
+		"barricade_level": _barricade_level,
+		"salvage_earned": salvage_earned,
+	})
+	_metrics.save_file()
 	_hud.show_result(won, salvage_earned, progression_service.call("get_profile"), enemies_defeated, breaches, wave, int(elapsed_seconds))
 	if not _save_error_message.is_empty():
 		_hud.show_save_error(_save_error_message)

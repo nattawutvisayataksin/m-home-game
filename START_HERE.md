@@ -2,7 +2,9 @@
 
 ## เป้าหมาย
 
-สร้างเกม 2D survival-defense ที่ผู้เล่นเดินเท้าป้องกัน Shelter จากฝูงศัตรู เลื่อนซ้าย–ขวา ยิงอัตโนมัติ อัปเกรดอาวุธระหว่างคลื่น และเสริม Barricade ระหว่างรอบ
+เดิม: สร้างเกม 2D survival-defense ที่ผู้เล่นเดินเท้าป้องกัน Shelter จากฝูงศัตรู เลื่อนซ้าย–ขวา ยิงอัตโนมัติ อัปเกรดอาวุธระหว่างคลื่น และเสริม Barricade ระหว่างรอบ
+
+**อัปเดต (2026-11-03):** Game Director ตัดสินพัฒนาต่อเป็น **3D Tower Defense (วางป้อมล้วน, low-poly stylized จาก Blender)** คง IP LAST LIGHT — โปรเจกต์ 3D ใหม่อยู่ที่ `projects\last-light-3d\` ดู [docs/GDD_3DTD.md](./docs/GDD_3DTD.md) และ ROADMAP หัวข้อ "3D Tower Defense pivot" ฉบับ 2D ถูกเก็บเป็น playable reference และเพิ่ม **RunMetrics** สำหรับเก็บ playtest data อัตโนมัติ (บันทึกไว้ที่ `user://metrics/`)
 
 ## สถานะปัจจุบัน
 

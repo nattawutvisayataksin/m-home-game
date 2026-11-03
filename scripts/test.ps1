@@ -12,7 +12,7 @@ if ([string]::IsNullOrWhiteSpace($godot) -or -not (Test-Path -LiteralPath $godot
     throw 'Godot was not found. Set GODOT_PATH to the Godot 4.7.2 executable or add godot to PATH.'
 }
 
-foreach ($testScript in @('phase1_smoke.gd', 'phase3_save_test.gd', 'phase4_stress_test.gd', 'phase5_gamefeel_test.gd')) {
+foreach ($testScript in @('phase1_smoke.gd', 'phase3_save_test.gd', 'phase4_stress_test.gd', 'phase5_gamefeel_test.gd', 'phase6_metrics_test.gd')) {
     & $godot --headless --path $project --script ("res://tests/" + $testScript)
     if ($LASTEXITCODE -ne 0) {
         exit $LASTEXITCODE
