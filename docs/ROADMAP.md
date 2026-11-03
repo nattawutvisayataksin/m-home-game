@@ -63,12 +63,13 @@
 - ตัวเลขทั้งหมดเป็น data (ค่าเริ่มใน script constants ได้ใน greybox แต่ต้องเก็บไว้ที่เดียว) และเขียน smoke test headless
 - **ทำแล้ว:** ตัวเลข enemy/tower/wave ย้ายไป data `.tres` 15 ไฟล์ (`data/{enemies,towers,waves}/` + Resource classes ใน `scripts/data/`) พร้อม upgrade ระดับ 2 / ขายคืน 70% และหน้า title menu (เริ่มเกม / วิธีเล่น / เรื่องราว / ออก); ตัวเลขเศรษฐกิจของ session (start Parts/Integrity, wave bonus, refund ratio) ยังเป็น constants กลุ่มเดียวใน `td_run.gd` โดยชัดแจ้งว่าไม่ใช่ unit balance
 
-### Phase TD-2 — Vertical slice (Blender low-poly + polish)
+### Phase TD-2 — Vertical slice (Blender low-poly + polish) (✅ Core Assets & Architecture complete; in-progress polish)
 
 - Asset low-poly จริงจาก Blender: ป้อม/ศัตรู/Shelter/ฉากถนน; import pipeline + import check
 - Boss Rift Warden + telegraphs, audio buses ผูกเดิม, VFX 3D ให้เคารพตัวเลือก reduce-motion และ reduce-flash
 - Localization ไทย/อังกฤษ, save linkage จาก ProfileRepository (barricade level)
 - Playtest มนุษย์ ผ่านเมื่อ: ผู้เล่นใหม่วางป้อมแรก < 25 วินาที และอธิบาย leak ได้
+- **ทำแล้ว (2026-11-03):** สร้างโมเดล Blender low-poly (.glb) ครบชุด (ป้อม 3, ศัตรู 4, Shelter 09), เพิ่ม pipeline model_scene เชื่อมต่อ .tres, เพิ่มระบบ Pause Menu (Esc), เชื่อมต่อ ProfileRepository คำนวณ barricade level และบันทึก Salvage/สถิติจบรอบ, automated tests ผ่านสมบูรณ์
 
 ### ระเบียบการตัดสินข้ามฉบับ
 

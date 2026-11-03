@@ -9,6 +9,7 @@ signal run_ended(won: bool)
 
 const HUD_SCRIPT: Script = preload("res://scripts/ui/td_hud.gd")
 const METRICS_SCRIPT: Script = preload("res://scripts/systems/run_metrics.gd")
+const PROFILE_SCRIPT: Script = preload("res://scripts/systems/profile_repository.gd")
 
 const ENEMY_DEFS := {
 	&"drifter": preload("res://data/enemies/drifter.tres"),
@@ -84,6 +85,7 @@ var _spawn_cooldown: float = 0.0
 var _spawn_spacing: float = 1.0
 var _spawned_alive: int = 0
 var _metrics: RunMetrics
+var _profile_repo: ProfileRepository
 var _preview_default: String = ""
 
 var _camera: Camera3D
@@ -105,6 +107,11 @@ func _wave_def(wave_index: int) -> TDWaveDefinition:
 func _ready() -> void:
 	_metrics = METRICS_SCRIPT.new()
 	_metrics.begin()
+	_profile_repo = PROFILE_SCRIPT.new()
+	var profile: Dictionary = _profile_repo.load_profile()
+	var barricade_level: int = int(profile.get("barricade_level", 0))
+	# Barricade bonus: +2 Integrity per level
+	integrity = START_INTEGRITY + barricade_level * 2
 	_build_world()
 	_build_camera_and_light()
 	_build_env()
@@ -112,7 +119,7 @@ func _ready() -> void:
 	_preview_default = _composition_text(1)
 	_hud.show_wave_preview(_preview_default)
 	_hud.update_status(parts, integrity, 0, WAVES.size())
-	_metrics.record(&"run_started", {"starting_integrity": integrity})
+	_metrics.record(&"run_started", {"starting_integrity": integrity, "barricade_level": barricade_level})
 
 
 func _build_world() -> void:
@@ -154,16 +161,24 @@ func _paint_path_shelter_and_slots() -> void:
 		strip.look_at_from_position(strip.position, strip.position + direction, Vector3.UP)
 		add_child(strip)
 
-	# the Shelter 09 blockhouse at path end, vertically oriented
-	var shelter := MeshInstance3D.new()
-	var shelter_box := BoxMesh.new()
-	shelter_box.size = Vector3(3.0, 2.2, 2.2)
-	shelter.mesh = shelter_box
-	var shelter_material := StandardMaterial3D.new()
-	shelter_material.albedo_color = Color("#6e5c40")
-	shelter.material_override = shelter_material
-	shelter.position = PATH_POINTS[PATH_POINTS.size() - 1] + Vector3(2.4, 1.1, 0.0)
-	shelter.name = "Shelter"
+	# the Shelter 09 blockhouse at path end
+	var shelter_scene: PackedScene = load("res://assets/models/props/shelter.glb")
+	var shelter: Node3D
+	if shelter_scene != null:
+		shelter = shelter_scene.instantiate()
+		shelter.name = "Shelter"
+		shelter.position = PATH_POINTS[PATH_POINTS.size() - 1] + Vector3(2.4, 0.0, 0.0)
+	else:
+		var shelter_mesh := MeshInstance3D.new()
+		var shelter_box := BoxMesh.new()
+		shelter_box.size = Vector3(3.0, 2.2, 2.2)
+		shelter_mesh.mesh = shelter_box
+		var shelter_material := StandardMaterial3D.new()
+		shelter_material.albedo_color = Color("#6e5c40")
+		shelter_mesh.material_override = shelter_material
+		shelter_mesh.position = PATH_POINTS[PATH_POINTS.size() - 1] + Vector3(2.4, 1.1, 0.0)
+		shelter_mesh.name = "Shelter"
+		shelter = shelter_mesh
 	add_child(shelter)
 
 	for slot_index: int in range(SLOTS.size()):
@@ -254,6 +269,8 @@ func _build_hud() -> void:
 	_hud.tower_selected.connect(_on_tower_selected)
 	_hud.start_wave_pressed.connect(start_wave)
 	_hud.restart_pressed.connect(_restart)
+	_hud.resume_pressed.connect(toggle_pause)
+	_hud.title_pressed.connect(_go_to_title)
 
 
 func _on_tower_selected(kind: int) -> void:
@@ -288,7 +305,7 @@ func _unhandled_input(event: InputEvent) -> void:
 			KEY_SPACE:
 				start_wave()
 			KEY_ESCAPE:
-				pass  # pause arrives after the vertical-slice gate
+				toggle_pause()
 
 
 func _select_kind(kind: int) -> void:
@@ -333,7 +350,8 @@ func place_tower(slot_index: int, kind: int) -> bool:
 		stats.fire_interval,
 		stats.splash_radius,
 		stats.slow_factor,
-		_projectile_container
+		_projectile_container,
+		stats.model_scene
 	)
 	add_child(tower)
 	tower.global_position = SLOTS[slot_index]
@@ -484,7 +502,8 @@ func _spawn_tick(delta: float) -> void:
 		stats.base_health * (1.0 + wave.health_bonus),
 		stats.speed,
 		stats.bounty,
-		stats.integrity_damage
+		stats.integrity_damage,
+		stats.model_scene
 	)
 	enemy.died.connect(_on_enemy_died)
 	enemy.leaked.connect(_on_enemy_leaked)
@@ -539,9 +558,34 @@ func _end_run(won: bool) -> void:
 		"towers": _slot_occupied.filter(func(occupied: bool) -> bool: return occupied).size(),
 	})
 	_metrics.save_file()
+	if _profile_repo != null:
+		var profile: Dictionary = _profile_repo.load_profile()
+		profile["total_runs"] = int(profile.get("total_runs", 0)) + 1
+		if won:
+			profile["victories"] = int(profile.get("victories", 0)) + 1
+		profile["best_wave"] = maxi(int(profile.get("best_wave", 1)), wave_number)
+		profile["best_integrity"] = maxi(int(profile.get("best_integrity", 0)), integrity)
+		var salvage_gain: int = (wave_number * 10) + (integrity * 2) if not won else (150 + integrity * 5)
+		profile["salvage"] = int(profile.get("salvage", 0)) + salvage_gain
+		profile["lifetime_salvage"] = int(profile.get("lifetime_salvage", 0)) + salvage_gain
+		_profile_repo.save_profile(profile)
 	_hud.show_result(won, parts)
 	run_ended.emit(won)
 
 
 func _restart() -> void:
+	get_tree().paused = false
 	get_tree().reload_current_scene()
+
+
+func toggle_pause() -> void:
+	if is_over:
+		return
+	var should_pause: bool = not get_tree().paused
+	get_tree().paused = should_pause
+	_hud.set_pause_menu(should_pause)
+
+
+func _go_to_title() -> void:
+	get_tree().paused = false
+	get_tree().change_scene_to_file("res://scenes/ui/title.tscn")

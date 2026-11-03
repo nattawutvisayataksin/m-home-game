@@ -39,6 +39,8 @@ func _test_data_definitions() -> bool:
 		if not _check(definition.base_health > 0.0 and definition.speed > 0.0 and definition.bounty > 0, "Enemy data has non-positive stats (%s)." % definition.enemy_id):
 			return false
 		seen_ids.append(definition.enemy_id)
+		if not _check(definition.model_scene != null, "Enemy definition %s missing low-poly model_scene." % definition.enemy_id):
+			return false
 	for expected: StringName in [&"drifter", &"skitter", &"dasher", &"warden"]:
 		if not _check(seen_ids.has(expected), "Enemy data missed id %s." % expected):
 			return false
@@ -55,6 +57,8 @@ func _test_data_definitions() -> bool:
 		if not _check(definition.cost > 0 and definition.range_radius > 0.0, "Tower data has non-positive core stats (%s)." % definition.display_name):
 			return false
 		if not _check(definition.upgrade_costs.size() == 2, "Tower data missing two upgrade costs (%s)." % definition.display_name):
+			return false
+		if not _check(definition.model_scene != null, "Tower definition %s missing low-poly model_scene." % definition.display_name):
 			return false
 	var tangle := preload("res://data/towers/tangle_emitter.tres") as TDTowerDefinition
 	if not _check(tangle.slow_factor < 1.0 and tangle.slow_factor > 0.0, "Tangle Emitter slow factor is out of range."):
@@ -203,6 +207,16 @@ func _test_title_menu() -> bool:
 	if not _check(run != null, "Start Mission did not reach the run scene."):
 		return false
 	if not _check(run.parts == run.START_PARTS and run.integrity == run.START_INTEGRITY, "Run did not boot with baseline economy."):
+		return false
+
+	# Pause menu toggle test
+	if not _check(not paused and not run._hud.is_pause_menu_open(), "Pause menu must start closed."):
+		return false
+	run.toggle_pause()
+	if not _check(paused and run._hud.is_pause_menu_open(), "toggle_pause() did not pause tree or open HUD overlay."):
+		return false
+	run.toggle_pause()
+	if not _check(not paused and not run._hud.is_pause_menu_open(), "Second toggle_pause() did not resume tree."):
 		return false
 	return true
 

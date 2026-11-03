@@ -1,7 +1,9 @@
 class_name TDEnemy
 extends Node3D
 
-## Greybox enemy walking a fixed waypoint path toward the Shelter.
+## Enemy walking a fixed waypoint path toward the Shelter.
+## When a model_scene is provided via setup(), instantiates the low-poly .glb;
+## otherwise falls back to greybox primitives.
 ## Movement is owned by TDEnemy (_physics_process); the run resets slow_factor
 ## each physics frame before children process, then Tangle sites apply it.
 
@@ -22,11 +24,12 @@ var alive: bool = true
 
 var _path: PackedVector3Array = PackedVector3Array()
 var _waypoint_index: int = 1
-var _body: MeshInstance3D
+var _body: Node3D  ## MeshInstance3D for greybox, or the .glb root node
 
 
 func setup(path: PackedVector3Array, archetype: Archetype, new_health: float,
-		new_speed: float, bounty: int, breach_damage: int) -> void:
+		new_speed: float, bounty: int, breach_damage: int,
+		model_scene: PackedScene = null) -> void:
 	_path = path
 	health = maxf(new_health, 1.0)
 	max_health = health
@@ -36,11 +39,17 @@ func setup(path: PackedVector3Array, archetype: Archetype, new_health: float,
 	is_boss = archetype == Archetype.WARDEN
 	alive = true
 	add_to_group("td_enemies")
-	_build_body(archetype)
+	_build_body(archetype, model_scene)
 
 
-func _build_body(archetype: Archetype) -> void:
-	_body = MeshInstance3D.new()
+func _build_body(archetype: Archetype, model_scene: PackedScene = null) -> void:
+	if model_scene != null:
+		_body = model_scene.instantiate()
+		_body.name = "Model"
+		add_child(_body)
+		return
+
+	var mesh_inst := MeshInstance3D.new()
 	var mesh: Mesh
 	var tint: Color
 	var body_height: float
@@ -72,9 +81,10 @@ func _build_body(archetype: Archetype) -> void:
 			body_height = 1.6
 	var material := StandardMaterial3D.new()
 	material.albedo_color = tint
-	_body.mesh = mesh
-	_body.material_override = material
-	_body.position = Vector3(0.0, body_height * 0.5, 0.0)
+	mesh_inst.mesh = mesh
+	mesh_inst.material_override = material
+	mesh_inst.position = Vector3(0.0, body_height * 0.5, 0.0)
+	_body = mesh_inst
 	add_child(_body)
 
 

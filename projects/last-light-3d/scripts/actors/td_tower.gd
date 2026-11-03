@@ -1,8 +1,10 @@
 class_name TDTower
 extends Node3D
 
-## Greybox tower: auto-acquires the enemy with the highest path progress inside
-## range ("first" targeting) and fires projectiles; Tangle applies a slow aura.
+## Tower: auto-acquires the enemy with the highest path progress inside range
+## ("first" targeting) and fires projectiles; Tangle applies a slow aura.
+## When a model_scene is provided via setup(), instantiates the low-poly .glb;
+## otherwise falls back to greybox primitives.
 
 enum Kind { FIELD_TURRET, SONIC_RESONATOR, TANGLE_EMITTER }
 
@@ -18,11 +20,13 @@ var level: int = 0
 
 var _cooldown: float = 0.0
 var _projectile_parent: Node3D
+var _model_scene: PackedScene  ## cached for potential level-visual swap later
+var _model_node: Node3D  ## root of the instantiated .glb, null when greybox
 
 
 func setup(tower_kind: Kind, new_range: float, new_damage: float,
 		new_interval: float, splash: float, slow: float,
-		projectile_parent: Node3D) -> void:
+		projectile_parent: Node3D, model_scene: PackedScene = null) -> void:
 	kind = tower_kind
 	range_radius = new_range
 	damage = new_damage
@@ -30,6 +34,7 @@ func setup(tower_kind: Kind, new_range: float, new_damage: float,
 	splash_radius = splash
 	slow_factor = slow
 	_projectile_parent = projectile_parent
+	_model_scene = model_scene
 	_build_body()
 
 
@@ -49,11 +54,21 @@ func apply_upgrade(new_damage: float, new_interval: float, new_range: float,
 
 
 func _refresh_visual_level() -> void:
-	# Greybox level cue: scale the body slightly with each upgrade.
+	# Level cue: scale the body slightly with each upgrade.
 	scale = Vector3.ONE * (1.0 + 0.2 * float(level))
 
 
 func _build_body() -> void:
+	if _model_scene != null:
+		_model_node = _model_scene.instantiate()
+		_model_node.name = "Model"
+		add_child(_model_node)
+		# Tangle still needs its procedural aura ring over the model.
+		if kind == Kind.TANGLE_EMITTER:
+			_add_aura_ring()
+		return
+
+	# --- Greybox fallback ---
 	var base := MeshInstance3D.new()
 	var base_cylinder := CylinderMesh.new()
 	base_cylinder.top_radius = 0.6
@@ -67,18 +82,7 @@ func _build_body() -> void:
 	add_child(base)
 
 	if kind == Kind.TANGLE_EMITTER:
-		var aura := MeshInstance3D.new()
-		var aura_cylinder := CylinderMesh.new()
-		aura_cylinder.top_radius = range_radius
-		aura_cylinder.bottom_radius = range_radius
-		aura_cylinder.height = 0.02
-		var aura_material := StandardMaterial3D.new()
-		aura_material.albedo_color = Color(0.35, 0.65, 0.8, 0.25)
-		aura_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-		aura.mesh = aura_cylinder
-		aura.material_override = aura_material
-		aura.position = Vector3(0.0, 0.05, 0.0)
-		add_child(aura)
+		_add_aura_ring()
 	else:
 		var barrel := MeshInstance3D.new()
 		var barrel_box := BoxMesh.new()
@@ -92,6 +96,23 @@ func _build_body() -> void:
 		barrel.material_override = barrel_material
 		barrel.position = Vector3(0.0, 0.65, 0.4)
 		add_child(barrel)
+
+
+## Procedural aura ring for the Tangle Emitter; added on top of both model and
+## greybox bodies so the range feedback is always visible.
+func _add_aura_ring() -> void:
+	var aura := MeshInstance3D.new()
+	var aura_cylinder := CylinderMesh.new()
+	aura_cylinder.top_radius = range_radius
+	aura_cylinder.bottom_radius = range_radius
+	aura_cylinder.height = 0.02
+	var aura_material := StandardMaterial3D.new()
+	aura_material.albedo_color = Color(0.35, 0.65, 0.8, 0.25)
+	aura_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	aura.mesh = aura_cylinder
+	aura.material_override = aura_material
+	aura.position = Vector3(0.0, 0.05, 0.0)
+	add_child(aura)
 
 
 func _physics_process(delta: float) -> void:

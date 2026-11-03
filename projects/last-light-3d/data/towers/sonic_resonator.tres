@@ -1,6 +1,7 @@
-[gd_resource type="Resource" script_class="TDTowerDefinition" load_steps=2 format=3]
+[gd_resource type="Resource" script_class="TDTowerDefinition" load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://scripts/data/td_tower_definition.gd" id="1_def"]
+[ext_resource type="PackedScene" path="res://assets/models/towers/sonic_resonator.glb" id="2_model"]
 
 [resource]
 script = ExtResource("1_def")
@@ -13,3 +14,4 @@ fire_interval = 1.8
 splash_radius = 2.8
 slow_factor = 1
 upgrade_costs = Array[int]([60, 110])
+model_scene = ExtResource("2_model")

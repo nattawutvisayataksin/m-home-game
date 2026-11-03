@@ -7,6 +7,8 @@ extends CanvasLayer
 signal tower_selected(kind: int)
 signal start_wave_pressed
 signal restart_pressed
+signal resume_pressed
+signal title_pressed
 
 const KIND_LABELS: Array[String] = ["1 Field Turret (80)", "2 Sonic Resonator (120)", "3 Tangle Emitter (60)"]
 
@@ -19,6 +21,8 @@ var _overlay: CenterContainer
 var _overlay_message: Label
 var _overlay_restart: Button
 var _tower_buttons: Array[Button] = []
+
+var _pause_overlay: CenterContainer
 
 
 func build_ui() -> void:
@@ -90,6 +94,55 @@ func build_ui() -> void:
 	_overlay_restart.pressed.connect(func () -> void: restart_pressed.emit())
 	overlay_stack.add_child(_overlay_restart)
 
+	var overlay_title := Button.new()
+	overlay_title.text = "Main Menu"
+	overlay_title.focus_mode = Control.FOCUS_NONE
+	overlay_title.pressed.connect(func () -> void: title_pressed.emit())
+	overlay_stack.add_child(overlay_title)
+
+	# --- Pause Menu Overlay (Esc) ---
+	_pause_overlay = CenterContainer.new()
+	_pause_overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_pause_overlay.visible = false
+	_pause_overlay.process_mode = Node.PROCESS_MODE_ALWAYS
+	add_child(_pause_overlay)
+
+	var pause_bg := ColorRect.new()
+	pause_bg.set_anchors_preset(Control.PRESET_FULL_RECT)
+	pause_bg.color = Color(0.04, 0.05, 0.06, 0.75)
+	_pause_overlay.add_child(pause_bg)
+
+	var pause_box := PanelContainer.new()
+	_pause_overlay.add_child(pause_box)
+
+	var pause_stack := VBoxContainer.new()
+	pause_stack.add_theme_constant_override("separation", 14)
+	pause_box.add_child(pause_stack)
+
+	var pause_title := Label.new()
+	pause_title.text = "PAUSED / พักเกม"
+	pause_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	pause_title.add_theme_font_size_override("font_size", 20)
+	pause_stack.add_child(pause_title)
+
+	var resume_btn := Button.new()
+	resume_btn.text = "Resume (เล่นต่อ / Esc)"
+	resume_btn.focus_mode = Control.FOCUS_NONE
+	resume_btn.pressed.connect(func () -> void: resume_pressed.emit())
+	pause_stack.add_child(resume_btn)
+
+	var restart_pause_btn := Button.new()
+	restart_pause_btn.text = "Restart Mission (เริ่มใหม่)"
+	restart_pause_btn.focus_mode = Control.FOCUS_NONE
+	restart_pause_btn.pressed.connect(func () -> void: restart_pressed.emit())
+	pause_stack.add_child(restart_pause_btn)
+
+	var title_btn := Button.new()
+	title_btn.text = "Title Menu (กลับหน้าหลัก)"
+	title_btn.focus_mode = Control.FOCUS_NONE
+	title_btn.pressed.connect(func () -> void: title_pressed.emit())
+	pause_stack.add_child(title_btn)
+
 
 func update_status(parts: int, integrity: int, wave: int, max_waves: int) -> void:
 	_parts_label.text = "Parts: %d" % parts
@@ -109,3 +162,11 @@ func set_combat_state(is_combat_active: bool) -> void:
 func show_result(won: bool, parts_at_end: int) -> void:
 	_overlay.visible = true
 	_overlay_message.text = "SHELTER HELD — Salvage earned" if won else "SHELTER FELL\nParts at end: %d" % parts_at_end
+
+
+func set_pause_menu(open: bool) -> void:
+	_pause_overlay.visible = open
+
+
+func is_pause_menu_open() -> bool:
+	return _pause_overlay != null and _pause_overlay.visible

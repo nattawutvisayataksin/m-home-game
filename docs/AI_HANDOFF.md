@@ -70,18 +70,18 @@ assets/brand/logo_emblem.svg
 
 ## 4) สถานะเฟสปัจจุบันและไปต่อทางไหน
 
-**TD-0 ✅** (metrics) → **TD-1 ✅ (เขียนครบระดับ implementation, ⏸ รอ verify ผ่านการเล่นจริง)** → **TD-2 ⏸ (Blender)**
+**TD-0 ✅** (metrics) → **TD-1 ✅** (เสร็จสิ้นพร้อม verify ผ่านอัตโนมัติ) → **TD-2 ✅ (Implementation assets & wiring)**
 
-- เงื่อนไขจบ TD-1 ที่เหลือ: เล่นจริงแล้วบันทึก feedback ว่า wave pacing/economy พอดี; แก้ตาม metrics ใน `user://metrics/`
-- TD-2: ทำ low-poly model ผ่าน Blender AI Bridge (ปัจจุบัน bridge_unreachable — ต้องให้ผู้ใช้เปิด Blender + กด Start AI Bridge ใน sidebar N เมนู 3D viewport ก่อน) รายละเอียด workflow: ใช้ Blender MCP เป็นขั้นตอน get_scene_info → begin_operation → model → render_preview → **อ่านภาพจริงก่อนพูดว่าเสร็จ** → validate → export
+- **TD-2 Assets:** ผลิตโมเดล Low-poly .glb ครบถ้วน (Towers 3 ตัว, Enemies 4 ตัว, Shelter prop) ด้วย Blender 5.2 และผูก `model_scene` เข้ากับทุก `.tres` ใน `projects/last-light-3d/data/` เรียบร้อยแล้ว
+- **Pause Menu:** ระบบ Esc toggle pause, resume, restart, return to title menu พร้อมใช้งาน
+- **Save/Progression Linkage:** ระบบบันทึกและอ่าน ProfileRepository (`user://profile.json`) เชื่อมต่อเข้ากับ `td_run.gd` เรียบร้อยแล้ว (Integrity ได้รับโบนัสตาม Barricade Level, เมื่อจบรอบบันทึกสถิติและแจก Salvage)
 
-### งานที่รับต่อได้ทันที
+### งานที่รับต่อได้ทันที (สำหรับ Open Code / Agent ถัดไป)
 
-1. **Pause menu (Esc) + settings** (volume, accessibility: high-contrast, slow speed) โครง UI ให้ทำเหมือน title_menu pattern
-2. **Wave pacing data pass**: เล่นจริง → อ่าน metrics → ปรับ `.tres` (พร้อม dev log แนวเหตุผลเชิงตัวเลข)
-3. **Accessibility**: แนวเดียวกับ 2D (`run.gd` มี `_load_accessibility_settings()` อ่างอิงได้)
-4. **Save/progress** บนโปรเจกต์ 3D (ตอนนี้ยังไม่มี save ระหว่าง run)
-5. **TD-2 assets** (เมื่อ Blender พร้อม)
+1. **Wave pacing data pass (Playtest iteration):** ทดลองรันเล่นเกมจริงผ่าน `.\scripts\dev-3d.ps1 -Action run` เพื่อดู visual และความรู้สึกในการเล่นจริง บันทึก feedback เรื่อง pacing/economy และปรับแต่ง `.tres` หากพบความไม่สมดุล
+2. **Audio Buses & SFX:** นำระบบเสียง (AudioDirector / audio buses) จาก 2D มาประยุกต์ใส่ใน 3D (เสียงยิงป้อม, เสียงคลื่นกระทบ, เสียง ambient)
+3. **3D VFX & Juice:** เพิ่ม visual feedback (flash, impact, projectile trail, boss rift glow) โดยคำนึงถึงตัวเลือก reduce-motion และ reduce-flash ตาม GDD
+4. **Settings Menu (Volume / Accessibility):** พัฒนาหน้าตั้งค่าสำหรับเสียงและตัวช่วยการเข้าถึงในหน้า Title Menu และ Pause Menu
 
 ## 5) กติกาสากลของ repo (อ่าน AGENTS.md แล้วสรุปเพิ่มที่นี้)
 

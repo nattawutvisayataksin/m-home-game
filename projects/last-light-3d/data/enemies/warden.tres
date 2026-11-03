@@ -1,6 +1,7 @@
-[gd_resource type="Resource" script_class="TDEnemyDefinition" load_steps=2 format=3]
+[gd_resource type="Resource" script_class="TDEnemyDefinition" load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://scripts/data/td_enemy_definition.gd" id="1_def"]
+[ext_resource type="PackedScene" path="res://assets/models/enemies/warden.glb" id="2_model"]
 
 [resource]
 script = ExtResource("1_def")
@@ -10,3 +11,4 @@ base_health = 900
 speed = 0.8
 bounty = 300
 integrity_damage = 3
+model_scene = ExtResource("2_model")

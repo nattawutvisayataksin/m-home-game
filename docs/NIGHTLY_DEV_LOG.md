@@ -1,5 +1,32 @@
 # Nightly Development Log — LAST LIGHT
 
+## Entry — TD-2 Complete Low-Poly Asset Suite & Pause Menu (2026-11-03, working session)
+
+**Author:** AI agent (Antigravity)
+**Scope:** Full low-poly .glb generation via Blender 5.2 (towers, enemies, shelter), data .tres wiring, Pause Menu implementation (Esc), 3D test suite expansion. All suites green.
+
+### Deliverables
+- **Asset Generation (Blender 5.2):** สร้างสคริปต์ `scripts/generate_assets.py` ผลิต low-poly GLB assets ตามสเปก `docs/TD2_ASSET_PLAN.md` ครบถ้วน:
+  - Towers (3/3): `field_turret.glb`, `sonic_resonator.glb`, `tangle_emitter.glb`
+  - Enemies (4/4): `drifter.glb`, `skitter.glb`, `dasher.glb`, `warden.glb`
+  - Props (1): `shelter.glb`
+- **Data & Runtime Wiring:**
+  - ผูก `model_scene` เข้ากับทุก `.tres` ใน `data/towers/` และ `data/enemies/`
+  - อัปเดต `td_run.gd` ให้ instantiate `shelter.glb` แทน greybox box
+  - รัน Godot asset re-import ผ่าน `dev-3d.ps1 -Action import`
+- **Pause Menu (Esc) & In-Game Navigation:**
+  - เพิ่มหน้าต่าง Pause Menu ใน `td_hud.gd` (Resume, Restart, Return to Main Menu)
+  - ผูกปุ่ม `KEY_ESCAPE` ใน `td_run.gd` ให้เรียก `toggle_pause()` จัดการ `get_tree().paused`
+  - เพิ่มปุ่ม "Main Menu" ใน Result Overlay เมื่อจบเกม (ชนะ/แพ้) เพื่อให้ผู้เล่นกลับหน้าแรกได้
+- **Test Verification:**
+  - เพิ่ม assertion ตรวจสอบว่า definition ทุกชิ้น (towers ทั้ง 3 ตัว, enemies ทั้ง 4 ตัว) มี `model_scene != null`
+  - เพิ่มเทสต์ `toggle_pause()` ตรวจสอบสถานะ pause/unpause และ HUD overlay toggle
+  - `dev-3d.ps1 -Action check` → 0 errors
+  - `test-3d.ps1` → Phase 1 + Phase 2 PASSED
+  - `test.ps1` → Phase 1..6 PASSED (2D untouched & safe)
+
+---
+
 ## Entry — TD-1 finish + title menu + marketing/handoff kit (2026-11-03, working session)
 
 **Author:** AI agent
