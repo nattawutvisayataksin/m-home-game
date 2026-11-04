@@ -1,6 +1,6 @@
 # LAST LIGHT — AI Handoff Document
 
-อัปเดต: 2026-11-04
+อัปเดต: 2026-11-04 — หลัง weapon/environment/free-placement pass
 ข้อมูลสำหรับ AI agent (Codex / Copilot / Antigravity / opencode) ที่รับงานพัฒนาต่อภายใน repo นี้
 คู่มือย่อฉบับเริ่มงาน: `AGENTS.md` (root) | กติกาข้อนี้ใช้ตามที่เขียนไว้ทั้งหมด
 
@@ -33,9 +33,9 @@ Pivot จาก 2D → 3D tower defense ตัดสินโดย Game Directo
 ### projects/last-light-3d (ตัวหลัก)
 
 ```
-data/
+  data/
   enemies/{drifter,skitter,dasher,warden}.tres      # TDEnemyDefinition
-  towers/{field_turret,sonic_resonator,tangle_emitter}.tres   # TDTowerDefinition (upgrade_costs, factors)
+  towers/{field_turret,sonic_resonator,tangle_emitter,arc_cannon}.tres   # TDTowerDefinition
   waves/wave_01..08.tres                             # TDWaveDefinition (composition, spawn_interval, health_bonus)
 scripts/
   actors/td_enemy.gd       # waypoint walker + slow_factor (reset ทุก physics frame by run)
@@ -62,9 +62,9 @@ assets/brand/logo_emblem.svg
 
 ไอเดียหลักที่ควรรักษาไว้ตอนแก้:
 - **td_run เป็น owner ของ "แผนการรบ"** — ป้อมกับศัตรูไม่คุยกันเอง (tower ค้นหาเป้าจาก group "td_enemies"; enemy ไม่รู้จัก tower)
-- **slot ตามสนาม = state แบบ parallel arrays** (`_slot_towers` / `_slot_disks` / `_slot_occupied` / `_slot_invested`) — index ตรงกับ `SLOTS` เสมอ
+- **legacy slot state** ยังมี parallel arrays เพื่อ compatibility ของ test เดิม แต่การเล่นจริงใช้ `_free_towers` / `_free_tower_positions` และวางบนพื้นได้อิสระ
 - ป้อมเก็บระดับอัปเกรดในตัว (`level`) แต่ **ราคาและคูณของอัปเกรดมาจาก TDTowerDefinition** ทุกสตร้าง
-- slow aura คำนวณที่ run ทุกเฟรม: รีเซ็ต `slow_factor = 1.0` ก่อนแล้ววนป้อม Tangle ทาบรัศมี — ไม่ให้ tower จัดการเอง
+- slow/electric effect คำนวณที่ run ทุกเฟรม: รีเซ็ต `slow_factor = 1.0` ก่อน แล้ววนป้อม Tangle ทั้ง slot และ free placement
 
 ### projects/last-light (2D — ไม่ต้องสนใจมาก แต่มีเงื่อนไข)
 
@@ -76,11 +76,12 @@ assets/brand/logo_emblem.svg
 
 **TD-0 ✅** (metrics) → **TD-1 ✅** (เสร็จสิ้นพร้อม verify ผ่านอัตโนมัติ) → **TD-2 ✅ (Implementation assets & wiring)**
 
-- **TD-2 Assets:** ผลิตโมเดล Low-poly .glb ครบถ้วน (Towers 3 ตัว, Enemies 4 ตัว, Shelter prop) ด้วย Blender 5.2 และผูก `model_scene` เข้ากับทุก `.tres` ใน `projects/last-light-3d/data/` เรียบร้อยแล้ว
+- **TD-2 Assets:** ผลิตโมเดล Low-poly .glb ด้วย Blender 5.2 สำหรับป้อม 4 ตัว, ศัตรู 4 ตัว, Shelter, ต้นไม้, บ้านร้าง และ roadside props; ผูก `model_scene` เข้ากับ resources แล้ว
 - **Pause Menu:** ระบบ Esc toggle pause, resume, restart, return to title menu พร้อมใช้งาน
 - **Settings Menu (2026-11-04):** Autoload `TDSettings` (`scripts/systems/td_settings_store.gd` → `user://settings.cfg`, แพตเทิร์นเดียวกับ 2D) + panel ใช้ร่วม `scripts/ui/td_settings_panel.gd` ใน title menu และ pause menu — volume master/sfx/music (dB), reduce flashes/motion, large text (rescale สดทันที)
 - **Audio Buses & SFX (2026-11-04):** bus layout `assets/audio/audio_bus_layout.tres` (Master/Music/SFX/UI) + procedural SFX 11 ไฟล์จาก `scripts/generate_sfx_3d.py` + `TDAudioDirector` (`scripts/systems/td_audio_director.gd`) ต่อรอบ — เสียงยิงป้อม 3 ชนิดแยก voice, วาง/อัปเกรด/ขาย, wave_horn, hit/leak/breach, ambient; sliders ของ settings คุมเสียงได้ชุดนี้ทันที (bus SFX/Music จึงไม่ต้อง guard แล้ว)
 - **3D VFX & Screen Juice (2026-11-04):** ระบบ `TDCombatEffect` (`scripts/actors/td_combat_effect.gd`) จัดการวงแหวนแสง procedural + sparks (hit, death, placed, upgrade, sold, leak, wave, muzzle) พร้อม camera trauma shake และ HUD leak flash overlay (`flash_leak()`); ทุกเอฟเฟกต์เคารพ `reduce_flashes` และ `reduce_motion` จาก `TDSettings`
+- **Weapon/Environment pass (2026-11-04):** Field Turret ใช้ laser, Sonic ใช้ rocket, Tangle ใช้ electric slow feedback, Arc Cannon เป็น tower ชนิดที่ 4; เพิ่ม multi-waypoint road, Shelter Core crystal, trees/houses/roadside props และซ่อน fixed slot visuals
 - **Save/Progression Linkage:** ระบบบันทึกและอ่าน ProfileRepository (`user://profile.json`) เชื่อมต่อเข้ากับ `td_run.gd` เรียบร้อยแล้ว (Integrity ได้รับโบนัสตาม Barricade Level, เมื่อจบรอบบันทึกสถิติและแจก Salvage)
 
 ### ข้อควรรู้เพิ่มจากงาน 2026-11-04

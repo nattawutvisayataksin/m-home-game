@@ -7,7 +7,7 @@
 
 ## 1) Positioning
 
-- **Genre:** 3D Tower Defense, wave-based, single-screen lane defense
+- **Genre:** 3D Tower Defense, wave-based, free-placement lane defense
 - **One-liner (TH):** ตั้งป้อม รับฝูง คุมคืนสุดท้าย — เปลี่ยนเศษเหล็กเป็นแนวรบ ปกป้อง Shelter 09 จนรุ่งสาง
 - **One-liner (EN):** Rig the last line. Build towers from salvage, hold Shelter 09 through the night, and face the Rift Warden at dawn.
 - **Taglines สำรอง:**
@@ -16,7 +16,7 @@
 - **Pillars ที่ต้องโผล่ในทุกสื่อ:**
   1. ตัดสินใจจากทรัพยากร — Parts ทุกชิ้นคือการเลือกว่า walkway ไหนต้องรอด
   2. คืนเดียว 8 คลื่น — เซสชันสั้นที่มี arc ครบ (เริ่มง่าย จบด้วยบอส)
-  3. ป้อม 3 แบบ + อัปเกรด/ขาย — ทุกป้อมขายคืนได้ 70% จึงกล้าทดลอง
+  3. ป้อม 4 แบบ + อัปเกรด/ขาย — ทุกป้อมขายคืนได้ 70% จึงกล้าทดลอง
 
 ## 2) Store copy
 
@@ -30,13 +30,13 @@
 
 > **LAST LIGHT** เป็น tower defense มุมมอง isometric แบบ fixed camera ที่ตัด hero unit ออกทั้งหมด — แผนการรบของคุณคือทั้งหมดที่คุณมี
 >
-> แต่ละคืนคือ 1 รอบภารกิจ: เก็บ Parts จากการกำจัดฝูง Hollows ตัดสินใจว่าจะวาง Field Turret ยิงเร็ว Sonic Resonator ระเบิดวงกว้าง หรือ Tangle Emitter ที่ช้าทุกสิ่งในรัศมี ป้อมอัปเกรดได้ 2 ระดับ และขายคืน 70% เสมอ จึงแก้แนวรบได้กลางคืน
+> แต่ละคืนคือ 1 รอบภารกิจ: เก็บ Parts จากการกำจัดฝูง Hollows แล้ววางป้อมได้อย่างอิสระบนพื้นสนาม เลือก Field Turret เลเซอร์ยิงเดี่ยว, Sonic Resonator จรวดระเบิดวงกว้าง, Tangle Emitter ไฟฟ้าชะลอ หรือ Arc Cannon พลังงานระเบิดแรง ป้อมอัปเกรดได้ 2 ระดับและขายคืน 70% เสมอ จึงแก้แนวรบได้กลางคืน
 >
 > 8 คลื่นจบด้วย Rift Warden บอสที่ไม่ได้ทนแค่ตัวเลข — มันบังคับให้คุณรื้อแผนที่ตั้งไว้ตั้งแต่คลื่นแรก ระบบเก็บ playtest metrics ติดตั้งในเกมตั้งแต่วันแรก เพราะเราต้องการสถิติจริงในการปรับสมดุล
 
 ### Feature list (bullets หน้าร้าน)
 
-- เป้าเคลื่อนที่แบบ "first" + slow aura + splash — สามกลไกที่ต้องวางคู่กันจึงจะอยู่รอด
+- เป้าเคลื่อนที่แบบ "first" + free placement + slow/electric + splash — วางแนวรบตามเส้นทางจริง
 - อัปเกรดสูงสุด 2 ระดับ/ป้อม, ขายคืน 70% — ความผิดพลาดไม่ใช่ game over
 - คลื่นที่ 8 ปิดด้วยบอสตัวเดียว Warden (ราคากำลังบอส: Parts ล้นถ้าชนะ)
 - ภาษาไทยก่อน (UI + story) พร้อมเวลาอ่านสั้นที่เหมาะกับเซสชันกลางคืน
@@ -71,7 +71,7 @@
 
 ## 6) Launch checklist
 
-- [ ] เลขทั้งหมดใน copy ตรงกับ data `.tres` (cost 80/120/60, 8 waves, refund 70%)
+- [ ] เลขทั้งหมดใน copy ตรงกับ data `.tres` (cost 80/120/60/140, 8 waves, refund 70%)
 - [ ] ตัวหนังสือไทยไม่ตัดกัน (ตรวจที่ 1280x720 และ 1920x1080)
 - [ ] GIF/ภาพมาจาก build จริงที่ metrics บันทึกอยู่ (ไม่ใช่ build debug ที่แกตัวเลข)
 - [ ] ชื่อเรื่อง/ชื่อ IP สะกดตรงกันในทุก asset: LAST LIGHT, Shelter 09, ริน, มีรา, Hollows, Rift Warden

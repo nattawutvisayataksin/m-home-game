@@ -12,6 +12,7 @@ const METRICS_SCRIPT: Script = preload("res://scripts/systems/run_metrics.gd")
 const PROFILE_SCRIPT: Script = preload("res://scripts/systems/profile_repository.gd")
 const AUDIO_SCRIPT: Script = preload("res://scripts/systems/td_audio_director.gd")
 const EFFECT_SCRIPT: Script = preload("res://scripts/actors/td_combat_effect.gd")
+const TOWER_SLOT_PREVIEW_ENABLED: bool = false
 
 const ENEMY_DEFS := {
 	&"drifter": preload("res://data/enemies/drifter.tres"),
@@ -23,6 +24,7 @@ const TOWER_DEFS := {
 	TDTower.Kind.FIELD_TURRET: preload("res://data/towers/field_turret.tres"),
 	TDTower.Kind.SONIC_RESONATOR: preload("res://data/towers/sonic_resonator.tres"),
 	TDTower.Kind.TANGLE_EMITTER: preload("res://data/towers/tangle_emitter.tres"),
+	TDTower.Kind.ARC_CANNON: preload("res://data/towers/arc_cannon.tres"),
 }
 const WAVES := [
 	preload("res://data/waves/wave_01.tres"),
@@ -45,8 +47,13 @@ const SELL_REFUND_RATIO: float = 0.7
 const PATH_POINTS: PackedVector3Array = [
 	Vector3(-14.0, 0.0, 12.0),
 	Vector3(-14.0, 0.0, 0.0),
-	Vector3(-4.0, 0.0, 0.0),
+	Vector3(-12.0, 0.0, 0.0),
+	Vector3(-9.0, 0.0, -2.0),
+	Vector3(-6.0, 0.0, 0.0),
+	Vector3(-4.0, 0.0, -4.0),
 	Vector3(-4.0, 0.0, -8.0),
+	Vector3(0.0, 0.0, -10.0),
+	Vector3(5.0, 0.0, -8.0),
 	Vector3(10.0, 0.0, -8.0),
 ]
 
@@ -96,6 +103,16 @@ var _preview_default: String = ""
 
 var _camera: Camera3D
 var _ghost: MeshInstance3D
+var _placement_marker: MeshInstance3D
+var _free_tower_positions: Array[Vector3] = []
+var _free_towers: Array[TDTower] = []
+var _free_tower_invested: Array[int] = []
+var _spawn_beacon: Node3D
+var _spawn_beacon_core: MeshInstance3D
+var _spawn_beacon_ring: MeshInstance3D
+var _world_time: float = 0.0
+var _shelter_crystal: Node3D
+var _tangle_effect_cooldowns: Dictionary = {}
 
 
 func _enemy_def(enemy_id: StringName) -> TDEnemyDefinition:
@@ -143,6 +160,7 @@ func _build_world() -> void:
 	ground.mesh = ground_plane
 	var ground_material := StandardMaterial3D.new()
 	ground_material.albedo_color = Color("#3f463c")
+	ground_material.roughness = 0.92
 	ground.material_override = ground_material
 	ground.name = "Ground"
 	add_child(ground)
@@ -167,6 +185,41 @@ func _paint_path_shelter_and_slots() -> void:
 		var direction: Vector3 = (end_point - start_point).normalized()
 		strip.look_at_from_position(strip.position, strip.position + direction, Vector3.UP)
 		add_child(strip)
+		_add_path_detail(start_point, end_point, index)
+
+	_add_spawn_beacon(PATH_POINTS[0])
+
+	# Low-poly roadside dressing keeps the lane readable while adding scale.
+	var barricade_scene: PackedScene = load("res://assets/models/props/barricade.glb")
+	var street_light_scene: PackedScene = load("res://assets/models/props/street_light.glb")
+	var sign_scene: PackedScene = load("res://assets/models/props/shelter_09_sign.glb")
+	var tree_scene: PackedScene = load("res://assets/models/props/ash_tree.glb")
+	var house_scene: PackedScene = load("res://assets/models/props/ruined_house.glb")
+	if barricade_scene != null:
+		for position: Vector3 in [Vector3(-12.8, 0.0, 8.8), Vector3(-5.4, 0.0, -9.3), Vector3(9.2, 0.0, -6.8)]:
+			var barricade := barricade_scene.instantiate()
+			barricade.position = position
+			barricade.rotation.y = position.x * 0.08
+			add_child(barricade)
+	if street_light_scene != null:
+		for position: Vector3 in [Vector3(-15.0, 0.0, 8.0), Vector3(8.5, 0.0, -9.0)]:
+			var street_light := street_light_scene.instantiate()
+			street_light.position = position
+			add_child(street_light)
+	if tree_scene != null:
+		for position: Vector3 in [Vector3(-18.0, 0.0, 11.0), Vector3(-10.0, 0.0, -12.5), Vector3(14.5, 0.0, 7.5), Vector3(16.0, 0.0, -11.5)]:
+			var tree := tree_scene.instantiate()
+			tree.position = position
+			tree.rotation.y = position.x * 0.17
+			tree.scale = Vector3.ONE * (0.85 + absf(position.z) * 0.012)
+			add_child(tree)
+	if house_scene != null:
+		for position: Vector3 in [Vector3(16.0, 0.0, 11.0), Vector3(-17.0, 0.0, -7.5)]:
+			var house := house_scene.instantiate()
+			house.position = position
+			house.rotation.y = -0.35 if position.x > 0.0 else 0.55
+			house.scale = Vector3.ONE * 0.9
+			add_child(house)
 
 	# the Shelter 09 blockhouse at path end
 	var shelter_scene: PackedScene = load("res://assets/models/props/shelter.glb")
@@ -187,6 +240,12 @@ func _paint_path_shelter_and_slots() -> void:
 		shelter_mesh.name = "Shelter"
 		shelter = shelter_mesh
 	add_child(shelter)
+	if sign_scene != null:
+		var sign := sign_scene.instantiate()
+		sign.position = PATH_POINTS[PATH_POINTS.size() - 1] + Vector3(0.0, 0.0, -2.0)
+		sign.rotation.y = PI
+		add_child(sign)
+	_add_shelter_crystal(PATH_POINTS[PATH_POINTS.size() - 1] + Vector3(2.4, 0.0, 0.0))
 
 	for slot_index: int in range(SLOTS.size()):
 		var disk := MeshInstance3D.new()
@@ -205,6 +264,116 @@ func _paint_path_shelter_and_slots() -> void:
 		_slot_occupied.append(false)
 		_slot_invested.append(0)
 		_slot_towers.append(null)
+		disk.visible = TOWER_SLOT_PREVIEW_ENABLED
+
+
+func _add_shelter_crystal(position: Vector3) -> void:
+	_shelter_crystal = Node3D.new()
+	_shelter_crystal.name = "ShelterCoreCrystal"
+	_shelter_crystal.position = position + Vector3(0.0, 1.3, 0.0)
+	add_child(_shelter_crystal)
+	var crystal := MeshInstance3D.new()
+	var crystal_mesh := PrismMesh.new()
+	crystal_mesh.size = Vector3(1.0, 2.3, 1.0)
+	crystal.mesh = crystal_mesh
+	var crystal_material := StandardMaterial3D.new()
+	crystal_material.albedo_color = Color(0.22, 0.65, 0.95, 0.92)
+	crystal_material.emission_enabled = true
+	crystal_material.emission = Color(0.08, 0.5, 1.0)
+	crystal_material.emission_energy_multiplier = 3.0
+	crystal.material_override = crystal_material
+	crystal.rotation_degrees = Vector3(0.0, 45.0, 0.0)
+	_shelter_crystal.add_child(crystal)
+	var base := MeshInstance3D.new()
+	var base_mesh := CylinderMesh.new()
+	base_mesh.top_radius = 0.9
+	base_mesh.bottom_radius = 1.1
+	base_mesh.height = 0.18
+	base.mesh = base_mesh
+	var base_material := StandardMaterial3D.new()
+	base_material.albedo_color = Color(0.12, 0.16, 0.2)
+	base_material.metallic = 0.7
+	base.material_override = base_material
+	base.position.y = -1.15
+	_shelter_crystal.add_child(base)
+	var light := OmniLight3D.new()
+	light.light_color = Color(0.12, 0.55, 1.0)
+	light.light_energy = 2.2
+	light.omni_range = 7.0
+	_shelter_crystal.add_child(light)
+
+
+func _add_path_detail(start_point: Vector3, end_point: Vector3, segment_index: int) -> void:
+	var direction: Vector3 = (end_point - start_point).normalized()
+	var side := Vector3(-direction.z, 0.0, direction.x)
+	var midpoint: Vector3 = (start_point + end_point) * 0.5
+	var segment_length: float = start_point.distance_to(end_point)
+	var shoulder_material := StandardMaterial3D.new()
+	shoulder_material.albedo_color = Color("#252b27")
+	shoulder_material.roughness = 1.0
+	for side_sign: float in [-1.0, 1.0]:
+		var shoulder := MeshInstance3D.new()
+		var shoulder_mesh := BoxMesh.new()
+		shoulder_mesh.size = Vector3(0.38, 0.035, segment_length)
+		shoulder.mesh = shoulder_mesh
+		shoulder.material_override = shoulder_material
+		shoulder.position = midpoint + side * side_sign * 1.52 + Vector3(0.0, 0.11, 0.0)
+		shoulder.look_at_from_position(shoulder.position, shoulder.position + direction, Vector3.UP)
+		add_child(shoulder)
+	for mark_index: int in range(ceili(segment_length / 3.0)):
+		var mark := MeshInstance3D.new()
+		var mark_mesh := BoxMesh.new()
+		mark_mesh.size = Vector3(0.09, 0.018, 1.0)
+		mark.mesh = mark_mesh
+		var mark_position: Vector3 = start_point + direction * (float(mark_index) * 3.0 + 1.5) + Vector3(0.0, 0.105, 0.0)
+		mark.position = mark_position
+		mark.look_at_from_position(mark_position, mark_position + direction, Vector3.UP)
+		var mark_material := StandardMaterial3D.new()
+		mark_material.albedo_color = Color("#a99873")
+		mark.material_override = mark_material
+		add_child(mark)
+
+
+func _add_spawn_beacon(position: Vector3) -> void:
+	_spawn_beacon = Node3D.new()
+	_spawn_beacon.name = "HollowSpawnBeacon"
+	_spawn_beacon.position = position
+	add_child(_spawn_beacon)
+	_spawn_beacon_core = MeshInstance3D.new()
+	var core_mesh := CylinderMesh.new()
+	core_mesh.top_radius = 0.18
+	core_mesh.bottom_radius = 0.42
+	core_mesh.height = 0.7
+	_spawn_beacon_core.mesh = core_mesh
+	var core_material := StandardMaterial3D.new()
+	core_material.albedo_color = Color(0.34, 0.16, 0.48, 0.72)
+	core_material.emission_enabled = true
+	core_material.emission = Color(0.42, 0.12, 0.72)
+	core_material.emission_energy_multiplier = 2.5
+	core_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	_spawn_beacon_core.material_override = core_material
+	_spawn_beacon_core.position.y = 0.36
+	_spawn_beacon.add_child(_spawn_beacon_core)
+	_spawn_beacon_ring = MeshInstance3D.new()
+	var ring_mesh := TorusMesh.new()
+	ring_mesh.inner_radius = 0.55
+	ring_mesh.outer_radius = 0.68
+	_spawn_beacon_ring.mesh = ring_mesh
+	var ring_material := StandardMaterial3D.new()
+	ring_material.albedo_color = Color(0.48, 0.2, 0.72, 0.65)
+	ring_material.emission_enabled = true
+	ring_material.emission = Color(0.42, 0.12, 0.7)
+	ring_material.emission_energy_multiplier = 1.5
+	ring_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	_spawn_beacon_ring.material_override = ring_material
+	_spawn_beacon_ring.position.y = 0.08
+	_spawn_beacon.add_child(_spawn_beacon_ring)
+	var beacon_light := OmniLight3D.new()
+	beacon_light.light_color = Color(0.48, 0.2, 0.72)
+	beacon_light.light_energy = 1.1
+	beacon_light.omni_range = 5.0
+	beacon_light.position.y = 0.5
+	_spawn_beacon.add_child(beacon_light)
 
 
 func _build_camera_and_light() -> void:
@@ -216,8 +385,18 @@ func _build_camera_and_light() -> void:
 
 	var sun := DirectionalLight3D.new()
 	sun.rotation_degrees = Vector3(-52.0, -28.0, 0.0)
-	sun.shadow_enabled = false
+	sun.light_color = Color("#ffd8b0")
+	sun.light_energy = 1.15
+	sun.shadow_enabled = true
+	sun.directional_shadow_max_distance = 55.0
 	add_child(sun)
+
+	var fill := OmniLight3D.new()
+	fill.position = Vector3(1.0, 7.0, 1.0)
+	fill.light_color = Color("#9db7d1")
+	fill.light_energy = 0.45
+	fill.omni_range = 35.0
+	add_child(fill)
 
 
 func _build_env() -> void:
@@ -233,7 +412,14 @@ func _build_env() -> void:
 	sky.sky_material = sky_material
 	env.sky = sky
 	env.ambient_light_source = Environment.AMBIENT_SOURCE_SKY
+	env.ambient_light_energy = 0.7
 	env.tonemap_mode = Environment.TONE_MAPPER_FILMIC
+	env.glow_enabled = true
+	env.glow_intensity = 0.7
+	env.fog_enabled = true
+	env.fog_light_color = Color("#4d4c55")
+	env.fog_light_energy = 0.35
+	env.fog_density = 0.008
 	world_environment.environment = env
 	add_child(world_environment)
 
@@ -251,6 +437,18 @@ func _build_env() -> void:
 	_ghost.material_override = ghost_material
 	_ghost.visible = false
 	add_child(_ghost)
+	_placement_marker = MeshInstance3D.new()
+	var marker_mesh := CylinderMesh.new()
+	marker_mesh.top_radius = 0.72
+	marker_mesh.bottom_radius = 0.72
+	marker_mesh.height = 0.035
+	_placement_marker.mesh = marker_mesh
+	var marker_material := StandardMaterial3D.new()
+	marker_material.albedo_color = Color(0.4, 0.85, 0.5, 0.65)
+	marker_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	_placement_marker.material_override = marker_material
+	_placement_marker.visible = false
+	add_child(_placement_marker)
 
 
 func _composition_text(wave_index: int) -> String:
@@ -334,15 +532,21 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 	if event is InputEventMouseButton and event.pressed:
 		var mouse_event := event as InputEventMouseButton
+		var placement_position: Vector3 = _ground_position_from_mouse(mouse_event.position)
 		var slot: int = _slot_from_mouse(mouse_event.position)
+		var free_tower_index: int = _free_tower_from_position(placement_position)
 		if mouse_event.button_index == MOUSE_BUTTON_LEFT:
-			if slot >= 0:
-				if _slot_occupied[slot]:
-					upgrade_tower(slot)
-				else:
-					place_tower(slot, _selected_kind)
-		elif mouse_event.button_index == MOUSE_BUTTON_RIGHT and slot >= 0 and _slot_occupied[slot]:
-			sell_tower(slot)
+			if slot >= 0 and _slot_occupied[slot]:
+				upgrade_tower(slot)
+			elif free_tower_index >= 0:
+				upgrade_free_tower(free_tower_index)
+			elif placement_position != Vector3.INF:
+				place_tower_at(placement_position, _selected_kind)
+		elif mouse_event.button_index == MOUSE_BUTTON_RIGHT:
+			if slot >= 0 and _slot_occupied[slot]:
+				sell_tower(slot)
+			elif free_tower_index >= 0:
+				sell_free_tower(free_tower_index)
 	# KEY_ESCAPE is handled by the HUD (PROCESS_MODE_ALWAYS): it must work
 	# while the tree is paused (close settings, resume) and toggles pause
 	# otherwise; run nodes are pausable and would miss those events.
@@ -355,6 +559,8 @@ func _unhandled_input(event: InputEvent) -> void:
 				_select_kind(TDTower.Kind.SONIC_RESONATOR)
 			KEY_3:
 				_select_kind(TDTower.Kind.TANGLE_EMITTER)
+			KEY_4:
+				_select_kind(TDTower.Kind.ARC_CANNON)
 			KEY_SPACE:
 				start_wave()
 
@@ -368,14 +574,9 @@ func _select_kind(kind: int) -> void:
 
 
 func _slot_from_mouse(screen_position: Vector2) -> int:
-	var ray_origin: Vector3 = _camera.project_ray_origin(screen_position)
-	var ray_direction: Vector3 = _camera.project_ray_normal(screen_position)
-	if absf(ray_direction.y) < 0.0001:
+	var ground_hit := _ground_position_from_mouse(screen_position)
+	if ground_hit == Vector3.INF:
 		return -1
-	var distance_to_ground: float = (ray_origin.y) / -ray_direction.y
-	if distance_to_ground < 0.0:
-		return -1
-	var ground_hit: Vector3 = ray_origin + ray_direction * distance_to_ground
 	var best_slot: int = -1
 	var best_distance: float = 1.4
 	for slot_index: int in range(SLOTS.size()):
@@ -384,6 +585,27 @@ func _slot_from_mouse(screen_position: Vector2) -> int:
 			best_distance = distance
 			best_slot = slot_index
 	return best_slot
+
+
+func _ground_position_from_mouse(screen_position: Vector2) -> Vector3:
+	var ray_origin: Vector3 = _camera.project_ray_origin(screen_position)
+	var ray_direction: Vector3 = _camera.project_ray_normal(screen_position)
+	if absf(ray_direction.y) < 0.0001:
+		return Vector3.INF
+	var distance_to_ground: float = (ray_origin.y) / -ray_direction.y
+	if distance_to_ground < 0.0:
+		return Vector3.INF
+	return ray_origin + ray_direction * distance_to_ground
+
+
+func _free_tower_from_position(world_position: Vector3) -> int:
+	if world_position == Vector3.INF:
+		return -1
+	for index: int in range(_free_towers.size()):
+		var tower: TDTower = _free_towers[index]
+		if tower != null and is_instance_valid(tower) and tower.global_position.distance_to(world_position) < 1.1:
+			return index
+	return -1
 
 
 func place_tower(slot_index: int, kind: int) -> bool:
@@ -421,6 +643,79 @@ func place_tower(slot_index: int, kind: int) -> bool:
 	_metrics.record(&"tower_placed", {"kind": kind, "slot": slot_index, "parts_after": parts})
 	_last_clicked_slot = slot_index
 	_hovered_slot = -1
+	return true
+
+
+func place_tower_at(world_position: Vector3, kind: int) -> bool:
+	if is_over or not _can_place_free_position(world_position):
+		return false
+	var stats: TDTowerDefinition = _tower_def(kind)
+	if parts < stats.cost:
+		return false
+	parts -= stats.cost
+	var tower := TDTower.new()
+	tower.setup(stats.tower_kind, stats.range_radius, stats.damage, stats.fire_interval,
+		stats.splash_radius, stats.slow_factor, _projectile_container, stats.model_scene)
+	add_child(tower)
+	tower.global_position = world_position
+	tower.fired.connect(_on_tower_fired)
+	_free_tower_positions.append(world_position)
+	_free_towers.append(tower)
+	_free_tower_invested.append(stats.cost)
+	_spawn_effect(TDCombatEffect.KIND_PLACED, world_position)
+	_audio.play_sfx("build")
+	_hud.update_status(parts, integrity, wave_number, WAVES.size())
+	_metrics.record(&"tower_placed", {"kind": kind, "free_position": world_position, "parts_after": parts})
+	return true
+
+
+func upgrade_free_tower(index: int) -> bool:
+	if is_over or index < 0 or index >= _free_towers.size():
+		return false
+	var tower: TDTower = _free_towers[index]
+	if tower == null or not is_instance_valid(tower) or not tower.can_upgrade():
+		return false
+	var stats: TDTowerDefinition = _tower_def(tower.kind)
+	var cost: int = stats.upgrade_costs[tower.level]
+	if parts < cost:
+		return false
+	parts -= cost
+	_free_tower_invested[index] += cost
+	var next_level: int = tower.level + 1
+	tower.apply_upgrade(stats.damage * pow(stats.upgrade_damage_factor, next_level),
+		stats.fire_interval * pow(stats.upgrade_rate_factor, next_level),
+		stats.range_radius + stats.upgrade_range_bonus * float(next_level),
+		stats.slow_factor * pow(stats.upgrade_slow_factor, next_level), next_level)
+	_hud.update_status(parts, integrity, wave_number, WAVES.size())
+	_spawn_effect(TDCombatEffect.KIND_UPGRADE, tower.global_position)
+	_audio.play_sfx("upgrade")
+	return true
+
+
+func sell_free_tower(index: int) -> bool:
+	if is_over or index < 0 or index >= _free_towers.size():
+		return false
+	var tower: TDTower = _free_towers[index]
+	if tower == null or not is_instance_valid(tower):
+		return false
+	var position: Vector3 = tower.global_position
+	parts += int(float(_free_tower_invested[index]) * SELL_REFUND_RATIO)
+	tower.queue_free()
+	_free_towers.remove_at(index)
+	_free_tower_positions.remove_at(index)
+	_free_tower_invested.remove_at(index)
+	_hud.update_status(parts, integrity, wave_number, WAVES.size())
+	_spawn_effect(TDCombatEffect.KIND_SOLD, position)
+	_audio.play_sfx("sell")
+	return true
+
+
+func _can_place_free_position(world_position: Vector3) -> bool:
+	if world_position.x < -19.0 or world_position.x > 19.0 or world_position.z < -15.0 or world_position.z > 15.0:
+		return false
+	for existing_position: Vector3 in _free_tower_positions:
+		if existing_position.distance_to(world_position) < 1.8:
+			return false
 	return true
 
 
@@ -478,6 +773,17 @@ func sell_tower(slot_index: int) -> bool:
 func _physics_process(delta: float) -> void:
 	if is_over:
 		return
+	_world_time += delta
+	if _spawn_beacon != null:
+		_spawn_beacon.rotation.y += delta * 0.8
+		_spawn_beacon.scale = Vector3.ONE * (1.0 + sin(_world_time * 2.2) * 0.06)
+	if _spawn_beacon_core != null:
+		_spawn_beacon_core.position.y = 0.36 + sin(_world_time * 2.8) * 0.08
+	if _spawn_beacon_ring != null:
+		_spawn_beacon_ring.rotation.x = sin(_world_time * 1.7) * 0.18
+	if _shelter_crystal != null:
+		_shelter_crystal.rotation.y += delta * 0.35
+		_shelter_crystal.scale = Vector3.ONE * (1.0 + sin(_world_time * 1.8) * 0.035)
 	_update_slows()
 	_update_hover()
 	if is_combat:
@@ -486,8 +792,14 @@ func _physics_process(delta: float) -> void:
 
 
 func _update_slows() -> void:
-	for slot_index: int in range(_slot_towers.size()):
-		var tower: TDTower = _slot_towers[slot_index]
+	var active_towers: Array[TDTower] = []
+	for slot_tower: TDTower in _slot_towers:
+		if slot_tower != null:
+			active_towers.append(slot_tower)
+	for free_tower: TDTower in _free_towers:
+		if free_tower != null:
+			active_towers.append(free_tower)
+	for tower: TDTower in active_towers:
 		if tower == null or not is_instance_valid(tower) or tower.kind != TDTower.Kind.TANGLE_EMITTER:
 			continue
 		for node: Node in get_tree().get_nodes_in_group("td_enemies"):
@@ -496,6 +808,13 @@ func _update_slows() -> void:
 				continue
 			if enemy.alive and enemy.global_position.distance_to(tower.global_position) <= tower.range_radius:
 				enemy.slow_factor = minf(enemy.slow_factor, tower.slow_factor)
+				var cooldown_key: String = "%s:%s" % [tower.get_instance_id(), enemy.get_instance_id()]
+				var cooldown: float = float(_tangle_effect_cooldowns.get(cooldown_key, 0.0))
+				if cooldown <= 0.0:
+					_spawn_effect(TDCombatEffect.KIND_ELECTRIC, enemy.global_position + Vector3(0.0, 0.55, 0.0))
+					_tangle_effect_cooldowns[cooldown_key] = 0.22
+	for cooldown_key: Variant in _tangle_effect_cooldowns.keys():
+		_tangle_effect_cooldowns[cooldown_key] = maxf(float(_tangle_effect_cooldowns[cooldown_key]) - get_physics_process_delta_time(), 0.0)
 
 
 func _update_hover() -> void:
@@ -512,14 +831,18 @@ func _update_hover() -> void:
 			var default_text: String = _composition_text(wave_number + 1) if not is_combat else _composition_text(wave_number)
 			_preview_default = default_text if not is_combat else _preview_default
 			_hud.show_wave_preview(default_text)
-	var has_selection: bool = _hovered_slot >= 0 and not _slot_occupied[_hovered_slot]
+	var ground_position := _ground_position_from_mouse(mouse_position)
+	var has_selection: bool = ground_position != Vector3.INF and slot < 0
 	_ghost.visible = has_selection
+	_placement_marker.visible = has_selection
 	var ghost_material := _ghost.material_override as StandardMaterial3D
 	var selected_stats: TDTowerDefinition = _tower_def(_selected_kind)
 	if _ghost.visible:
-		_ghost.global_position = SLOTS[_hovered_slot] + Vector3(0.0, 0.1, 0.0)
+		_ghost.global_position = ground_position + Vector3(0.0, 0.1, 0.0)
+		_placement_marker.global_position = ground_position + Vector3(0.0, 0.03, 0.0)
 	var afford: bool = parts >= selected_stats.cost
-	if not afford and has_selection:
+	var can_place: bool = _can_place_free_position(ground_position) if has_selection else true
+	if (not afford or not can_place) and has_selection:
 		ghost_material.albedo_color = Color(0.8, 0.3, 0.3, 0.25)
 	else:
 		ghost_material.albedo_color = Color(0.8, 0.8, 0.55, 0.25)
@@ -628,6 +951,9 @@ func _on_projectile_impacted(impact_position: Vector3, splash: bool) -> void:
 
 func _on_tower_fired(kind: int, from_position: Vector3) -> void:
 	match kind:
+		TDTower.Kind.ARC_CANNON:
+			_audio.play_sfx("resonator_pulse")
+			_spawn_effect(TDCombatEffect.KIND_UPGRADE, from_position)
 		TDTower.Kind.SONIC_RESONATOR:
 			_audio.play_sfx("resonator_pulse")
 		TDTower.Kind.TANGLE_EMITTER:

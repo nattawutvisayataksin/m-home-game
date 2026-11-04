@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="TDTowerDefinition" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/td_tower_definition.gd" id="1_def"]
+[ext_resource type="PackedScene" path="res://assets/models/towers/arc_cannon.glb" id="2_model"]
+
+[resource]
+script = ExtResource("1_def")
+tower_kind = 3
+display_name = "Arc Cannon"
+cost = 140
+range_radius = 5.8
+damage = 16.0
+fire_interval = 1.65
+splash_radius = 1.6
+slow_factor = 1.0
+upgrade_costs = Array[int]([80, 135])
+model_scene = ExtResource("2_model")

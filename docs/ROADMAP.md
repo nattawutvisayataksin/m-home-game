@@ -56,9 +56,9 @@
 
 ### Phase TD-1 — Greybox 3D TD core loop (✅ implementation เสร็จ 2026-11-03; ผ่านเมื่อ core loop เล่นซ้ำได้ 2 คลื่นโดยไม่ softlock — รอ verify ผ่านการเล่นจริง)
 
-- Scene 3D: กล้อง isometric fixed, แสง/ฟ้า/ฉากประกอบขั้นต้น, เส้นทาง waypoint หนึ่งเส้น
+- Scene 3D: กล้อง isometric fixed, แสง/ฟ้า/ฉากประกอบ, เส้นทางหลาย waypoint และ free placement
 - ศัตรู primitive เดินตามเส้นทาง (Drifter/Skitter/Dasher ปรับจากค่าใหม่ TD), leak → Integrity
-- ป้อม 3 ชนิด (Turret / Resonator / Tangle) วางบน slot, targeting first, auto-fire, Parts economy
+- ป้อม 4 ชนิด (Laser / Rocket / Electric Slow / Arc Burst) วางอิสระบนพื้น, targeting first, auto-fire, Parts economy
 - Wave spawner data-driven, next-wave preview, prep/run state แยกชัด, HUD ขั้นต่ำ (Parts/Integrity/wave/start wave)
 - ตัวเลขทั้งหมดเป็น data (ค่าเริ่มใน script constants ได้ใน greybox แต่ต้องเก็บไว้ที่เดียว) และเขียน smoke test headless
 - **ทำแล้ว:** ตัวเลข enemy/tower/wave ย้ายไป data `.tres` 15 ไฟล์ (`data/{enemies,towers,waves}/` + Resource classes ใน `scripts/data/`) พร้อม upgrade ระดับ 2 / ขายคืน 70% และหน้า title menu (เริ่มเกม / วิธีเล่น / เรื่องราว / ออก); ตัวเลขเศรษฐกิจของ session (start Parts/Integrity, wave bonus, refund ratio) ยังเป็น constants กลุ่มเดียวใน `td_run.gd` โดยชัดแจ้งว่าไม่ใช่ unit balance
@@ -72,6 +72,7 @@
 - **ทำแล้ว (2026-11-03):** สร้างโมเดล Blender low-poly (.glb) ครบชุด (ป้อม 3, ศัตรู 4, Shelter 09), เพิ่ม pipeline model_scene เชื่อมต่อ .tres, เพิ่มระบบ Pause Menu (Esc), เชื่อมต่อ ProfileRepository คำนวณ barricade level และบันทึก Salvage/สถิติจบรอบ, automated tests ผ่านสมบูรณ์
 - **ทำแล้ว (2026-11-04):** Settings Menu (volume 3 ช่อง + reduce flashes/motion + large text) ใน title และ pause menu ผ่าน autoload `TDSettings` (`user://settings.cfg`, แพตเทิร์นเดียวกับ 2D); แก้ Esc-resume หลัง pause ที่จริง ๆ แล้วไม่เคยทำงาน (ย้ายไป HUD PROCESS_MODE_ALWAYS); เทสต์ phase3 เพิ่มเป็นชุดที่ 3 ของ 3D
 - **ทำแล้ว (2026-11-04):** Audio Buses & SFX — bus layout Master/Music/SFX/UI + procedural SFX 11 ไฟล์ (`scripts/generate_sfx_3d.py`) + `TDAudioDirector` ต่อรอบ เสียงยิงป้อม 3 ชนิด / วาง-อัปเกรด-ขาย / เปิดคลื่น / hit-leak-breach / ambient; settings sliders คุม bus ได้ทันที; เทสต์ phase4 ชุดที่ 4
+- **ทำแล้ว (2026-11-04):** visual/combat pass — multi-waypoint road, free tower placement, 4th Arc Cannon, laser/rocket/electric weapon feedback, Shelter Core crystal, roadside props, trees and ruined houses; `test-3d.ps1` ผ่าน PHASE 1–5
 
 ### ระเบียบการตัดสินข้ามฉบับ
 

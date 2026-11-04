@@ -1,5 +1,238 @@
 # Nightly Development Log — LAST LIGHT
 
+## Entry — Multi-Path Road, HUD Clarity & Arc Cannon (2026-11-04)
+
+**Scope:** ปรับเส้นทาง, free placement, HUD และเพิ่มอาวุธชนิดที่ 4
+
+### Road
+- เพิ่ม waypoint หลายช่วงให้ถนนมีการเลี้ยวและระยะเดินมากกว่าเดิม
+- คง shoulder/markings เพื่อไม่ให้เส้นทางขาดและช่วยอ่าน lane
+
+### Free placement
+- ปรับ ray-ground placement ให้คลิกพื้นที่ว่างได้กว้างขึ้น
+- เพิ่มการค้นหาป้อมอิสระสำหรับ upgrade/sell
+- fixed slot visuals ยังคงซ่อน ไม่บดบังฉาก
+
+### HUD
+- ปรับปุ่มเป็น 4 อาวุธ พร้อมชื่อและบทบาทที่อ่านง่าย
+- `1` Laser, `2` Rocket, `3` Electric Slow, `4` Arc Burst
+- คง Space สำหรับเริ่ม Wave และคีย์ลัด 1–4
+
+### Weapon 4 — Arc Cannon
+- เพิ่ม `TDTower.Kind.ARC_CANNON`
+- เพิ่ม data resource `data/towers/arc_cannon.tres`
+- สร้างโมเดล `arc_cannon.glb` ด้วย Blender
+- เพิ่ม projectile สีม่วงและ burst effect ตอนยิง
+
+### Verification
+- Blender export/import สำเร็จ
+- `dev-3d.ps1 -Action check` ผ่าน: 0 errors จาก 15 scripts
+- `test-3d.ps1` ผ่าน: PHASE 1–5
+
+## Entry — Tangle Slow Readability Fix (2026-11-04)
+
+**Issue:** ป้อมชนิดที่ 3 ชะลอศัตรูจริง แต่ผู้เล่นมองไม่เห็นผลลัพธ์ชัดเจน
+
+### Fix
+- รวม `_free_towers` เข้า slow scan เพื่อให้ Tangle ที่วางอิสระทำงานจริง
+- เปลี่ยน cooldown ของไฟฟ้าเป็นรายคู่ป้อม/ศัตรู ไม่ให้หลายเป้าหมายแย่งเอฟเฟกต์กัน
+- เพิ่ม electric pulse และ sparks ให้ใหญ่/สว่างขึ้น
+- เพิ่มวงแหวนไฟฟ้าหมุนติดตัวศัตรูขณะ `slow_factor < 1.0`
+- คงการลดความเร็วจาก data `.tres` เดิม ไม่ปรับ balance
+
+### Verification
+- `dev-3d.ps1 -Action check` ผ่าน: 0 errors จาก 15 scripts
+- `test-3d.ps1` ผ่าน: PHASE 1–5
+
+## Entry — Weapon Identity & Shelter Core Visual Pass (2026-11-04)
+
+**Scope:** ปรับภาพอาวุธและจุดปกป้องตามบทบาทของป้อมทั้งสาม พร้อมลบ fixed slot visuals ที่บดบังฉาก
+
+### Tower 1 — Field Turret
+- เปลี่ยน projectile visual เป็นลำแสง laser สีฟ้าอมขาว
+- muzzle effect เดิมยังทำงานเพื่อสื่อจังหวะยิง
+
+### Tower 2 — Sonic Resonator
+- เปลี่ยน projectile visual เป็นหัวจรวดทรง capsule สีส้มแดง
+- splash behavior เดิมยังคงอยู่
+
+### Tower 3 — Tangle Emitter
+- ลบวงกลม aura สีฟ้าถาวรหลังวางป้อม
+- เพิ่ม electric pulse และ sparks สีฟ้าเมื่อศัตรูอยู่ในระยะ slow
+
+### Shelter Core
+- เพิ่ม crystal core สีฟ้าเรืองแสงที่ปลายทาง พร้อมฐานโลหะและ pulse animation
+- ทำให้ปลายทางดูเป็น objective สำคัญที่ต้องปกป้อง
+
+### Road / placement cleanup
+- ซ่อน fixed slot disks ที่บดบังพื้นสนาม
+- ระบบวางป้อมอิสระยังคงใช้ preview และระยะห่างตรวจสอบเหมือนเดิม
+
+### Verification
+- `dev-3d.ps1 -Action check` ผ่าน: 0 errors จาก 15 scripts
+- `test-3d.ps1` ผ่าน: PHASE 1–5
+
+## Entry — Trees & Ruined Houses Environment Pass (2026-11-04)
+
+**Scope:** เพิ่มฉากแวดล้อมรอบสนามตามคำขอ: ต้นไม้และบ้านร้าง low-poly
+
+### Blender assets
+- เพิ่ม source `scripts/build_environment_props.py`
+- สร้าง `ash_tree.glb` ต้นไม้แห้งทรง stylized พร้อมแถบโลหะสนิม
+- สร้าง `ruined_house.glb` บ้านร้างพร้อมหลังคาทรุด ประตู หน้าต่างเรืองแสง และกอง rubble
+
+### Godot placement
+- วางต้นไม้รอบขอบสนาม 4 จุด
+- วางบ้านร้างเป็น background landmark 2 จุด
+- ตั้งตำแหน่งและ scale ไม่ให้บัง lane หรือ tower placement
+
+### Verification
+- Blender export และ Godot import สำเร็จ
+- `dev-3d.ps1 -Action check` ผ่าน: 0 errors จาก 15 scripts
+- `test-3d.ps1` ผ่าน: PHASE 1–5
+
+## Entry — Rifle Aim Correction & Free Tower Placement (2026-11-04)
+
+**Scope:** แก้ทิศลำกล้อง Field Turret และเปลี่ยนการวางป้อมจาก slot-only เป็นวางบนพื้นได้อิสระ
+
+### Rifle aim
+- ปรับ Blender model ให้แกนลำกล้องหันไปทาง local `+Z` ซึ่งตรงกับสูตรเล็งของ Godot
+- คง hierarchy `YawPivot` / `PitchPivot` สำหรับหมุนฐานและก้มเงย
+- re-export `field_turret.glb` และ reimport เข้า Godot แล้ว
+
+### Free placement
+- คลิกซ้ายบนพื้นเพื่อวางป้อมตรงตำแหน่งเมาส์ ไม่ต้องเลือก fixed slot
+- เพิ่ม placement preview และ marker สีเขียว/แดงตามระยะห่างและพื้นที่วาง
+- คลิกซ้ายป้อมที่วางอิสระเพื่อ upgrade และคลิกขวาเพื่อขาย
+- fixed slots เดิมยังรองรับเพื่อไม่ทำลาย compatibility ของระบบทดสอบ
+- ขอบเขตสนามและระยะห่างขั้นต่ำป้องกันการวางทับกัน
+
+### Verification
+- `dev-3d.ps1 -Action check` ผ่าน: 0 errors จาก 15 scripts
+- `test-3d.ps1` ผ่าน: PHASE 1–5
+
+## Entry — Tower Selection Menu Readability (2026-11-04)
+
+**Issue:** เมนูเลือกป้อม 1/2/3 ที่มุมขวาล่างสื่อความหมายไม่ชัดและอ่านบทบาทได้ยาก
+
+**Fix:** ปรับปุ่มใน `td_hud.gd` ให้เป็นการ์ดขนาดคงที่ แสดง hotkey, ชื่อป้อม, บทบาท และ tooltip ภาษาไทย โดยไม่เปลี่ยนการเชื่อม signal หรือกติกาการเลือกป้อม
+
+### Verification
+- การเลือกป้อมยัง emit `tower_selected(kind)` เหมือนเดิม
+- ไม่แตะค่า balance ใน `.tres`
+
+## Entry — Full 3D Battlefield Visual Pass (2026-11-04)
+
+**Scope:** ขยายงาน visual จากเฉพาะป้อมไปยังทางเดิน ฉากรอบสนาม และการอ่าน Wave
+
+### ทางเดิน
+- เพิ่มขอบไหล่ถนนสีเข้มตลอดทุก segment
+- เพิ่ม lane markings สี khaki เพื่อให้ทิศทาง enemy อ่านง่ายจากมุม isometric
+- เพิ่ม Rift spawn beacon พร้อมแกนพลังงาน, วงแหวนหมุน, glow และไฟสีม่วง
+
+### ฉากรอบสนาม
+- คง props Blender เดิม: barricade, street light และป้าย Shelter 09
+- จัดองค์ประกอบให้ lane และจุดวางป้อมยังเด่นกว่าฉากหลัง
+
+### Wave / Enemy readability
+- เพิ่ม bob และ sway motion เบา ๆ ให้ศัตรูทุก archetype
+- เพิ่ม animation ของ beacon เพื่อสื่อจุดเกิดและความตึงเครียดของ Wave
+- ไม่เปลี่ยนค่า health, speed, bounty หรือ wave composition ใน `.tres`
+
+## Entry — Field Turret Floating Parts Fix (2026-11-04)
+
+**Issue:** ชิ้นส่วนบน Field Turret ลอยหรือแยกออกจากตัวป้อมหลัง import GLB
+
+**Cause:** การกำหนดตำแหน่ง mesh ก่อน parent ใน Blender ทำให้ค่าบางส่วนถูกตีความเป็น world transform แล้วถูกใช้ซ้ำเป็น local transform
+
+**Fix:** ปรับ builder ให้ parent ก่อนแล้วกำหนด local transform พร้อมล้าง `matrix_parent_inverse`; จัดตำแหน่ง housing, pitch pivot, barrels และ muzzle ใหม่ให้อยู่บนฐานเดียวกัน
+
+### Verification
+- Blender export mesh ครบถ้วน
+- Godot reimport สำเร็จ
+- `dev-3d.ps1 -Action check` ผ่าน: 0 errors จาก 15 scripts
+- `test-3d.ps1` ผ่าน: PHASE 1–5
+
+## Entry — Fix Invisible Field Turret GLB (2026-11-04)
+
+**Issue:** ป้อมยิงได้แต่ไม่แสดงผล หลัง export โมเดลผ่าน Blender
+
+**Cause:** Blender script เลือกเฉพาะ empty root `FieldTurret` ขณะใช้ `use_selection=True` ทำให้ mesh descendants ไม่ถูก export เป็น GLB
+
+**Fix:** ปรับ `scripts/build_field_turret.py` ให้เลือก root และ `children_recursive` ทุกชิ้นก่อน export จากนั้นสร้าง GLB และ reimport ใหม่ใน Godot
+
+### Verification
+- Blender export แสดงการ extract primitive ของ mesh ครบถ้วน
+- Godot reimport `field_turret.glb` สำเร็จ
+- `dev-3d.ps1 -Action check` ผ่าน: 0 errors จาก 15 scripts
+- `test-3d.ps1` ผ่าน: PHASE 1–5
+
+## Entry — Shelter 09 Roadside Props Pass (2026-11-04)
+
+**Scope:** เพิ่มรายละเอียดฉาก 3D ด้วย props low-poly ที่สร้างจาก Blender โดยไม่เปลี่ยน gameplay หรือ balance
+
+### Blender assets
+- เพิ่ม `scripts/build_scene_props.py` เป็น source สำหรับสร้าง props แบบ deterministic
+- สร้าง `barricade.glb`, `street_light.glb` และ `shelter_09_sign.glb`
+- ใช้โทนโลหะเข้ม, olive และ amber warning light ให้ตรงกับ Art Direction
+
+### Godot placement
+- วาง barricades รอบ lane ในตำแหน่งที่ไม่บัง slot และทางเดินศัตรู
+- เพิ่ม street lights สองจุดเพื่อสร้าง scale และ silhouette
+- เพิ่มป้าย Shelter 09 ใกล้ปลายเส้นทาง
+
+### Verification
+- Godot import props สำเร็จ
+- `dev-3d.ps1 -Action check` ผ่าน: 0 errors จาก 15 scripts
+- `test-3d.ps1` ผ่าน: PHASE 1–5
+
+## Entry — Field Turret Aim Rig Integration (2026-11-04)
+
+**Scope:** เชื่อม hierarchy จาก Blender เข้ากับ runtime animation ของ Godot
+
+- `TDTower` ตรวจหา `YawPivot` และ `PitchPivot` ในโมเดล Field Turret
+- ป้อมหมุนฐานตามศัตรูและก้มเงยตามความสูงเป้าหมายแบบ smooth
+- recoil ถูกย้ายจากทั้งโมเดลไปเป็นการถอยเฉพาะ `Barrel_L` และ `Barrel_R`
+- ยังคงมี fallback greybox สำหรับโมเดลที่ไม่มี rig
+
+### Verification
+- `dev-3d.ps1 -Action check` ผ่าน: 0 errors จาก 15 scripts
+- `test-3d.ps1` ผ่าน: PHASE 1–5
+
+## Entry — Blender Field Turret Asset Pass (2026-11-04)
+
+**Scope:** สร้างโมเดล `Field Turret` ใหม่ด้วย Blender 5.2 ให้พร้อมรองรับการเคลื่อนไหวใน Godot
+
+### Asset
+- เพิ่ม source script `scripts/build_field_turret.py` สำหรับสร้าง asset แบบ deterministic
+- เพิ่ม hierarchy `FieldTurret > YawPivot > PitchPivot` พร้อมชิ้นส่วน `Barrel_L` / `Barrel_R`
+- ใช้วัสดุ low-poly แนว Shelter 09: olive, repair khaki, dark steel และ amber status light
+- Export ทับ `projects/last-light-3d/assets/models/towers/field_turret.glb`
+
+### Verification
+- Blender 5.2.3 LTS export สำเร็จ
+- Godot reimport สำเร็จด้วย `dev-3d.ps1 -Action import`
+- `dev-3d.ps1 -Action check` ผ่าน: 0 errors จาก 15 scripts
+- `test-3d.ps1` ผ่าน: PHASE 1–5
+
+## Entry — 3D Tower Motion & Scene Lighting Polish (2026-11-04)
+
+**Scope:** ปรับ visual feedback ของป้อมและบรรยากาศฉาก 3D โดยไม่แตะค่าความสมดุลใน `.tres`
+
+### Tower motion
+- `TDTower` หันแกนหลักตามศัตรูเป้าหมายด้วยการหมุนแบบ smooth ก่อนยิง
+- เพิ่ม recoil แบบ Tween ให้โมเดลถอยและคืนตำแหน่งเมื่อยิง
+- เพิ่ม idle sway เบา ๆ ให้ `Tangle Emitter` เพื่อสื่อว่ารัศมี slow ยังทำงานอยู่
+
+### Scene lighting
+- เปิดเงาของ DirectionalLight3D และเพิ่มระยะ shadow ให้ครอบคลุมสนาม
+- เพิ่ม warm key light กับ cool fill light เพื่อแยก shelter, path และ tower silhouette
+- เพิ่ม ambient energy, glow และ fog ระดับต่ำให้ฉากมี depth โดยยังรักษา readability ของ lane
+
+### Verification
+- `dev-3d.ps1 -Action check` ผ่าน: 0 errors จาก 15 scripts
+- `test-3d.ps1` ผ่าน: PHASE 1–5
+
 ## Entry — 3D Combat Effects (VFX) & Screen Juice (2026-11-04, working session 3)
 
 **Author:** Antigravity (handoff completion from opencode)

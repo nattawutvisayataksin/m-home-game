@@ -10,7 +10,7 @@ signal restart_pressed
 signal resume_pressed
 signal title_pressed
 
-const KIND_LABELS: Array[String] = ["1 Field Turret (80)", "2 Sonic Resonator (120)", "3 Tangle Emitter (60)"]
+const KIND_LABELS: Array[String] = ["1  FIELD TURRET\nLaser / ยิงเดี่ยว", "2  SONIC RESONATOR\nRocket / ยิงหมู่", "3  TANGLE EMITTER\nElectric / ชะลอ", "4  ARC CANNON\nBurst / พลังงาน"]
 
 var _parts_label: Label
 var _integrity_label: Label
@@ -88,11 +88,13 @@ func build_ui() -> void:
 	buttons.size_flags_horizontal = Control.SIZE_SHRINK_END
 	bottom.add_child(buttons)
 
-	for index: int in range(3):
+	for index: int in range(4):
 		var button := Button.new()
 		button.text = KIND_LABELS[index]
+		button.custom_minimum_size = Vector2(158.0, 58.0)
+		button.tooltip_text = ["เลเซอร์ยิงเดี่ยว ระยะกลาง", "จรวดระเบิดโจมตีเป็นวง", "ไฟฟ้าชะลอศัตรูในระยะ", "พลังงานอาร์คระเบิดแรง"][index]
 		button.focus_mode = Control.FOCUS_NONE
-		_style_text(button, "font_size", 16)
+		_style_text(button, "font_size", 13)
 		var kind: int = index
 		button.pressed.connect(func () -> void: tower_selected.emit(kind))
 		buttons.add_child(button)

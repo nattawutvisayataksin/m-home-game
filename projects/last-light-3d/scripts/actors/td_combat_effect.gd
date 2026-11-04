@@ -14,6 +14,7 @@ const KIND_SOLD: int = 4
 const KIND_LEAK: int = 5
 const KIND_WAVE: int = 6
 const KIND_MUZZLE: int = 7
+const KIND_ELECTRIC: int = 8
 
 var effect_kind: int = 0
 
@@ -54,6 +55,10 @@ func _ready() -> void:
 		KIND_MUZZLE:
 			_lifetime = 0.09
 			_build_ring(0.2, 0.7, 0.03, Color(1.0, 0.95, 0.7))
+		KIND_ELECTRIC:
+			_lifetime = 0.28
+			_build_ring(0.35, 0.9, 0.06, Color(0.1, 0.65, 1.0))
+			_build_sparks(12, 1.35, Color(0.2, 0.9, 1.0))
 		_:
 			_lifetime = 0.25
 
