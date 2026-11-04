@@ -78,7 +78,8 @@ assets/brand/logo_emblem.svg
 
 - **TD-2 Assets:** ผลิตโมเดล Low-poly .glb ครบถ้วน (Towers 3 ตัว, Enemies 4 ตัว, Shelter prop) ด้วย Blender 5.2 และผูก `model_scene` เข้ากับทุก `.tres` ใน `projects/last-light-3d/data/` เรียบร้อยแล้ว
 - **Pause Menu:** ระบบ Esc toggle pause, resume, restart, return to title menu พร้อมใช้งาน
-- **Settings Menu (2026-11-04):** Autoload `TDSettings` (`scripts/systems/td_settings_store.gd` → `user://settings.cfg`, แพตเทิร์นเดียวกับ 2D) + panel ใช้ร่วม `scripts/ui/td_settings_panel.gd` ใน title menu และ pause menu — volume master/sfx/music (dB), reduce flashes/motion, large text (rescale สดทันที); พร้อมใช้งาน social volume โดย bus SFX/Music ยังไม่มี (guard ไว้, เฟส Audio ต่อไปจะเข้าอัตโนมัติ)
+- **Settings Menu (2026-11-04):** Autoload `TDSettings` (`scripts/systems/td_settings_store.gd` → `user://settings.cfg`, แพตเทิร์นเดียวกับ 2D) + panel ใช้ร่วม `scripts/ui/td_settings_panel.gd` ใน title menu และ pause menu — volume master/sfx/music (dB), reduce flashes/motion, large text (rescale สดทันที)
+- **Audio Buses & SFX (2026-11-04):** bus layout `assets/audio/audio_bus_layout.tres` (Master/Music/SFX/UI) + procedural SFX 11 ไฟล์จาก `scripts/generate_sfx_3d.py` + `TDAudioDirector` (`scripts/systems/td_audio_director.gd`) ต่อรอบ — เสียงยิงป้อม 3 ชนิดแยก voice, วาง/อัปเกรด/ขาย, wave_horn, hit/leak/breach, ambient; sliders ของ settings คุมเสียงได้ชุดนี้ทันที (bus SFX/Music จึงไม่ต้อง guard แล้ว)
 - **Save/Progression Linkage:** ระบบบันทึกและอ่าน ProfileRepository (`user://profile.json`) เชื่อมต่อเข้ากับ `td_run.gd` เรียบร้อยแล้ว (Integrity ได้รับโบนัสตาม Barricade Level, เมื่อจบรอบบันทึกสถิติและแจก Salvage)
 
 ### ข้อควรรู้เพิ่มจากงาน 2026-11-04
@@ -88,10 +89,9 @@ assets/brand/logo_emblem.svg
 
 ### งานที่รับต่อได้ทันที (สำหรับ Agent ถัดไป)
 
-1. **Audio Buses & SFX (แนะนำทำต่อ):** สร้าง bus Music/SFX แล้วค่า volume จาก `TDSettings` จะ apply เอง; ทุกเสียง (ยิงป้อม 3 ชนิด, leak/breach, คลื่น, ambient) ดีดผ่าน bus — ทำเทสต์ SceneTree phase4 ต่อจาก phase3
-2. **3D VFX & Juice:** flash, impact, projectile trail, boss rift glow — อ่าน `get_reduce_flashes()` / `get_reduce_motion()` จาก store ก่อนเกิดเอฟเฟกต์ทุกชิ้น
-3. **Wave pacing data pass (Playtest iteration):** ผ่าน `.\scripts\dev-3d.ps1 -Action run` หลังจากเสียง/VFX ครบแล้วจึงเก็บ metrics จาก `user://metrics/` และปรับว่าคัด `.tres` นั้นครบครันหัวข้อมูลอ้างอิง
-4. **Playtest มนุษย์:** ต้องมีผู้เล่นจริง — เงื่อนไขจบ TD-2 คือผู้เล่นใหม่วางป้อมแรก < 25 วินาที และอธิบาย leak ได้
+1. **3D VFX & Juice (แนะนำทำต่อ):** flash, impact, projectile trail, boss rift glow — อ่าน `get_reduce_flashes()` / `get_reduce_motion()` จาก store ก่อนเกิดเอฟเฟกต์ทุกชิ้น ตาม GDD
+2. **Wave pacing data pass (Playtest iteration):** หลังเสียง/VFX ครบ รันเล่นจริงผ่าน `.\scripts\dev-3d.ps1 -Action run` เก็บ metrics จาก `user://metrics/` และปรับ `.tres` เฉพาะเมื่อมีข้อมูลอ้างอิง
+3. **Playtest มนุษย์:** ต้องมีผู้เล่นจริง — เงื่อนไขจบ TD-2 คือผู้เล่นใหม่วางป้อมแรก < 25 วินาที และอธิบาย leak ได้
 
 ## 5) กติกาสากลของ repo (อ่าน AGENTS.md แล้วสรุปเพิ่มที่นี้)
 

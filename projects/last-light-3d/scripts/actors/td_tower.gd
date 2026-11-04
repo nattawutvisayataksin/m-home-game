@@ -6,6 +6,8 @@ extends Node3D
 ## When a model_scene is provided via setup(), instantiates the low-poly .glb;
 ## otherwise falls back to greybox primitives.
 
+signal fired(kind: Kind)
+
 enum Kind { FIELD_TURRET, SONIC_RESONATOR, TANGLE_EMITTER }
 
 const MAX_LEVEL: int = 2
@@ -144,6 +146,7 @@ func _acquire_target() -> TDEnemy:
 func _fire(target: TDEnemy) -> void:
 	if _projectile_parent == null:
 		return
+	fired.emit(kind)
 	var projectile := TDProjectile.new()
 	projectile.damage = damage
 	projectile.splash_radius = splash_radius

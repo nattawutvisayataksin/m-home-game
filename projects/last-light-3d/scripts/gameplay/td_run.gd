@@ -10,6 +10,7 @@ signal run_ended(won: bool)
 const HUD_SCRIPT: Script = preload("res://scripts/ui/td_hud.gd")
 const METRICS_SCRIPT: Script = preload("res://scripts/systems/run_metrics.gd")
 const PROFILE_SCRIPT: Script = preload("res://scripts/systems/profile_repository.gd")
+const AUDIO_SCRIPT: Script = preload("res://scripts/systems/td_audio_director.gd")
 
 const ENEMY_DEFS := {
 	&"drifter": preload("res://data/enemies/drifter.tres"),
@@ -86,6 +87,7 @@ var _spawn_spacing: float = 1.0
 var _spawned_alive: int = 0
 var _metrics: RunMetrics
 var _profile_repo: ProfileRepository
+var _audio: TDAudioDirector
 var _preview_default: String = ""
 
 var _camera: Camera3D
@@ -116,6 +118,7 @@ func _ready() -> void:
 	_build_camera_and_light()
 	_build_env()
 	_build_hud()
+	_build_audio()
 	_preview_default = _composition_text(1)
 	_hud.show_wave_preview(_preview_default)
 	_hud.update_status(parts, integrity, 0, WAVES.size())
@@ -256,6 +259,14 @@ func _composition_text(wave_index: int) -> String:
 	return ", ".join(labels)
 
 
+func _build_audio() -> void:
+	# The run owns audio: towers/enemies never play sounds directly; their
+	# state changes surface here as signals and this node plays the SFX.
+	_audio = AUDIO_SCRIPT.new()
+	_audio.name = "AudioDirector"
+	add_child(_audio)
+
+
 func _build_hud() -> void:
 	var hud_layer := CanvasLayer.new()
 	hud_layer.name = "HUD"
@@ -356,7 +367,11 @@ func place_tower(slot_index: int, kind: int) -> bool:
 	)
 	add_child(tower)
 	tower.global_position = SLOTS[slot_index]
+	tower.fired.connect(_on_tower_fired)
 	_slot_towers[slot_index] = tower
+	_slot_occupied[slot_index] = true
+	_slot_invested[slot_index] = stats.cost
+	_audio.play_sfx("build")
 	_slot_occupied[slot_index] = true
 	_slot_invested[slot_index] = stats.cost
 	var disk := _slot_disks[slot_index] as MeshInstance3D
@@ -391,6 +406,7 @@ func upgrade_tower(slot_index: int) -> bool:
 	)
 	_hud.update_status(parts, integrity, wave_number, WAVES.size())
 	_metrics.record(&"tower_upgraded", {"kind": tower.kind, "level": tower.level, "cost": cost, "parts_after": parts})
+	_audio.play_sfx("upgrade")
 	_last_clicked_slot = slot_index
 	return true
 
@@ -412,6 +428,7 @@ func sell_tower(slot_index: int) -> bool:
 	disk_material.albedo_color = Color(0.75, 0.66, 0.4, 0.5)
 	_hud.update_status(parts, integrity, wave_number, WAVES.size())
 	_metrics.record(&"tower_sold", {"slot": slot_index, "refund": refund, "parts_after": parts})
+	_audio.play_sfx("sell")
 	_last_clicked_slot = slot_index
 	return true
 
@@ -481,6 +498,7 @@ func start_wave() -> void:
 		for _index: int in range(count):
 			_spawn_queue.append(enemy_id)
 	_hud.set_combat_state(true)
+	_audio.play_sfx("wave_horn")
 	_metrics.record(&"wave_started", {"wave": wave_number})
 
 
@@ -528,6 +546,7 @@ func _clear_wave() -> void:
 func _on_enemy_died(enemy: TDEnemy) -> void:
 	parts += enemy.parts_bounty
 	_spawned_alive = maxi(_spawned_alive - 1, 0)
+	_audio.play_sfx("hit", 0.06)
 	_metrics.record(&"enemy_killed", {"bounty": enemy.parts_bounty, "wave": wave_number})
 	enemy.queue_free()
 
@@ -537,11 +556,22 @@ func _on_enemy_leaked(enemy: TDEnemy) -> void:
 	if is_over:
 		enemy.queue_free()
 		return
+	_audio.play_sfx("leak", 0.05)
 	integrity = maxi(integrity - enemy.integrity_damage, 0)
 	_metrics.record(&"enemy_leaked", {"damage": enemy.integrity_damage, "integrity_after": integrity, "wave": wave_number})
 	if integrity <= 0:
 		_end_run(false)
 	enemy.queue_free()
+
+
+func _on_tower_fired(kind: int) -> void:
+	match kind:
+		TDTower.Kind.SONIC_RESONATOR:
+			_audio.play_sfx("resonator_pulse")
+		TDTower.Kind.TANGLE_EMITTER:
+			_audio.play_sfx("tangle_cast")
+		_:
+			_audio.play_sfx("turret_shot", 0.08)
 
 
 func _end_run(won: bool) -> void:
@@ -571,6 +601,7 @@ func _end_run(won: bool) -> void:
 		profile["lifetime_salvage"] = int(profile.get("lifetime_salvage", 0)) + salvage_gain
 		_profile_repo.save_profile(profile)
 	_hud.show_result(won, parts)
+	_audio.play_sfx("breach" if not won else "upgrade")
 	run_ended.emit(won)
 
 

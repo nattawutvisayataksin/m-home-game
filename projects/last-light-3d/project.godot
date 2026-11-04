@@ -10,6 +10,10 @@ config/name="LAST LIGHT: Last Defense (3D Greybox)"
 run/main_scene="res://scenes/ui/title.tscn"
 config/features=PackedStringArray("4.7")
 
+[audio]
+
+buses/default_bus_layout="res://assets/audio/audio_bus_layout.tres"
+
 [display]
 
 window/size/viewport_width=1280

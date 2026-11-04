@@ -1,5 +1,33 @@
 # Nightly Development Log — LAST LIGHT
 
+## Entry — 3D Audio Buses & SFX (2026-11-04, working session 2)
+
+**Author:** opencode (GLM-5.3-Flash Free)
+**Scope:** เฟส B ตามแผนที่ตกลงกับผู้ใช้ — เสียงชุดแรกของโปรเจกต์ 3D: procedural SFX, audio bus layout, AudioDirector ต่อรอบ, และจุดเล่นเสียงครบทุก event สำคัญ เทสต์เขียวทั้งหมด (3D: 4 suites)
+
+### Procedural audio assets
+- สคริปต์ใหม่ `scripts/generate_sfx_3d.py` แบบเพลูกแบบเดียวกับสคริปต์ของฉบับ 2D (`generate_sfx.py`)
+- สังเคราะห์แบบ deterministic และจบการผลิตทันที ได้ไฟล์เสียง 11 ไฟล์ใน `projects/last-light-3d/assets/audio/`
+- รายการเสียง: `turret_shot` / `resonator_pulse` / `tangle_cast` (ป้อมแต่ละแบบเสียงไม่บางเสียง) `hit` (ศัตรูตาย) `leak` (ศัตรูผ่านแนว) `breach` (Shelter แตก) `wave_horn` (เปิดคลื่น) `build` (วางป้อม) `upgrade` (อัปเกรด เป็นเสียงชนะด้วย) `sell` (ขาย) อีกหนึ่งไฟล์คือ ambient `beacon_ambient_3d.wav` วน 16 วิ
+
+### Bus layout + wiring
+- สร้าง `projects/last-light-3d/assets/audio/audio_bus_layout.tres` ให้เสียงทุกเสียงมีที่ชี้ผ่าน bus ที่ผูกกับหน้า settings และอ้างอิงผ่าน `project.godot` `[audio] buses/default_bus_layout`
+- bus ตั้งไว้ 4 ช่อง: Master / Music / SFX / UI (จากรายการ 2D เลือกเฉพาะที่ใช้)
+- ไฟล์ใหม่ `scripts/systems/td_audio_director.gd` ฎหบัตร เพราะรันเป็นเจ้าของเสียง: pool 8 players บน bus SFX รองรับเสียงซ้อน (polyphony 2) ส่วน ambient วนบน bus Music ที่ -12 dB
+- ข้อยกเว้น: ไม่เล่นเสียงจากหัวจุกหน้าโหนดตัวเกม — `TDTower` ได้ signal `fired(kind)` เพิ่มมาตอนยิงแล้วให้ `td_run._on_tower_fired` แยกเสียงตามชนิดป้อม และจุดตัดสินของ run คือเสียงที่จะเล่น (วาง อัปเกรด ขาย เปิดคลื่น ตาย ผ่านแนว ชนะ แพ้)
+- Headless test ไม่มีอุปกรณ์เสียง — director เปลี่ยนโหมด being disabled โดยไม่พัง (แบบเดียวกับฉบับ 2D)
+
+### Tests & verification
+- เทสต์ใหม่ `tests/phase4_audio_test.gd` และเพิ่มใน `scripts/test-3d.ps1` เป็นชุดที่ 4 ตรวจ bus SFX/Music มีและอยู่ใต้ Master, TDSettings เลื่อนค่า bus ได้จริง, run มี AudioDirector, signal `fired` มีอยู่ และการเล่นเสียงบนเวิร์กเบิลจากทุกจุด connection-safe
+- `dev-3d.ps1 -Action import` สแกนและ reimport ไฟล์เสียงใหม่ครบ 11 ไฟล์
+- `dev-3d.ps1 -Action check` → 0 errors (14 scripts); `test-3d.ps1` → PHASE 1-4 PASSED
+
+### Next
+- เฟส C — 3D VFX & Juice: บังคับเอฟเฟกต์ทุกชิ้นมาจาก `TDSettings.get_reduce_flashes()` / `get_reduce_motion()` ทุกครั้งก่อนเกิดเอฟเฟกต์
+- เฟส D — Wave pacing data pass: ยังห้ามเปลี่ยนตัวเลข balance จนกว่าจะมี metrics รอบจริงจากผู้เล่นพร้อมอ้างอิง
+
+---
+
 ## Entry — 3D Settings Menu + Settings Store + Pause-menu Esc fix (2026-11-04, working session)
 
 **Author:** opencode (GLM-5.3-Flash Free)
@@ -7,7 +35,7 @@
 
 ### Settings Store (Autoload)
 - ไฟล์ใหม่ `scripts/systems/td_settings_store.gd` (`class_name TDSettingsStore`), ลงทะเบียน autoload ชื่อ `TDSettings` ใน `project.godot`
-  - เป็น "ผู้เช่ากลาง" ของค่าตั้งค่า: master/sfx/music volume (dB), reduce_flashes, reduce_motion, large_text — pattern เดียวกับ 2D (`user://settings.cfg` + ConfigFile sections `audio` / `accessibility`)
+  - เป็น "ศูนย์กลาง" ของค่าตั้งค่า: master/sfx/music volume (dB), reduce_flashes, reduce_motion, large_text — pattern เดียวกับ 2D (`user://settings.cfg` + ConfigFile sections `audio` / `accessibility`)
   - แยกจาก ProfileRepository (progression save) ตามแบบเดิม; apply master bus ผ่าน AudioServer ทันทีที่เปลี่ยน (SFX/Music bus ยังไม่มี — guard ไว้, จะรับค่าอัตโนมัติเมื่อเฟส Audio สร้าง bus)
   - `ui_font_size(base)` คือการเข้าถึงตัวเดียวของ UI ทุกจุดสำหรับ large text (+4px)
   - สัญญาณ `settings_changed(section, key)` ให้ UI ที่สร้างไว้แล้ว rescale ทันที
