@@ -11,6 +11,7 @@ const HUD_SCRIPT: Script = preload("res://scripts/ui/td_hud.gd")
 const METRICS_SCRIPT: Script = preload("res://scripts/systems/run_metrics.gd")
 const PROFILE_SCRIPT: Script = preload("res://scripts/systems/profile_repository.gd")
 const AUDIO_SCRIPT: Script = preload("res://scripts/systems/td_audio_director.gd")
+const EFFECT_SCRIPT: Script = preload("res://scripts/actors/td_combat_effect.gd")
 
 const ENEMY_DEFS := {
 	&"drifter": preload("res://data/enemies/drifter.tres"),
@@ -88,6 +89,9 @@ var _spawned_alive: int = 0
 var _metrics: RunMetrics
 var _profile_repo: ProfileRepository
 var _audio: TDAudioDirector
+var _effects: Node3D
+var _camera_trauma: float = 0.0
+var _trauma_clock: float = 0.0
 var _preview_default: String = ""
 
 var _camera: Camera3D
@@ -265,6 +269,41 @@ func _build_audio() -> void:
 	_audio = AUDIO_SCRIPT.new()
 	_audio.name = "AudioDirector"
 	add_child(_audio)
+	# Same ownership for the transient VFX nodes.
+	_effects = Node3D.new()
+	_effects.name = "Effects"
+	add_child(_effects)
+	# Route projectile impacts into the run so visual feedback stays event-driven.
+	_projectile_container.child_entered_tree.connect(_on_projectile_entered)
+
+
+func _spawn_effect(kind: int, position: Vector3) -> void:
+	var effect: TDCombatEffect = EFFECT_SCRIPT.new() as TDCombatEffect
+	effect.effect_kind = kind
+	_effects.add_child(effect)
+	effect.global_position = position
+
+
+func _add_camera_trauma(amount: float) -> void:
+	var store := get_node_or_null("/root/TDSettings") as TDSettingsStore
+	if store != null and store.get_reduce_motion():
+		return  # reduce_motion opts out of camera shake entirely
+	_camera_trauma = clampf(_camera_trauma + amount, 0.0, 1.0)
+
+
+func _process(delta: float) -> void:
+	# Decaying trauma shake on the camera OFFSETS only (never the game state).
+	if _camera_trauma <= 0.0:
+		return
+	_camera_trauma = maxf(_camera_trauma - 1.2 * delta, 0.0)
+	if _camera_trauma <= 0.0:
+		_camera.h_offset = 0.0
+		_camera.v_offset = 0.0
+		return
+	_trauma_clock += delta * 30.0
+	var shake: float = _camera_trauma * _camera_trauma
+	_camera.h_offset = 0.5 * shake * sin(_trauma_clock * 1.7)
+	_camera.v_offset = 0.5 * shake * sin(_trauma_clock * 2.3)
 
 
 func _build_hud() -> void:
@@ -371,6 +410,7 @@ func place_tower(slot_index: int, kind: int) -> bool:
 	_slot_towers[slot_index] = tower
 	_slot_occupied[slot_index] = true
 	_slot_invested[slot_index] = stats.cost
+	_spawn_effect(TDCombatEffect.KIND_PLACED, SLOTS[slot_index])
 	_audio.play_sfx("build")
 	_slot_occupied[slot_index] = true
 	_slot_invested[slot_index] = stats.cost
@@ -406,6 +446,7 @@ func upgrade_tower(slot_index: int) -> bool:
 	)
 	_hud.update_status(parts, integrity, wave_number, WAVES.size())
 	_metrics.record(&"tower_upgraded", {"kind": tower.kind, "level": tower.level, "cost": cost, "parts_after": parts})
+	_spawn_effect(TDCombatEffect.KIND_UPGRADE, tower.global_position)
 	_audio.play_sfx("upgrade")
 	_last_clicked_slot = slot_index
 	return true
@@ -428,6 +469,7 @@ func sell_tower(slot_index: int) -> bool:
 	disk_material.albedo_color = Color(0.75, 0.66, 0.4, 0.5)
 	_hud.update_status(parts, integrity, wave_number, WAVES.size())
 	_metrics.record(&"tower_sold", {"slot": slot_index, "refund": refund, "parts_after": parts})
+	_spawn_effect(TDCombatEffect.KIND_SOLD, SLOTS[slot_index])
 	_audio.play_sfx("sell")
 	_last_clicked_slot = slot_index
 	return true
@@ -498,6 +540,7 @@ func start_wave() -> void:
 		for _index: int in range(count):
 			_spawn_queue.append(enemy_id)
 	_hud.set_combat_state(true)
+	_spawn_effect(TDCombatEffect.KIND_WAVE, PATH_POINTS[0])
 	_audio.play_sfx("wave_horn")
 	_metrics.record(&"wave_started", {"wave": wave_number})
 
@@ -546,6 +589,7 @@ func _clear_wave() -> void:
 func _on_enemy_died(enemy: TDEnemy) -> void:
 	parts += enemy.parts_bounty
 	_spawned_alive = maxi(_spawned_alive - 1, 0)
+	_spawn_effect(TDCombatEffect.KIND_DEATH, enemy.global_position)
 	_audio.play_sfx("hit", 0.06)
 	_metrics.record(&"enemy_killed", {"bounty": enemy.parts_bounty, "wave": wave_number})
 	enemy.queue_free()
@@ -557,6 +601,10 @@ func _on_enemy_leaked(enemy: TDEnemy) -> void:
 		enemy.queue_free()
 		return
 	_audio.play_sfx("leak", 0.05)
+	_spawn_effect(TDCombatEffect.KIND_LEAK, PATH_POINTS[PATH_POINTS.size() - 1])
+	_add_camera_trauma(0.35)
+	if _hud != null:
+		_hud.flash_leak()
 	integrity = maxi(integrity - enemy.integrity_damage, 0)
 	_metrics.record(&"enemy_leaked", {"damage": enemy.integrity_damage, "integrity_after": integrity, "wave": wave_number})
 	if integrity <= 0:
@@ -564,7 +612,21 @@ func _on_enemy_leaked(enemy: TDEnemy) -> void:
 	enemy.queue_free()
 
 
-func _on_tower_fired(kind: int) -> void:
+func _on_projectile_entered(node: Node) -> void:
+	var projectile := node as TDProjectile
+	if projectile == null:
+		return
+	projectile.impacted.connect(_on_projectile_impacted)
+
+
+func _on_projectile_impacted(impact_position: Vector3, splash: bool) -> void:
+	_spawn_effect(
+		TDCombatEffect.KIND_HIT if not splash else TDCombatEffect.KIND_DEATH,
+		impact_position
+	)
+
+
+func _on_tower_fired(kind: int, from_position: Vector3) -> void:
 	match kind:
 		TDTower.Kind.SONIC_RESONATOR:
 			_audio.play_sfx("resonator_pulse")
@@ -572,6 +634,7 @@ func _on_tower_fired(kind: int) -> void:
 			_audio.play_sfx("tangle_cast")
 		_:
 			_audio.play_sfx("turret_shot", 0.08)
+	_spawn_effect(TDCombatEffect.KIND_MUZZLE, from_position)
 
 
 func _end_run(won: bool) -> void:
@@ -602,6 +665,7 @@ func _end_run(won: bool) -> void:
 		_profile_repo.save_profile(profile)
 	_hud.show_result(won, parts)
 	_audio.play_sfx("breach" if not won else "upgrade")
+	_add_camera_trauma(0.7 if not won else 0.3)
 	run_ended.emit(won)
 
 

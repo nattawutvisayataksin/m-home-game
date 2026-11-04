@@ -1,5 +1,33 @@
 # Nightly Development Log — LAST LIGHT
 
+## Entry — 3D Combat Effects (VFX) & Screen Juice (2026-11-04, working session 3)
+
+**Author:** Antigravity (handoff completion from opencode)
+**Scope:** เฟส C — 3D VFX & Juice: เพิ่มเอฟเฟกต์การต่อสู้ 3D procedural, camera trauma, HUD flash, และ accessibility scaling เชื่อมต่อกับ TDSettings พร้อมเทสต์ชุดที่ 5 (3D: 5 suites pass)
+
+### Visual Feedback & Juice
+- ไฟล์ใหม่ `scripts/actors/td_combat_effect.gd` (`class_name TDCombatEffect`): procedural ring expansion + sparks animation สำหรับเหตุการณ์ต่าง ๆ:
+  - `KIND_HIT` / `KIND_DEATH`: ผลกระทบเมื่อกระสุนโดนศัตรู หรือศัตรูถูกกำจัด
+  - `KIND_PLACED` / `KIND_UPGRADE` / `KIND_SOLD`: ฟีดแบ็กบน slot เมื่อวาง อัปเกรด หรือขายป้อม
+  - `KIND_LEAK`: วงแหวนเตือนสีแดงสดที่จุด Shelter เมื่อมีศัตรูหลุดรอด
+  - `KIND_WAVE`: สัญญาณคลื่นที่จุดเกิดศัตรู
+  - `KIND_MUZZLE`: ปลายกระบอกป้อมขณะยิง
+- เชื่อมต่อ `TDSettingsStore`: หากเปิด `reduce_flashes` จะลดความสว่าง/alpha ลงอัตโนมัติ; หากเปิด `reduce_motion` จะหยุดการกระจายของสะเก็ดประกายไฟ (sparks)
+- กล้อง Camera trauma & Screen Shake: เพิ่มระบบคำนวณ trauma แบบ quadratic decay ใน `td_run.gd` สั่นนุ่มนวลเมื่อเกิด leak หรือจบรอบ (ปิด/ลดการสั่นเมื่อเปิด `reduce_motion`)
+- HUD Red Flash (`flash_leak`): เพิ่ม ColorRect ป้องกันการคลิก (`MOUSE_FILTER_IGNORE`) ใน `td_hud.gd` กะพริบสีแดงเตือนเบา ๆ เมื่อ Shelter เสีย integrity
+
+### Verification & Automated Testing
+- เพิ่มชุดทดสอบ `tests/phase5_vfx_test.gd` ตรวจสอบการตอบสนองต่อ settings และ wiring ใน Run/HUD
+- อัปเดต `scripts/test-3d.ps1` ให้รันครอบคลุม 5 suites:
+  - `phase1_3d_smoke.gd` (Passed)
+  - `phase2_td_data_title_test.gd` (Passed)
+  - `phase3_settings_test.gd` (Passed)
+  - `phase4_audio_test.gd` (Passed)
+  - `phase5_vfx_test.gd` (Passed)
+- `dev-3d.ps1 -Action check` ผ่าน 100% (0 errors out of 15 scripts)
+
+---
+
 ## Entry — 3D Audio Buses & SFX (2026-11-04, working session 2)
 
 **Author:** opencode (GLM-5.3-Flash Free)

@@ -3,6 +3,9 @@ extends Node3D
 
 ## Greybox projectile: homes on the target; applies splash damage to nearby
 ## enemies on impact. Frees itself when the target is gone or impact occurs.
+## Emits impacted() once per impact; the run owns the visual response.
+
+signal impacted(position: Vector3, splash: bool)
 
 var damage: float = 0.0
 var splash_radius: float = 0.0
@@ -19,6 +22,9 @@ func _ready() -> void:
 	mesh.mesh = box
 	var material := StandardMaterial3D.new()
 	material.albedo_color = Color(0.9, 0.85, 0.4) if splash_radius > 0.0 else Color(0.9, 0.9, 0.75)
+	material.emission_enabled = true
+	material.emission = material.albedo_color
+	material.emission_energy_multiplier = 0.6
 	mesh.material_override = material
 	add_child(mesh)
 
@@ -41,7 +47,9 @@ func _physics_process(delta: float) -> void:
 
 
 func _impact() -> void:
+	var impact_position: Vector3 = global_position
 	if is_instance_valid(_target):
+		impact_position = _target.global_position + Vector3(0.0, 0.6, 0.0)
 		_target.take_damage(damage)
 	if splash_radius > 0.0:
 		var origin: Vector3 = global_position
@@ -49,4 +57,5 @@ func _impact() -> void:
 			var enemy := node as TDEnemy
 			if enemy != null and is_instance_valid(enemy) and enemy.alive and enemy.global_position.distance_to(origin) <= splash_radius:
 				enemy.take_damage(damage)
+	impacted.emit(impact_position, splash_radius > 0.0)
 	queue_free()

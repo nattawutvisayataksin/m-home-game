@@ -26,6 +26,7 @@ var _pause_overlay: Control
 var _settings_overlay: Control
 var _settings_panel_node: TDSettingsPanel
 var _pause_was_open: bool = false
+var _flash_rect: ColorRect
 var _font_texts: Array[Control] = []
 
 
@@ -131,6 +132,14 @@ func build_ui() -> void:
 	_style_text(overlay_title, "font_size", 16)
 	overlay_title.pressed.connect(func () -> void: title_pressed.emit())
 	overlay_stack.add_child(overlay_title)
+
+	_flash_rect = ColorRect.new()
+	_flash_rect.name = "LeakFlash"
+	_flash_rect.color = Color(1.0, 0.2, 0.2, 0.0)
+	_flash_rect.set_anchors_preset(Control.PRESET_FULL_RECT)
+	# Decorative overlay: never eat clicks or emit them into the 3D scene.
+	_flash_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(_flash_rect)
 
 	# --- Pause Menu Overlay (Esc) ---
 	# Full-rect host + separate dim background: a dim ColorRect inside a
@@ -279,6 +288,18 @@ func set_pause_menu(open: bool) -> void:
 
 func is_pause_menu_open() -> bool:
 	return _pause_overlay != null and _pause_overlay.visible
+
+
+## Red screen pulse when the Shelter takes leak damage. reduce_flashes keeps
+## the pulse small instead of removing it (it is a "state change" signal).
+func flash_leak() -> void:
+	if _flash_rect == null:
+		return
+	var store := get_node_or_null("/root/TDSettings") as TDSettingsStore
+	var peak: float = 0.12 if (store != null and store.get_reduce_flashes()) else 0.3
+	_flash_rect.color = Color(1.0, 0.2, 0.2, peak)
+	var tween := create_tween()
+	tween.tween_property(_flash_rect, "color:a", 0.0, 0.3)
 
 
 # --- Text scaling (large text option) -------------------------------------
