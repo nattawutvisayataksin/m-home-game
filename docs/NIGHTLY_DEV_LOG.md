@@ -1,5 +1,41 @@
 # Nightly Development Log — LAST LIGHT
 
+## Entry — 3D Settings Menu + Settings Store + Pause-menu Esc fix (2026-11-04, working session)
+
+**Author:** opencode (GLM-5.3-Flash Free)
+**Scope:** Phase TD-2 polish item "Settings Menu (Volume / Accessibility)" — ส่วนแรกของเฟส next-up จาก handoff; แก้ Esc-resume ที่หลุดขณะ pause พร้อมกัน. All suites green (3D: 3 suites, 2D: 6 suites).
+
+### Settings Store (Autoload)
+- ไฟล์ใหม่ `scripts/systems/td_settings_store.gd` (`class_name TDSettingsStore`), ลงทะเบียน autoload ชื่อ `TDSettings` ใน `project.godot`
+  - เป็น "ผู้เช่ากลาง" ของค่าตั้งค่า: master/sfx/music volume (dB), reduce_flashes, reduce_motion, large_text — pattern เดียวกับ 2D (`user://settings.cfg` + ConfigFile sections `audio` / `accessibility`)
+  - แยกจาก ProfileRepository (progression save) ตามแบบเดิม; apply master bus ผ่าน AudioServer ทันทีที่เปลี่ยน (SFX/Music bus ยังไม่มี — guard ไว้, จะรับค่าอัตโนมัติเมื่อเฟส Audio สร้าง bus)
+  - `ui_font_size(base)` คือการเข้าถึงตัวเดียวของ UI ทุกจุดสำหรับ large text (+4px)
+  - สัญญาณ `settings_changed(section, key)` ให้ UI ที่สร้างไว้แล้ว rescale ทันที
+  - `settings_path` เป็น var รับ override ได้เพื่อเทสต์ใช้ไฟล์แยก (`user://phase3_settings_test.cfg`, ลบทิ้งหลังเทสต์) — ไม่แตะ settings.cfg จริงของผู้เล่นตอนรันเทสต์
+
+### Settings UI (ใช้ร่วม title + pause)
+- ไฟล์ใหม่ `scripts/ui/td_settings_panel.gd` (`class_name TDSettingsPanel`): panel สร้างในโค้ด — slider เสียง 3 ช่อง (−40..+6 dB), CheckButton 3 ตัว (reduce flashes/motion, large text), ปุ่มย้อนกลับ + signal `closed`
+- เปลี่ยนค่าใช้ได้ทันทีและบันทึกทันที; large text rescale ตัวหนังสือทั้ง title และ pause เดี๋ยวนั้น (ผ่าน self-check ภาพ in-engine)
+- Title menu: เพิ่มปุ่ม "ตั้งค่า" + overlay settings; HUD: เพิ่มปุ่ม "ตั้งค่า (Settings)" ใน pause menu + overlay settings (process_mode ALWAYS ทำงานได้ตอน paused)
+
+### Bug ที่เจอและแก้ระหว่างทาง
+1. **Esc-resume หลัง pause ไม่เคยทำงานในเกมจริง** — `td_run` เป็น pausable จึงไม่ได้รับ `_unhandled_input` ตอน tree paused (เทสต์เดิมเรียก `toggle_pause()` ตรง ๆ จึงไม่เห็นหาย) → ย้ายการจัดการ Esc ไปที่ HUD (`process_mode = PROCESS_MODE_ALWAYS`): ลำดับ Esc = ปิด settings ก่อน → แล้วจึง toggle pause; `td_run` ตัด KEY_ESCAPE ออก
+2. **ColorRect ฉากหลังมืดถูก squish ใน CenterContainer** — ใส่ bg ไว้ใน CenterContainer ทำให้ถูกย่อเหลือ min size ฉากหลังไม่คลุมจอ (pause เดิมก็เป็นแบบนี้ จอแถมยังทะลุไม่มืด) → เปลี่ยน pause/settings overlay เป็น Control host เต็มจอ + bg ลูกแยก + CenterContainer ครอบกล่อง panel เฉพาะเนื้อหา
+3. **ข้อความ pause ทะลุผ่าน settings panel** (stylebox โปร่งแสงซ้อนกัน) → ตอนเปิด settings ซ่อน pause overlay ไว้ชั่วคราว (`_pause_was_open`) แล้วคืนตอนปิด
+4. Autoload identifier (`TDSettings.`) ใช้ตรง ๆ เขียนในโค้ดไม่ผ่าน `--check-only` ("Identifier not found") → เข้าถึงผ่าน `get_node("/root/TDSettings") as TDSettingsStore` ตาม handoff warning + `dev-3d.ps1 -Action import` หลังเพิ่ม class_name ใหม่
+
+### Tests & verification
+- เทสต์ใหม่ `tests/phase3_settings_test.gd` (+ ลงใน `scripts/test-3d.ps1` = 3 suites): autoload มีจริง, master bus apply จริง, save/load round-trip บนไฟล์ test แยก, `ui_font_size` สองโหมด, signal tags ถูก section/key, title panel เปิด/ปิดและ large text rescale สด, pause settings เปิด → Esc ปิด settings (ยัง paused) → Esc สองครั้ง resume
+- Visual check ด้วย in-engine selfshot เท่านั้น (สคริปต์ชั่วคราว ลบทิ้งแล้ว ไม่ capture desktop): title settings panel กึ่งกลาง/ไม่มีทะลุ, large-text variant, pause settings บนฉาก 3D — ตรวจภาพจริงทั้งสาม
+- `dev-3d.ps1 -Action check` → 0 errors (13 scripts) | `test-3d.ps1` → PHASE 1–3 PASSED | `test.ps1` → PHASE 1..6 PASSED (2D ไม่ถูกแตะ)
+
+### สำหรับเฟสถัดไป (จากแผนที่ตกลงกับผู้ใช้)
+- เฟส B Audio Buses & SFX: สร้าง bus Music/SFX แล้วค่า volume จาก settings store จะผูกเข้าเอง; ทุกเสียงดีดผ่าน bus เพื่อให้ slider คุมได้ทันที
+- เฟส C VFX & Juice: อ่าน `reduce_flashes` / `reduce_motion` จาก store ก่อนเกิดเอฟเฟกต์ทุกชิ้น
+- เฟส D Wave pacing: ปรับ .tres ด้วย metrics จาก `user://metrics/` เท่านั้น
+
+---
+
 ## Entry — TD-2 Complete Low-Poly Asset Suite & Pause Menu (2026-11-03, working session)
 
 **Author:** AI agent (Antigravity)

@@ -293,6 +293,9 @@ func _unhandled_input(event: InputEvent) -> void:
 					place_tower(slot, _selected_kind)
 		elif mouse_event.button_index == MOUSE_BUTTON_RIGHT and slot >= 0 and _slot_occupied[slot]:
 			sell_tower(slot)
+	# KEY_ESCAPE is handled by the HUD (PROCESS_MODE_ALWAYS): it must work
+	# while the tree is paused (close settings, resume) and toggles pause
+	# otherwise; run nodes are pausable and would miss those events.
 	elif event is InputEventKey and event.pressed and not event.echo:
 		var key := event as InputEventKey
 		match key.physical_keycode:
@@ -304,8 +307,6 @@ func _unhandled_input(event: InputEvent) -> void:
 				_select_kind(TDTower.Kind.TANGLE_EMITTER)
 			KEY_SPACE:
 				start_wave()
-			KEY_ESCAPE:
-				toggle_pause()
 
 
 func _select_kind(kind: int) -> void:

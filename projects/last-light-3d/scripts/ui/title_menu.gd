@@ -34,6 +34,8 @@ var _menu_root: VBoxContainer
 var _subtitle: Label
 var _how_panel: Control
 var _story_panel: Control
+var _settings_panel: Control
+var _font_texts: Array[Control] = []
 
 
 func _ready() -> void:
@@ -41,6 +43,14 @@ func _ready() -> void:
 	_build_title_column()
 	_how_panel = _build_content_panel(HOW_TO_PLAY)
 	_story_panel = _build_content_panel(STORY)
+	_settings_panel = _build_settings_overlay()
+	var store := _store()
+	if store != null:
+		store.settings_changed.connect(_on_settings_changed)
+
+
+func _store() -> TDSettingsStore:
+	return get_node_or_null("/root/TDSettings") as TDSettingsStore
 
 
 func _build_background() -> void:
@@ -79,14 +89,14 @@ func _build_title_column() -> void:
 	_subtitle = Label.new()
 	_subtitle.text = "LAST LIGHT — แนวรบสุดท้าย"
 	_subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_subtitle.add_theme_font_size_override("font_size", 26)
+	_style_text(_subtitle, "font_size", 26)
 	_subtitle.add_theme_color_override("font_color", Color("#dfe9e2"))
 	column.add_child(_subtitle)
 
 	var tagline := Label.new()
 	tagline.text = "3D Tower Defense — ตั้งป้อม รับฝูง คุมคืนสุดท้าย"
 	tagline.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	tagline.add_theme_font_size_override("font_size", 16)
+	_style_text(tagline, "font_size", 16)
 	tagline.add_theme_color_override("font_color", Color("#9fb2a8"))
 	column.add_child(tagline)
 
@@ -97,6 +107,7 @@ func _build_title_column() -> void:
 	_add_menu_button(column, "เริ่มการรบ", _start_mission)
 	_add_menu_button(column, "วิธีการเล่น", func () -> void: _show_panel(_how_panel))
 	_add_menu_button(column, "เรื่องราว", func () -> void: _show_panel(_story_panel))
+	_add_menu_button(column, "ตั้งค่า", func () -> void: _show_panel(_settings_panel))
 	_add_menu_button(column, "ออกจากเกม", func () -> void: get_tree().quit())
 
 
@@ -105,8 +116,8 @@ func _add_menu_button(vbox: VBoxContainer, label_text: String, on_pressed: Calla
 	button.text = label_text
 	button.custom_minimum_size = Vector2(300.0, 52.0)
 	button.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	button.add_theme_font_size_override("font_size", 22)
 	button.focus_mode = Control.FOCUS_ALL
+	_style_text(button, "font_size", 22)
 	button.pressed.connect(on_pressed)
 	vbox.add_child(button)
 
@@ -137,7 +148,7 @@ func _build_content_panel(bb_text: String) -> Control:
 	label.scroll_active = true
 	label.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	label.add_theme_font_size_override("normal_font_size", 21)
+	label.add_theme_font_size_override("normal_font_size", _text_size(21))
 	column.add_child(label)
 
 	var bottom_row := HBoxContainer.new()
@@ -145,7 +156,7 @@ func _build_content_panel(bb_text: String) -> Control:
 	var back := Button.new()
 	back.text = "ย้อนกลับ (Esc)"
 	back.custom_minimum_size = Vector2(220.0, 46.0)
-	back.add_theme_font_size_override("font_size", 19)
+	_style_text(back, "font_size", 19)
 	back.focus_mode = Control.FOCUS_ALL
 	back.pressed.connect(_close_panels)
 	bottom_row.add_child(back)
@@ -170,10 +181,75 @@ func _close_panels() -> void:
 		_how_panel.visible = false
 	if _story_panel != null:
 		_story_panel.visible = false
+	if _settings_panel != null:
+		_settings_panel.visible = false
 
 
 func panels_open() -> bool:
-	return (_how_panel != null and _how_panel.visible) or (_story_panel != null and _story_panel.visible)
+	var any_open: bool = (_how_panel != null and _how_panel.visible) \
+		or (_story_panel != null and _story_panel.visible) \
+		or (_settings_panel != null and _settings_panel.visible)
+	return any_open
+
+
+# --- Settings overlay -----------------------------------------------------
+
+func _build_settings_overlay() -> Control:
+	var overlay := ColorRect.new()
+	overlay.name = "SettingsPanel"
+	overlay.color = Color(0.05, 0.06, 0.09, 0.96)
+	overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
+	add_child(overlay)
+
+	var center := CenterContainer.new()
+	center.set_anchors_preset(Control.PRESET_FULL_RECT)
+	overlay.add_child(center)
+
+	var box := PanelContainer.new()
+	center.add_child(box)
+
+	var margin := MarginContainer.new()
+	margin.add_theme_constant_override("margin_left", 30)
+	margin.add_theme_constant_override("margin_right", 30)
+	margin.add_theme_constant_override("margin_top", 24)
+	margin.add_theme_constant_override("margin_bottom", 24)
+	box.add_child(margin)
+
+	var panel := TDSettingsPanel.new()
+	panel.closed.connect(_close_panels)
+	margin.add_child(panel)
+
+	overlay.visible = false
+	overlay.set_meta("back_button", panel.back_button)
+	return overlay
+
+
+# --- Text scaling (large text option) -------------------------------------
+
+func _style_text(node: Control, theme_item: String, base_size: int) -> void:
+	node.add_theme_font_size_override(theme_item, _text_size(base_size))
+	node.set_meta(&"font_item", theme_item)
+	node.set_meta(&"font_base", base_size)
+	_font_texts.append(node)
+
+
+func _text_size(base_size: int) -> int:
+	var store := _store()
+	return base_size if store == null else store.ui_font_size(base_size)
+
+
+func _apply_text_scale() -> void:
+	for node: Control in _font_texts:
+		if not is_instance_valid(node):
+			continue
+		var item := str(node.get_meta(&"font_item"))
+		var base_size := int(node.get_meta(&"font_base"))
+		node.add_theme_font_size_override(item, _text_size(base_size))
+
+
+func _on_settings_changed(section: StringName, key: StringName) -> void:
+	if section == &"accessibility" and key == &"large_text":
+		_apply_text_scale()
 
 
 func _unhandled_input(event: InputEvent) -> void:

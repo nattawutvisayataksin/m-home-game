@@ -47,4 +47,4 @@ Godot 4.7.2 ต้องอยู่ใน PATH หรือตั้ง env `GO
 1. **TD-1 exit:** verify `.tres` ครบถ้วนผ่านการเล่นจริง; เทสต์ phase2 กลุ่ม coverage คลื่นต่อคลื่น
 2. **Iteration:** ปรับ wave pacing/economy ด้วย metrics ใน `user://metrics/`
 3. **TD-2:** Blender low-poly assets (ผ่าน Blender AI Bridge; ปัจจุบัน bridge ยังไม่เปิด)
-4. Pause menu (Esc), settings (volume/accessibility), flash save บนโปรเจกต์ 3D
+4. Settings (volume/accessibility) ✅ 2026-11-04; flash save บนโปรเจกต์ 3D ยังค้าง (pause menu ทำแล้ว, settings ทำแล้ว — เหลือ flash save)

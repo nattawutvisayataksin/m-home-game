@@ -70,6 +70,7 @@
 - Localization ไทย/อังกฤษ, save linkage จาก ProfileRepository (barricade level)
 - Playtest มนุษย์ ผ่านเมื่อ: ผู้เล่นใหม่วางป้อมแรก < 25 วินาที และอธิบาย leak ได้
 - **ทำแล้ว (2026-11-03):** สร้างโมเดล Blender low-poly (.glb) ครบชุด (ป้อม 3, ศัตรู 4, Shelter 09), เพิ่ม pipeline model_scene เชื่อมต่อ .tres, เพิ่มระบบ Pause Menu (Esc), เชื่อมต่อ ProfileRepository คำนวณ barricade level และบันทึก Salvage/สถิติจบรอบ, automated tests ผ่านสมบูรณ์
+- **ทำแล้ว (2026-11-04):** Settings Menu (volume 3 ช่อง + reduce flashes/motion + large text) ใน title และ pause menu ผ่าน autoload `TDSettings` (`user://settings.cfg`, แพตเทิร์นเดียวกับ 2D); แก้ Esc-resume หลัง pause ที่จริง ๆ แล้วไม่เคยทำงาน (ย้ายไป HUD PROCESS_MODE_ALWAYS); เทสต์ phase3 เพิ่มเป็นชุดที่ 3 ของ 3D
 
 ### ระเบียบการตัดสินข้ามฉบับ
 

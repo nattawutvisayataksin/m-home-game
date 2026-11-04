@@ -1,6 +1,6 @@
 # LAST LIGHT — AI Handoff Document
 
-อัปเดต: 2026-11-03
+อัปเดต: 2026-11-04
 ข้อมูลสำหรับ AI agent (Codex / Copilot / Antigravity / opencode) ที่รับงานพัฒนาต่อภายใน repo นี้
 คู่มือย่อฉบับเริ่มงาน: `AGENTS.md` (root) | กติกาข้อนี้ใช้ตามที่เขียนไว้ทั้งหมด
 
@@ -44,14 +44,18 @@ scripts/
   gameplay/td_run.gd       # orchestrator: build world, waves via .tres, slot picking, place/upgrade/sell
   data/*.gd                # Resource classes (มีมาตรฐานบังคับให้เป็น typed class)
   systems/run_metrics.gd   # ระบบเก็บ JSON ที่ run ทุกรอบ (schema 1)
-  ui/td_hud.gd             # HUD ครบ (แต่งจริงเริ่มจาก label/buttons)
-  ui/title_menu.gd         # หน้า main menu (เริ่มภารกิจ, วิธีเล่น, เรื่องราว, ออก)
+  systems/td_settings_store.gd  # autoload "TDSettings": settings.cfg + AudioServer + ui_font_size
+  systems/profile_repository.gd # user://profile.json (schema v3, progression ไม่ใช่ settings)
+  ui/td_hud.gd             # HUD ครบ + pause menu + settings overlay; รับ Esc แทน td_run
+  ui/td_settings_panel.gd  # panel settings ใช้ร่วม title/pause (ปุ่มเสียง + accessibility)
+  ui/title_menu.gd         # หน้า main menu (เริ่มภารกิจ, วิธีเล่น, เรื่องราว, ตั้งค่า, ออก)
 scenes/
   gameplay/run.tscn        # เส้นเริ่มเดียวที่ map to td_run.gd
   ui/title.tscn            # หน้าแรก (main_scene ใน project.godot)
 tests/
   phase1_3d_smoke.gd       # SceneTree test: boot, placement, wave tick, kill bounty, leak, defeat overlay
   phase2_td_data_title_test.gd  # .tres sanity, upgrade/sell accounting, title menu flow
+  phase3_settings_test.gd  # settings store + panel, large text, pause settings + Esc order
   dev_title_selfshot.gd    # in-engine screenshot (safe visual check, no desktop capture)
 assets/brand/logo_emblem.svg
 ```
@@ -74,14 +78,20 @@ assets/brand/logo_emblem.svg
 
 - **TD-2 Assets:** ผลิตโมเดล Low-poly .glb ครบถ้วน (Towers 3 ตัว, Enemies 4 ตัว, Shelter prop) ด้วย Blender 5.2 และผูก `model_scene` เข้ากับทุก `.tres` ใน `projects/last-light-3d/data/` เรียบร้อยแล้ว
 - **Pause Menu:** ระบบ Esc toggle pause, resume, restart, return to title menu พร้อมใช้งาน
+- **Settings Menu (2026-11-04):** Autoload `TDSettings` (`scripts/systems/td_settings_store.gd` → `user://settings.cfg`, แพตเทิร์นเดียวกับ 2D) + panel ใช้ร่วม `scripts/ui/td_settings_panel.gd` ใน title menu และ pause menu — volume master/sfx/music (dB), reduce flashes/motion, large text (rescale สดทันที); พร้อมใช้งาน social volume โดย bus SFX/Music ยังไม่มี (guard ไว้, เฟส Audio ต่อไปจะเข้าอัตโนมัติ)
 - **Save/Progression Linkage:** ระบบบันทึกและอ่าน ProfileRepository (`user://profile.json`) เชื่อมต่อเข้ากับ `td_run.gd` เรียบร้อยแล้ว (Integrity ได้รับโบนัสตาม Barricade Level, เมื่อจบรอบบันทึกสถิติและแจก Salvage)
 
-### งานที่รับต่อได้ทันที (สำหรับ Open Code / Agent ถัดไป)
+### ข้อควรรู้เพิ่มจากงาน 2026-11-04
+- Esc ไปอยู่ที่ HUD (`td_hud.gd`, PROCESS_MODE_ALWAYS) — td_run ตัดคีย์ Esc ออกแล้ว; ลำดับการทำงาน: ปิด settings → toggle pause → resume ไล่ลำดับเลเยอร์
+- Settings เข้าถึงเสมอผ่าน `get_node("/root/TDSettings") as TDSettingsStore` เท่านั้น — ห้ามเรียกชื่อ autoload ตรง ๆ (ไม่ผ่าน `--check-only`)
+- UI ที่มี overlay กึ่งกลาง: ห้ามวาง ColorRect ฉากหลังมืดใน CenterContainer (ถูกย่อเหลือ min size) — ตัวแบบที่ถูกคือ Control host เต็มจอ + bg ลูกแยก + CenterContainer ครอบเฉพาะกล่อง
 
-1. **Wave pacing data pass (Playtest iteration):** ทดลองรันเล่นเกมจริงผ่าน `.\scripts\dev-3d.ps1 -Action run` เพื่อดู visual และความรู้สึกในการเล่นจริง บันทึก feedback เรื่อง pacing/economy และปรับแต่ง `.tres` หากพบความไม่สมดุล
-2. **Audio Buses & SFX:** นำระบบเสียง (AudioDirector / audio buses) จาก 2D มาประยุกต์ใส่ใน 3D (เสียงยิงป้อม, เสียงคลื่นกระทบ, เสียง ambient)
-3. **3D VFX & Juice:** เพิ่ม visual feedback (flash, impact, projectile trail, boss rift glow) โดยคำนึงถึงตัวเลือก reduce-motion และ reduce-flash ตาม GDD
-4. **Settings Menu (Volume / Accessibility):** พัฒนาหน้าตั้งค่าสำหรับเสียงและตัวช่วยการเข้าถึงในหน้า Title Menu และ Pause Menu
+### งานที่รับต่อได้ทันที (สำหรับ Agent ถัดไป)
+
+1. **Audio Buses & SFX (แนะนำทำต่อ):** สร้าง bus Music/SFX แล้วค่า volume จาก `TDSettings` จะ apply เอง; ทุกเสียง (ยิงป้อม 3 ชนิด, leak/breach, คลื่น, ambient) ดีดผ่าน bus — ทำเทสต์ SceneTree phase4 ต่อจาก phase3
+2. **3D VFX & Juice:** flash, impact, projectile trail, boss rift glow — อ่าน `get_reduce_flashes()` / `get_reduce_motion()` จาก store ก่อนเกิดเอฟเฟกต์ทุกชิ้น
+3. **Wave pacing data pass (Playtest iteration):** ผ่าน `.\scripts\dev-3d.ps1 -Action run` หลังจากเสียง/VFX ครบแล้วจึงเก็บ metrics จาก `user://metrics/` และปรับว่าคัด `.tres` นั้นครบครันหัวข้อมูลอ้างอิง
+4. **Playtest มนุษย์:** ต้องมีผู้เล่นจริง — เงื่อนไขจบ TD-2 คือผู้เล่นใหม่วางป้อมแรก < 25 วินาที และอธิบาย leak ได้
 
 ## 5) กติกาสากลของ repo (อ่าน AGENTS.md แล้วสรุปเพิ่มที่นี้)
 
