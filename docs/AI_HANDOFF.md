@@ -21,12 +21,14 @@ Pivot จาก 2D → 3D tower defense ตัดสินโดย Game Directo
 
 ลำดับหลักเมื่อเจอหัวข้อขัดแย้ง: **GDD → ROADMAP → dev log → comment ในโค้ด**
 
-- `docs/GDD_3DTD.md` — design ของเกม 3D (ป้อม 3 / ศัตรู 4 / economy / camera / inputs)
-- `docs/GDD_2D_Survival.md` — ถูกอ้างถึงเป็นที่มาของ IP + lore + progression ของ 2D
+- `docs/GDD_3DTD.md` — design ของเกม 3D (ป้อม 4 / ศัตรู 4 / economy / camera / inputs) + บทเสริมสเปก asset 3D (poly budget, Blender workflow) ที่ยุบมาจาก TD2_ASSET_PLAN
+- `docs/GDD.md` — baseline ของฉบับ 2D ที่แช่แข็ง (ที่มาของ IP + lore + progression) — ใช้เฉพาะกับโปรเจกต์ 2D
 - `docs/ROADMAP.md` — เฟส TD-0/TD-1/TD-2 + เงื่อนไขจบของแต่ละเฟส
-- `docs/NIGHTLY_DEV_LOG.md` — ประวัติการตั้งใจตัดสินแต่ละเซสชัน (มีประวัติ context แบบตามเวลา)
+- `docs/NIGHTLY_DEV_LOG.md` — ประวัติการตั้งใจตัดสินแต่ละเซสชัน (entry เก่ายุบเป็น one-liner ฉบับเต็มดึงจาก git history)
 - `docs/MARKETING.md` — copy ที่รับรองให้ใช้กับ media; เลขทุกตัวต้องตรง data `.tres`
 - `docs/STORY.md` — ต้นฉบับ lore ไทยอื่น (อ้างอิงใน title menu)
+- `docs/PLAYER_MANUAL_3D.md` — คู่มือผู้เล่นฉบับ 3D; `docs/PLAYTEST_PLAN.md` / `docs/RELEASE_CHECKLIST.md` มีหัวข้อ 3D แยกไว้ในไฟล์เดียวกัน
+- (2026-11-05 รวมเอกสาร: `HANDOFF.md` → README, `ART_HANDOFF.md` → ART_DIRECTION, `TD2_ASSET_PLAN.md` → GDD_3DTD — ลดจาก 15 เหลือ 12 ไฟล์)
 
 ## 3) ตำแหน่งสำคัญในโค้ด (เตรียมอ่านไฟล์ตามนี้)
 
@@ -92,9 +94,9 @@ assets/brand/logo_emblem.svg
 
 ### งานที่รับต่อได้ทันที (สำหรับ Agent ถัดไป)
 
-1. **Wave pacing data pass (Playtest iteration):** หลังเสียงและ VFX ครบถ้วน รันเล่นจริงผ่าน `.\scripts\dev-3d.ps1 -Action run` เพื่อเก็บ metrics ใน `user://metrics/` และปรับ wave `.tres` เฉพาะเมื่อมีข้อมูลอ้างอิง
-2. **Playtest มนุษย์:** ต้องมีผู้เล่นจริง — เงื่อนไขจบ TD-2 คือผู้เล่นใหม่วางป้อมแรก < 25 วินาที และอธิบาย leak ได้
-3. ~~**Flash save / Session resume:**~~ ✅ เสร็จ 2026-11-05 — `TDSessionSnapshot` (`scripts/systems/td_session_snapshot.gd`) เขียนที่ wave-clear + ปิดหน้าต่าง, resume ผ่านปุ่มใน title menu; เทสต์ phase6
+1. **Playtest มนุษย์:** ต้องมีผู้เล่นจริง — เงื่อนไขจบ TD-2 คือผู้เล่นใหม่วางป้อมแรก < 25 วินาที และอธิบาย leak ได้ (แผนทดสอบใน `PLAYTEST_PLAN.md` หัวข้อ 3D)
+2. **Barricade purchase flow:** profile schema รองรับ `barricade_level` (สูงสุด 2, +2 Integrity/level) แต่ยังไม่มีปุ่มซื้อด้วย Salvage ใน title menu — ทดสอบวางปุ่มเพิ่มใน title_menu.gd ตามแพตเทิร์น 2D
+3. **Wave pacing data pass:** หลัง playtest มนุษย์ รันเล่นจริงเพื่อเก็บ metrics ใน `user://metrics/` และปรับ wave `.tres` เฉพาะเมื่อมีข้อมูลอ้างอิง (ปัจจุบันเตะกติกา "ห้ามแก balance ไม่มี metrics")
 
 ### ข้อควรรู้เพิ่มจากงาน 2026-11-05
 - Flash save อยู่ที่ `user://session_snapshot.json` (schema 1) — ระบบจะ **ไม่ทับ snapshot ที่มีอยู่** เมื่อ run ใหม่ยังไม่มีความคืบหน้า (`_has_run_progress()`); ปิดหน้าต่างกลางคลื่นจะถอยไป replay คลื่นที่กำลังเล่น (`wave_number - 1`) ไม่มีเงินลงทุนป้อมหาย

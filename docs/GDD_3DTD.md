@@ -1,6 +1,6 @@
 # Game Design Document — LAST LIGHT: 3D Tower Defense
 
-**สถานะ:** Pre-production design baseline — กำลังสร้าง greybox prototype; ตัวเลขทั้งหมดเป็นค่าเริ่มต้นสำหรับ playtest ไม่ใช่ balance ที่พิสูจน์แล้ว
+**สถานะ:** Playable TD-2 build — ป้อม/ศัตรู/asset low-poly ครบ, flash save/resume ใช้งานได้; balance ยังรอ playtest มนุษย์ ไม่ใช่ค่าสุดท้าย
 **ประเภท:** 3D Tower Defense (วางป้อมล้วน — ไม่มีฮีโรที่ควบคุมได้ใน MVP)
 **Engine:** Godot 4.7.2, GL Compatibility, ภาพ low-poly stylized สร้างด้วย Blender
 **โปรเจกต์:** `projects\last-light-3d\` (ขนานกับ `projects\last-light\` ฉบับ 2D ที่ยังเล่นได้เพื่อ reference)
@@ -33,11 +33,12 @@
 
 - ฉาก 3D มุมกล้อง isometric fixed ประมาณ 45 องศา; ไม่มี orbit อิสระใน MVP เพื่อโฟกัส readability ก่อน
 - เส้นทางศัตรูเป็น waypoint lanes หนึ่งเส้นทางหลักที่กำหนดไว้; ยังไม่ใช้ pathfinding ใน MVP
-- มีจุดวางป้อม 12 slot รอบเส้นทางหลัก; slot ที่วางป้อมแล้วจะวางซ้ำไม่ได้
+- มีจุดวางป้อมไฮไลต์ 12 slot รอบเส้นทางหลัก และวางป้อมอิสระนอก slot ได้บนพื้นสนาม (free placement); จุดที่มีป้อมแล้ววางซ้ำไม่ได้
 - ศัตรูมีค่า progress ตามระยะทางที่เดิน; targeting "first" คือค่าเริ่มต้นของทุกป้อมเพื่อหยุดการรั่วก่อน
 - ศัตรูที่รั่ว: ลด Integrity 1 (บอส 3) และไม่ให้ Parts กับผู้เล่น
-- เศรษฐกิจ in-run เริ่ม 120 Parts; ราคาป้อม 80/120/60 ตามตารางในหัวข้อถัดไป; จบคลื่นได้ bonus 20 บวก 5 ต่อ Integrity ที่เหลือ
-- Barricade meta level เพิ่ม Integrity เริ่มต้นระดับละ 1 ซื้อได้สูงสุด 2 ระดับ; โครง save ใช้ต้นแบบชุดเดียวกับฉบับ 2D
+- เศรษฐกิจ in-run เริ่ม 120 Parts; ราคาป้อม 80/120/60/140 ตามตารางในหัวข้อถัดไป; จบคลื่นได้ bonus 20 บวก 5 ต่อ Integrity ที่เหลือ
+- Barricade meta level เพิ่ม Integrity เริ่มต้นระดับละ 2 ซื้อได้สูงสุด 2 ระดับ (โครง save schema v3 รองรับแล้ว — ปุ่มซื้อระดับ meta ในหน้า Title ยังไม่อยู่ใน build TD-2 เป็นงานถัดไป); โครง save ใช้ต้นแบบชุดเดียวกับฉบับ 2D
+- Flash save ปิดท้าย: ปิดเกมกลางรอบที่มีความคืบหน้าจะเกิด snapshot ที่ `user://session_snapshot.json` และหน้า Title มีปุ่ม "เล่นต่อจากภารกิจค้าง" (ถอย replay กลับมาเริ่มคลื่นที่รั่วใหม่)
 - ภารกิจจบ 2 ทาง: กำจัด Rift Warden (ชนะ) หรือ Integrity หมด (แพ้แล้วยังได้ Salvage ตามส่วนที่ทำได้)
 
 ## 5. ป้อมและ identity
@@ -47,8 +48,9 @@
 | **Field Turret** (ไรเฟิลดัดจากเศษ Salvage) | 80 Parts | ยิงเดี่ยวรวดเร็ว | DPS ต่อเนื่อง; ทำงานได้เมื่อมี Tangle หนุน |
 | **Sonic Resonator** (คลื่นจากเสาสัญญาณอพยพ) | 120 Parts | กระสุนระเบิดเป็นวง | เจาะ swarm; ช้าและแพงแต่คุ้มกับกลุ่มหนา |
 | **Tangle Emitter** (อุปกรณ์ชุบและเคเบิลของ ริน) | 60 Parts | ช้าศัตรู 30 เปอร์เซ็นต์ในรัศมี | ยืดเวลาอยู่ในระยะยิงของอีกสองป้อม |
+| **Arc Cannon** (ปืนใหญ่อาร์คจากเครื่องกำเนิดสัญญาณ) | 140 Parts | กระสุนลูกใหญ่ระเบิดแรง ระยะไกล | เก็บแกนหนา/กลุ่มบีบตัว; ซื้อแพงจึงตัดสินใจด้วยเศรษฐกิจ |
 
-- อัปเกรดแต่ละป้อมได้สองระดับ: เพิ่ม damage/fire rate/radius; ขายคืนได้ 70% (ระยะหลังของ MVP)
+- อัปเกรดแต่ละป้อมได้สองระดับ: เพิ่ม damage/fire rate/radius; ขายคืนได้ 70% ของ Parts ที่ลงไป (ป้อมที่วางพร้อมป้อมอิสระตั้งแต่เริ่มรอบขายได้เช่นกัน)
 - การสลับ targeting mode ต่อป้อมมีหลัง vertical slice; MVP ใช้ first อย่างเดียว
 - ยิงป้อมไม่ถูกบังด้วยสิ่งกีดขวางใน MVP; เพิ่มสิ่งหักมุมเป็นชั้นถัดไป
 
@@ -76,7 +78,7 @@
 
 ## 8. UX, input และ accessibility
 
-- **Windows (MVP):** คลิกซ้าย = วางป้อมที่ slot, ปุ่ม 1/2/3 = เลือกชนิดป้อม, Space = เริ่มคลื่น, Esc = pause; ปุ่มบน UI คลิกได้เสมอ
+- **Windows (MVP):** คลิกซ้าย = วางป้อมที่ slot / คลิกป้อมที่วางไว้เพื่ออัปเกรด, คลิกขวาที่ป้อม = ขาย, ปุ่ม 1–4 = เลือกชนิดป้อม (1 Field Turret, 2 Sonic Resonator, 3 Tangle Emitter, 4 Arc Cannon), Space = เริ่มคลื่น, Esc = pause; ปุ่มบน UI คลิกได้เสมอ
 - HUD: Parts, Integrity, คลื่นปัจจุบันหรือถัดไป, ปริมาณ enemy ทยอย spawn; slot ต่างชนิดแสดงรูปร่างต่างกัน ไม่พึ่งสีอย่างเดียว
 - คงตัวเลือก reduce flashes/reduce motion กับ VFX 3D ที่สั่น
 - ฟอนต์ Noto Sans Thai; localization keys ไทย/อังกฤษตั้งแต่แรกตาม convention ฉบับ 2D
@@ -108,3 +110,24 @@
 - ราคาป้อม/จำนวน Parts เริ่มต้นขาดหรือเกินตรงไหนในการนำผู้เล่นไปตัดสินใจเอง?
 - 8 คลื่นบวกบอสใน 8–10 นาทีพอให้สรุปความสนุกใน session สั้นหรือไม่?
 - ป้อมแต่ละชนิดมีบทบาทจำเป็นหรือมีตัวยึด dominant?
+
+## 13. บทเสริม: สเปกและการดูแล asset 3D (ยุบจาก TD2_ASSET_PLAN.md, 2026-11-05)
+
+Asset suite low-poly สร้างครบแล้ว (2026-11-04) ส่วนนี้เป็นข้อตกลงเมื่อต้องเพิ่ม/แก้ asset ต่อ โดยทำผ่าน Blender MCP ตาม workflow ที่กำหนดทุกครั้ง
+
+### เกณฑ์ร่วม
+- หน่วย 1 unit = 1 m ตรงกับ grid (slot Ø1.4, ถนนกว้าง 2.6); pivot ศัตรูลึกถึงพื้น (Y=0)
+- โพลิกอน: ป้อม ≤ 800 tris, ศัตรู ≤ 400 tris, props ≤ 600 tris — GL Compatibility
+- Export `.glb` หนึ่งไฟล์ต่อชิ้น ไปที่ `projects/last-light-3d/assets/models/<group>/<name>.glb`
+- สีจาก MARKETING palette (โลหะเย็น + จุดโฟกัส amber); **ต้องแยกชนิดได้จากรูปร่างแม้ไร้สี** — ตามหลัก: ลักษณะหลักต่อชิ้นชัดทิศเดียว (Field Turret ลำกล้องเดี่ยวยาว, Sonic ขดลวด+จาน, Tangle สปริงหนาม, Drifter มน, Skitter ตีนเล็ก 4 ข้าง, Dasher แหลมธนู, Warden ตัวสูง+เสาหนาม); asset ใหม่ต้องมี "สัญญาณระบุชนิด" เขียนไว้ก่อนสร้างเสมอ
+- ห้าม shape key/animation ใน MVP — ศัตรูเคลื่อนด้วย waypoint จาก `td_enemy.gd`; level 2/3 ของป้อมใช้ scale ใน Godot ไม่ทำ mesh แยก
+
+### Workflow (bridge Blender → Godot)
+1. `get_scene_info` → `begin_operation` → สร้าง → `render_preview` → **อ่านภาพจริง** → แก้ → render ซ้ำ → `validate_game_asset` → `end_operation`
+2. Export .glb แล้วรัน `.\scripts\dev-3d.ps1 -Action import` และเทสต์ให้ผ่านเท่าเดิม
+3. บันทึกเปลี่ยนแปลงใน dev log + ROADMAP
+
+### Inventory ปัจจุบัน (ตรวจดูด้วยตาจาก `assets/models/`)
+- `towers/`: field_turret, sonic_resonator, tangle_emitter, arc_cannon
+- `enemies/`: drifter, skitter, dasher, warden
+- `props/`: shelter, barricade, street_light, ash_tree, ruined_house, shelter_09_sign

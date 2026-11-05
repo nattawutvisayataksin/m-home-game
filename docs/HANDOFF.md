@@ -4,9 +4,11 @@
 
 - Repository: `https://github.com/nattawutvisayataksin/m-home-game.git`
 - ใช้ root repository เป็น workspace หลัก; changes ของ session นี้ต้อง commit/push ก่อนเครื่องอื่นจะดึงได้
-- Godot project อยู่ที่ `projects\last-light\project.godot`
+- เกมหลักที่กำลังพัฒนาต่อ (3D Tower Defense): `projects\last-light-3d\project.godot` — ใช้ `scripts\dev-3d.ps1` / `scripts\test-3d.ps1` (พารามิเตอร์เดียวกับด้านล่าง)
+- เกม 2D playable reference (ห้ามแตะนอกจากระบบ metrics): `projects\last-light\project.godot` — ใช้ `scripts\dev.ps1` / `scripts\test.ps1`
+- เอกสาร design และสถานะล่าสุด: `START_HERE.md`, `docs/AI_HANDOFF.md`, `docs/GDD_3DTD.md`; คู่มือผู้เล่นฉบับ 3D อยู่ที่ `docs/PLAYER_MANUAL_3D.md`
 - เปิด `README.md` และ `START_HERE.md` ก่อนเริ่มงาน
-- สำหรับงานภาพ ให้เริ่มจาก [ART_HANDOFF.md](./ART_HANDOFF.md) และ [ART_DIRECTION.md](./ART_DIRECTION.md); มี prompt พร้อมใช้สำหรับ Codex อยู่ใน handoff
+- สำหรับงานภาพ ให้เริ่มจาก [ART_HANDOFF.md](./ART_HANDOFF.md) (ฉบับ 2D) และ [TD2_ASSET_PLAN.md](./TD2_ASSET_PLAN.md) (ธรรมชาติ 3D low-poly — asset suite สร้างครบแล้ว); ปรับ asset 3D เพิ่มได้ผ่าน Blender MCP ตาม workflow ในไฟล์นั้น
 - path ใน source ใช้ `res://`; save ใช้ `user://`; ห้ามอ้าง `C:\Users\...` หรือ path เครื่องปัจจุบันในเกม
 
 ```powershell
@@ -34,6 +36,12 @@ Set-Location m-home-game
 .\scripts\dev.ps1 -Action run
 .\scripts\dev.ps1 -Action import
 .\scripts\test.ps1
+
+# เกมหลัก (3D Tower Defense)
+.\scripts\dev-3d.ps1 -Action check
+.\scripts\dev-3d.ps1 -Action run
+.\scripts\dev-3d.ps1 -Action import   # ต้องรันทุกครั้งหลังเพิ่ม class_name ใหม่ (global class cache)
+.\scripts\test-3d.ps1                  # SceneTree suites 6 suites — พิมพ์ PHASE ... PASSED
 ```
 
 กำหนด `GODOT_PATH` เป็น path ของ executable Godot บนเครื่องนั้น หากไม่ได้อยู่ใน `PATH`:
@@ -66,8 +74,11 @@ $env:GODOT_PATH = 'D:\Tools\Godot\Godot_v4.7.2-stable_win64.exe'
 
 ## ข้อกำหนดก่อนส่งงาน
 
-- รัน `.\scripts\dev.ps1 -Action check` หลังเพิ่ม/ย้าย scene, resource หรือ script
+- รัน `.\scripts\dev-3d.ps1 -Action check` (หรือ `dev.ps1` สำหรับฉบับ 2D) หลังเพิ่ม/ย้าย scene, resource หรือ script; เพิ่ม `class_name` ใหม่ต้องรัน `-Action import` ก่อนเทสต์
 - ทดสอบเปิดโปรเจกต์และดู error ใน Godot; checker ไม่แทน engine runtime test
-- ไม่ commit `.godot/`, `build/`, keystore, password, export credential หรือข้อมูลส่วนตัว
-- ทดสอบ survival-defense loop บน Windows ตาม [PLAYTEST_PLAN.md](./PLAYTEST_PLAN.md); ค่อยกลับมาทำ Android หลัง core loop ผ่าน playtest
+- รัน `.\scripts\test-3d.ps1` ให้ผ่านครบทุก suite ก่อน commit งานที่เปลี่ยน gameplay
+- **ห้าม capture หน้าจอเดสก์ท็อปโดยรอบ** — ตรวจ visual เฉพาะ in-engine capture ตามแบบอย่าง `projects/last-light-3d/tests/dev_title_selfshot.gd`
+- งานที่เปลี่ยน behavior ของเกมเขียน dev log entry ที่ `docs/NIGHTLY_DEV_LOG.md`
+- ไม่ commit `.godot/`, `build/`, keystore, password, export credential, ภาพ selfshot หรือข้อมูลส่วนตัว
+- ทดสอบ TD loop บน Windows ตาม [PLAYTEST_PLAN.md](./PLAYTEST_PLAN.md) หัวข้อ 3D; ค่อยกลับมาทำ Android หลัง core loop ผ่าน playtest
 - ตรวจ Git diff ก่อน commit ให้แน่ใจว่ามีเฉพาะการเปลี่ยนแปลงของโปรเจกต์ปัจจุบัน

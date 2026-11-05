@@ -54,11 +54,19 @@
 1. ทำ greybox จาก shape สีพื้นและตรวจความชัดที่ขนาด 360×640
 2. ใช้ต้นฉบับ pixel art ใน `assets/art/` เป็น visual target; สร้างซ้ำได้จาก `scripts\generate_pixel_art.py`
 3. ใช้ **Pixel-art MCP** ปรับ sprite เมื่อ visual target ผ่าน playtest; เก็บ PNG ต้นฉบับและ source/notes ที่จำเป็นใน `projects\last-light\assets\art\`
-4. ใช้ **Blender MCP** เฉพาะเมื่อช่วยสร้าง reference/ฉาก parallax หรือภาพโปรโมต; ไม่เปลี่ยน gameplay ไป 3D
+4. ใช้ **Blender MCP** เฉพาะงานภาพเสริมของฉบับ 2D (reference/ภาพโปรโมต) — งาน asset 3D ของเกมหลักใช้ Blender MCP ตาม workflow ใน [GDD_3DTD.md](./GDD_3DTD.md) (บทเสริม asset 3D)
 5. ใช้ **Godot MCP** ตรวจ scene, import, และจับภาพเทียบใน build; ตรวจ pixel filtering และ aspect ratio
 6. เพิ่ม family/animation หลัง visual target ได้รับการยืนยันจากการทดสอบในฉากจริง
 
 ทุก asset ต้องเป็นงานต้นฉบับหรือมี license ที่ตรวจสอบได้; Noto Sans Thai ที่ bundle มาใช้ SIL OFL (license copy อยู่ใน `assets\fonts\OFL.txt`)
+
+## ขอบเขตและบันทึกการส่งงานภาพ (ยุบจาก ART_HANDOFF.md, 2026-11-05)
+
+เอกสารนี้ครอบคลุม **ฉบับ 2D** (`projects\last-light\`) ที่ถูกแช่แข็งเป็น playable reference — งานภาพ 2D ทำสำเร็จแล้ว (pixel-art act pass 2026-10) เมื่อต้องแก้ภาพ 2D เพิ่ม ใช้แนวเดิม: เปลี่ยนไฟล์ PNG ตาม path เดิม (`assets/art/{player,enemies,projectiles}/`), สร้างซ้ำผ่าน `scripts\generate_pixel_art.py`, ไม่แตะ gameplay/save/input, ตรวจด้วย `dev.ps1`/`test.ps1` ให้ยังเขียว
+
+- ทิศทางภายใน: อ่านออกจากรูปทรงก่อนสี, คง palette เมืองพัง (asphalt `#202722`/`#343A32`, โครง `#5B513C`/`#465044`, olive/khaki ผู้เล่น, ฝ้า-สนิมศัตรู, amber Part)
+- ทิศทางภาพของ **เกมหลัก (3D low-poly)** ไม่ได้อยู่ในเอกสารนี้ — ดู [GDD_3DTD.md](./GDD_3DTD.md) § บทเสริม asset 3D (เดิม TD2_ASSET_PLAN.md) และ palette แบรนด์ใน MARKETING.md
+- ข้อความส่งงาน Codex ฉบับเต็ม (2D act pass) ดึงได้จาก git history ของ `docs/ART_HANDOFF.md` (ลบแล้วในการรวมเอกสาร 2026-11-05)
 
 ## Audio direction
 

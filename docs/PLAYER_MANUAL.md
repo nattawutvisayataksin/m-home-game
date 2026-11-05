@@ -1,4 +1,6 @@
-# คู่มือผู้เล่น — LAST LIGHT (Windows Prototype)
+# คู่มือผู้เล่น — LAST LIGHT (2D Reference, Windows)
+
+> คู่มือฉบับนี้ครอบคลุมโปรเจกต์ 2D (`projects\last-light\`) ที่ถูกเก็บเป็น **playable reference** — เกมหลักปัจจุบันคือ 3D Tower Defense ดู [PLAYER_MANUAL_3D.md](./PLAYER_MANUAL_3D.md)
 
 ## เป้าหมาย
 
