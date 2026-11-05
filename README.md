@@ -1,46 +1,52 @@
 # LAST LIGHT: สัญญาณสุดท้าย
 
-LAST LIGHT เป็นเกม 2D แนว survival defense: ผู้รอดชีวิตเดินเท้าป้องกัน Shelter จากฝูง Hollows เลื่อนซ้าย–ขวา ยิงอัตโนมัติ อัปเกรดปืนระหว่างคลื่น และใช้ Salvage เสริม Barricade ระหว่างรอบ
+LAST LIGHT เป็นเกม 3D Tower Defense หลัก: ผู้เล่นวางป้อมป้องกัน Shelter 09 จากฝูง Hollows ที่เดินตามเลน, จัดการ wave, อัปเกรด/ขายป้อม, และเก็บ Salvage สำหรับ progression
 
-> สถานะ: Windows prototype พร้อมให้ playtest core loop แนวเอาตัวรอดเดินเท้า; Android ถูกพักไว้จนกว่า gameplay จะผ่าน playtest
+> สถานะ: เกมหลัก 3D Tower Defense (`projects/last-light-3d`) อยู่ใน TD-2 implementation-ready state; โปรเจกต์ 2D (`projects/last-light`) ถูกเก็บไว้เป็น playable reference เท่านั้น ห้ามแตะนอกจากระบบ metrics
 
 ## เริ่มอ่าน
 
 1. [START_HERE.md](./START_HERE.md) — สถานะโปรเจกต์และทางเริ่มงาน
-2. [GDD.md](./docs/GDD.md) — วิสัยทัศน์และกติกาเกม
-3. [STORY.md](./docs/STORY.md) — โลก ตัวละคร และเส้นเรื่อง
-4. [ART_DIRECTION.md](./docs/ART_DIRECTION.md) — ภาพ สี และ pipeline
-5. [ART_HANDOFF.md](./docs/ART_HANDOFF.md) — ขอบเขตและ prompt ส่งต่องานภาพให้ Codex
-6. [ARCHITECTURE.md](./docs/ARCHITECTURE.md) — โครงระบบและโฟลเดอร์
-7. [ROADMAP.md](./docs/ROADMAP.md) — ลำดับงานและเกณฑ์ผ่าน
-8. [PLAYER_MANUAL.md](./docs/PLAYER_MANUAL.md) — คู่มือผู้เล่น
-9. [HANDOFF.md](./docs/HANDOFF.md) — ย้ายเครื่องและตั้งค่าสภาพแวดล้อม
-10. [PLAYTEST_PLAN.md](./docs/PLAYTEST_PLAN.md) — เช็กลิสต์ทดสอบด้วยตนเอง
-11. [RELEASE_CHECKLIST.md](./docs/RELEASE_CHECKLIST.md) — build/export และ release gates
+2. [docs/GDD_3DTD.md](./docs/GDD_3DTD.md) — กติกาและ design หลักของเกม 3D
+3. [docs/GDD.md](./docs/GDD.md) — baseline 2D reference ที่แช่แข็ง (ใช้สำหรับ lore/progression/history)
+4. [docs/STORY.md](./docs/STORY.md) — โลก ตัวละคร และเส้นเรื่อง
+5. [docs/ART_DIRECTION.md](./docs/ART_DIRECTION.md) — ภาพ สี และ pipeline
+6. [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md) — โครงระบบและโฟลเดอร์
+7. [docs/ROADMAP.md](./docs/ROADMAP.md) — ลำดับงานและเกณฑ์ผ่าน
+8. [docs/PLAYER_MANUAL_3D.md](./docs/PLAYER_MANUAL_3D.md) — คู่มือผู้เล่น 3D
+9. [docs/PLAYER_MANUAL.md](./docs/PLAYER_MANUAL.md) — คู่มือผู้เล่น 2D reference
+10. [docs/AI_HANDOFF.md](./docs/AI_HANDOFF.md) — ข้อตกลงและตำแหน่งงานต่อเนื่องสำหรับ AI
+11. [docs/PLAYTEST_PLAN.md](./docs/PLAYTEST_PLAN.md) — เช็กลิสต์ทดสอบด้วยตนเอง
+12. [docs/RELEASE_CHECKLIST.md](./docs/RELEASE_CHECKLIST.md) — build/export และ release gates
 
 ## เทคโนโลยีและขอบเขต
 
-- **Engine:** Godot 4.7.2 stable; ใช้ 2D และ GL Compatibility
-- **เกม:** เล่นคนเดียว PvE, หน้าจอแนวตั้ง 9:16
+- **Engine:** Godot 4.7.2 stable; ใช้ 3D + GL Compatibility สำหรับเกมหลัก, 2D reference เก็บไว้แยก
+- **เกมหลัก:** 3D tower defense, วางป้อมล้วน, มุมมอง isometric fixed
 - **แพลตฟอร์มปัจจุบัน:** Windows; Android development ถูกพักไว้
-- **Path ของ Godot project:** `projects\last-light\`
-- **Asset workflow:** Pixel-art MCP สำหรับงาน pixel art; Godot MCP สำหรับตรวจ scene/รันเกม; Blender MCP เป็นทางเลือกสำหรับภาพฉากหรือ reference
-- สร้าง sprite, music และ SFX ต้นฉบับด้วย Python standard library; ฟอนต์ Noto Sans Thai ใช้ SIL Open Font License
+- **Path ของ Godot project:** `projects\last-light-3d\` (เกมหลัก), `projects\last-light\` (reference only)
+- **Asset workflow:** Blender low-poly models + Godot import; procedural SFX generation ด้วย Python; ฟอนต์ Noto Sans Thai ใช้ SIL Open Font License
 
 ## เปิดเกม
 
-เปิด `projects\last-light\project.godot` ด้วย Godot 4.7.2 หรือจาก PowerShell ที่ root ของ repository:
+เปิด `projects\last-light-3d\project.godot` หรือจาก PowerShell ที่ root ของ repository:
+
+```powershell
+.\scripts\dev-3d.ps1 -Action run
+```
+
+สคริปต์ค้นหา Godot จาก `GODOT_PATH` ก่อน แล้วจึงค้นหา `godot` ใน `PATH` จึงไม่ยึดกับตำแหน่งติดตั้งของเครื่องนี้
+
+เกม 2D reference เปิดด้วย:
 
 ```powershell
 .\scripts\dev.ps1 -Action run
 ```
 
-สคริปต์ค้นหา Godot จาก `GODOT_PATH` ก่อน แล้วจึงค้นหา `godot` ใน `PATH` จึงไม่ยึดกับตำแหน่งติดตั้งของเครื่องนี้
-
-รันทดสอบอัตโนมัติและสร้าง Windows build:
+รันทดสอบอัตโนมัติและสร้าง build:
 
 ```powershell
-.\scripts\test.ps1
+.\scripts\test-3d.ps1
 .\scripts\export.ps1 -Platform Windows -Mode release
 ```
 
@@ -48,4 +54,4 @@ Android export presets ยังอยู่ใน repository แต่ไม่
 
 ## ข้อเสนอการพัฒนาขั้นถัดไป
 
-จาก Game Director (2026-11-03): เปลี่ยนทิศทางเป็น **3D Tower Defense** — คง IP เดิม, เริ่มโปรเจกต์ใหม่ `projects\last-light-3d\` ตาม [GDD_3DTD.md](./docs/GDD_3DTD.md) และ [ROADMAP.md](./docs/ROADMAP.md) (หัวข้อ "3D Tower Defense pivot") ฉบับ 2D นี้ยังเปิดเล่นเพื่อ reference และเก็บ playtest baseline ผ่านระบบ RunMetrics ที่เพิ่มเข้ามา
+จาก Game Director (2026-11-03): เปลี่ยนทิศทางเป็น **3D Tower Defense** — คง IP เดิม, เริ่มโปรเจกต์ใหม่ `projects\last-light-3d\` ตาม [docs/GDD_3DTD.md](./docs/GDD_3DTD.md) และ [docs/ROADMAP.md](./docs/ROADMAP.md) (หัวข้อ "3D Tower Defense pivot") ส่วน 2D reference ถูกเก็บไว้เพื่อ baseline, playtest metrics, และการอ้างอิง lore

@@ -1,7 +1,7 @@
 # AGENTS.md — คำแนะนำสำหรับ AI coding agents
 
 คู่มือฉบับย่อสำหรับอะไรก็ตามที่มาช่วยแก้โค้ดใน repo นี้ (Codex / Copilot / Antigravity / opencode)
-ฉบับเต็ม: `START_HERE.md` + `docs/AI_HANDOFF.md` | เอกสาร design เด็ดขาด: `docs/GDD_2D_Survival.md`, `docs/GDD_3DTD.md`
+ฉบับเต็ม: `START_HERE.md` + `docs/AI_HANDOFF.md` | เอกสาร design เด็ดขาด: `docs/GDD.md`, `docs/GDD_3DTD.md`
 
 ## Repo map (สั้น ๆ)
 
