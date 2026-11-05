@@ -71,16 +71,16 @@ func _build_title_column() -> void:
 	column.anchor_bottom = 0.5
 	column.offset_left = -260.0
 	column.offset_right = 260.0
-	column.offset_top = -270.0
-	column.offset_bottom = 270.0
+	column.offset_top = -360.0
+	column.offset_bottom = 360.0
 	column.alignment = BoxContainer.ALIGNMENT_CENTER
-	column.add_theme_constant_override("separation", 14)
+	column.add_theme_constant_override("separation", 10)
 	add_child(column)
 
 	var logo := TextureRect.new()
 	logo.name = "Logo"
 	logo.texture = LOGO_TEXTURE
-	logo.custom_minimum_size = Vector2(0.0, 240.0)
+	logo.custom_minimum_size = Vector2(0.0, 190.0)
 	logo.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	logo.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	logo.size_flags_vertical = Control.SIZE_SHRINK_CENTER
@@ -110,8 +110,20 @@ func _build_title_column() -> void:
 	_add_menu_button(column, "ตั้งค่า", func () -> void: _show_panel(_settings_panel))
 	_add_menu_button(column, "ออกจากเกม", func () -> void: get_tree().quit())
 
+	# Flash-save resume: shown only when a valid snapshot is on disk.
+	var snapshot_wave: int = TDSessionSnapshot.get_resume_wave()
+	if snapshot_wave > 0:
+		var continue_button := _add_menu_button(
+			column,
+			"เล่นต่อจากภารกิจค้าง (คลื่น %d)" % (snapshot_wave + 1),
+			_continue_mission
+		)
+		# The resume entry sits right above the fresh-start button so a
+		# returning player finds it first.
+		column.move_child(continue_button, 5)
 
-func _add_menu_button(vbox: VBoxContainer, label_text: String, on_pressed: Callable) -> void:
+
+func _add_menu_button(vbox: VBoxContainer, label_text: String, on_pressed: Callable) -> Button:
 	var button := Button.new()
 	button.text = label_text
 	button.custom_minimum_size = Vector2(300.0, 52.0)
@@ -120,6 +132,7 @@ func _add_menu_button(vbox: VBoxContainer, label_text: String, on_pressed: Calla
 	_style_text(button, "font_size", 22)
 	button.pressed.connect(on_pressed)
 	vbox.add_child(button)
+	return button
 
 
 func _build_content_panel(bb_text: String) -> Control:
@@ -260,4 +273,9 @@ func _unhandled_input(event: InputEvent) -> void:
 
 
 func _start_mission() -> void:
+	get_tree().change_scene_to_file(RUN_SCENE_PATH)
+
+
+func _continue_mission() -> void:
+	TDSessionSnapshot.resume_requested = true
 	get_tree().change_scene_to_file(RUN_SCENE_PATH)

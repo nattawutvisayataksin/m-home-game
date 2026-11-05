@@ -13,6 +13,15 @@ extends Resource
 @export var bounty: int = 12
 @export var integrity_damage: int = 1
 
+## Dasher dash cycle (per docs/GDD_3DTD.md: telegraph สั้นแล้วพุ่งเป็นช่วงยาว).
+## Values of 0/1.0 keep an archetype in its plain-walk behavior. The dash
+## multiplies `speed` for a burst; telegraph time is a full stop for readability.
+## Time-averaged displacement is defined by the values in the .tres file only.
+@export var dash_walk_time: float = 0.0
+@export var dash_telegraph_time: float = 0.0
+@export var dash_time: float = 0.0
+@export var dash_speed_multiplier: float = 1.0
+
 ## Optional: low-poly .glb model loaded as PackedScene. When null the enemy
 ## falls back to greybox primitives so the game runs without Blender assets.
 @export var model_scene: PackedScene

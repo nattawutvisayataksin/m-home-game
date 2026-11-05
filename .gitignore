@@ -24,3 +24,6 @@ Thumbs.db
 *.p12
 .env
 .env.*
+
+# Temporary in-engine self-shot images
+projects/last-light-3d/tests/_*.png

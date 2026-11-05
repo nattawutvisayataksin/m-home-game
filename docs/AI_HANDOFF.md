@@ -1,6 +1,6 @@
 # LAST LIGHT — AI Handoff Document
 
-อัปเดต: 2026-11-04 — หลัง weapon/environment/free-placement pass
+อัปเดต: 2026-11-05 — หลัง flash save / dasher / HUD clarity pass
 ข้อมูลสำหรับ AI agent (Codex / Copilot / Antigravity / opencode) ที่รับงานพัฒนาต่อภายใน repo นี้
 คู่มือย่อฉบับเริ่มงาน: `AGENTS.md` (root) | กติกาข้อนี้ใช้ตามที่เขียนไว้ทั้งหมด
 
@@ -45,6 +45,7 @@ scripts/
   data/*.gd                # Resource classes (มีมาตรฐานบังคับให้เป็น typed class)
   systems/run_metrics.gd   # ระบบเก็บ JSON ที่ run ทุกรอบ (schema 1)
   systems/td_settings_store.gd  # autoload "TDSettings": settings.cfg + AudioServer + ui_font_size
+  systems/td_session_snapshot.gd # flash save รอบกลางคัน → user://session_snapshot.json (เทสต์ phase6)
   systems/profile_repository.gd # user://profile.json (schema v3, progression ไม่ใช่ settings)
   ui/td_hud.gd             # HUD ครบ + pause menu + settings overlay; รับ Esc แทน td_run
   ui/td_settings_panel.gd  # panel settings ใช้ร่วม title/pause (ปุ่มเสียง + accessibility)
@@ -93,7 +94,13 @@ assets/brand/logo_emblem.svg
 
 1. **Wave pacing data pass (Playtest iteration):** หลังเสียงและ VFX ครบถ้วน รันเล่นจริงผ่าน `.\scripts\dev-3d.ps1 -Action run` เพื่อเก็บ metrics ใน `user://metrics/` และปรับ wave `.tres` เฉพาะเมื่อมีข้อมูลอ้างอิง
 2. **Playtest มนุษย์:** ต้องมีผู้เล่นจริง — เงื่อนไขจบ TD-2 คือผู้เล่นใหม่วางป้อมแรก < 25 วินาที และอธิบาย leak ได้
-3. **Flash save / Session resume (ถ้าจำเป็น):** บันทึกสถานะ wave กลางคันกรณีหลุด/ปิดเกม
+3. ~~**Flash save / Session resume:**~~ ✅ เสร็จ 2026-11-05 — `TDSessionSnapshot` (`scripts/systems/td_session_snapshot.gd`) เขียนที่ wave-clear + ปิดหน้าต่าง, resume ผ่านปุ่มใน title menu; เทสต์ phase6
+
+### ข้อควรรู้เพิ่มจากงาน 2026-11-05
+- Flash save อยู่ที่ `user://session_snapshot.json` (schema 1) — ระบบจะ **ไม่ทับ snapshot ที่มีอยู่** เมื่อ run ใหม่ยังไม่มีความคืบหน้า (`_has_run_progress()`); ปิดหน้าต่างกลางคลื่นจะถอยไป replay คลื่นที่กำลังเล่น (`wave_number - 1`) ไม่มีเงินลงทุนป้อมหาย
+- Dasher dash cycle ถูกกั้นด้วยเทสต์ว่าความเร็วเฉลี่ยรวมของรอบเท่า `speed` เดิม — ห้ามแก้ค่าใน `dasher.tres` ให้เฉลี่ยไม่เท่าเดิมเว้นแต่มี playtest มาอ้าง
+- `play_sfx(key, pitch_jitter, base_pitch)` มี pitch override สำหรับเหตุการณ์พิเศษ
+- ข้อควรรู้เดิมจากงาน 2026-11-04 ทั้งหมดยังใช้อยู่
 
 ## 5) กติกาสากลของ repo (อ่าน AGENTS.md แล้วสรุปเพิ่มที่นี้)
 

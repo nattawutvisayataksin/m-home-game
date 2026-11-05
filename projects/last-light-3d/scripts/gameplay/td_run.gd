@@ -113,6 +113,7 @@ var _spawn_beacon_ring: MeshInstance3D
 var _world_time: float = 0.0
 var _shelter_crystal: Node3D
 var _tangle_effect_cooldowns: Dictionary = {}
+var _resumed: bool = false
 
 
 func _enemy_def(enemy_id: StringName) -> TDEnemyDefinition:
@@ -140,10 +141,18 @@ func _ready() -> void:
 	_build_env()
 	_build_hud()
 	_build_audio()
-	_preview_default = _composition_text(1)
+	# Flash-save resume: the title menu sets resume_requested before entering.
+	if TDSessionSnapshot.resume_requested:
+		TDSessionSnapshot.resume_requested = false
+		_restore_session(TDSessionSnapshot.load_state())
+	# No clearing here: a stale snapshot survives until a real wave-clear (or a
+	# run end) supersedes it, so an accidental fresh start keeps old progress.
+	_preview_default = _composition_text(maxi(wave_number + 1, 1))
 	_hud.show_wave_preview(_preview_default)
-	_hud.update_status(parts, integrity, 0, WAVES.size())
+	_hud.update_status(parts, integrity, maxi(wave_number, 1), WAVES.size())
 	_metrics.record(&"run_started", {"starting_integrity": integrity, "barricade_level": barricade_level})
+	if _resumed:
+		_metrics.record(&"run_resumed", {"wave": wave_number, "parts": parts, "integrity": integrity})
 
 
 func _build_world() -> void:
@@ -634,8 +643,6 @@ func place_tower(slot_index: int, kind: int) -> bool:
 	_slot_invested[slot_index] = stats.cost
 	_spawn_effect(TDCombatEffect.KIND_PLACED, SLOTS[slot_index])
 	_audio.play_sfx("build")
-	_slot_occupied[slot_index] = true
-	_slot_invested[slot_index] = stats.cost
 	var disk := _slot_disks[slot_index] as MeshInstance3D
 	var disk_material := disk.material_override as StandardMaterial3D
 	disk_material.albedo_color = Color(0.35, 0.8, 0.4, 0.5)
@@ -789,6 +796,8 @@ func _physics_process(delta: float) -> void:
 	if is_combat:
 		_spawn_tick(delta)
 	_hud.update_status(parts, integrity, maxi(wave_number, 1), WAVES.size())
+	# Same event source the HUD uses for spawn count (GDD: spawn quantity).
+	_hud.set_enemies_left(_spawned_alive + _spawn_queue.size())
 
 
 func _update_slows() -> void:
@@ -888,19 +897,27 @@ func _spawn_tick(delta: float) -> void:
 		stats.speed,
 		stats.bounty,
 		stats.integrity_damage,
-		stats.model_scene
+		stats.model_scene,
+		stats.dash_walk_time,
+		stats.dash_telegraph_time,
+		stats.dash_time,
+		stats.dash_speed_multiplier
 	)
 	enemy.died.connect(_on_enemy_died)
 	enemy.leaked.connect(_on_enemy_leaked)
 	_enemy_container.add_child(enemy)
 	enemy.global_position = PATH_POINTS[0]
 	_spawned_alive += 1
+	if stats.archetype == TDEnemy.Archetype.WARDEN:
+		_announce_boss()
 
 
 func _clear_wave() -> void:
 	is_combat = false
 	parts += WAVE_CLEAR_BONUS + INTEGRITY_BONUS * integrity
 	_metrics.record(&"wave_cleared", {"wave": wave_number, "integrity": integrity, "parts_after": parts})
+	# Flash save: the prep boundary is the only coherent checkpoint.
+	save_session_snapshot()
 	if wave_number >= WAVES.size():
 		_end_run(true)
 		return
@@ -952,7 +969,7 @@ func _on_projectile_impacted(impact_position: Vector3, splash: bool) -> void:
 func _on_tower_fired(kind: int, from_position: Vector3) -> void:
 	match kind:
 		TDTower.Kind.ARC_CANNON:
-			_audio.play_sfx("resonator_pulse")
+			_audio.play_sfx("arc_burst")
 			_spawn_effect(TDCombatEffect.KIND_UPGRADE, from_position)
 		TDTower.Kind.SONIC_RESONATOR:
 			_audio.play_sfx("resonator_pulse")
@@ -968,6 +985,7 @@ func _end_run(won: bool) -> void:
 		return
 	is_over = true
 	is_combat = false
+	TDSessionSnapshot.clear()  # a finished run has nothing to resume
 	_hud.set_combat_state(false)
 	_metrics.record(&"run_ended", {"won": won, "wave": wave_number, "integrity_remaining": integrity})
 	_metrics.finalize_run({
@@ -1011,3 +1029,132 @@ func toggle_pause() -> void:
 func _go_to_title() -> void:
 	get_tree().paused = false
 	get_tree().change_scene_to_file("res://scenes/ui/title.tscn")
+
+
+# --- Flash save / session resume -----------------------------------------
+
+## Window close flash save: only runs with actual progress write a snapshot
+## (design: a truly fresh run never clobbers an older snapshot on close).
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_WM_CLOSE_REQUEST and not is_over and _has_run_progress():
+		save_session_snapshot()
+
+
+## Something worth flash-saving: towers placed, a wave in flight, or a resumed
+## run. A bare prep-phase fresh start has nothing to preserve.
+func _has_run_progress() -> bool:
+	if _resumed:
+		return true
+	for slot_tower: TDTower in _slot_towers:
+		if slot_tower != null:
+			return true
+	return _free_towers.size() > 0
+
+
+## Number of fully cleared waves: mid-combat close rewinds to replay the wave.
+func _cleared_waves_for_snapshot() -> int:
+	return wave_number - 1 if is_combat else wave_number
+
+
+func save_session_snapshot() -> bool:
+	if is_over:
+		return false
+	var towers: Array = []
+	for slot_index: int in range(SLOTS.size()):
+		var slot_tower: TDTower = _slot_towers[slot_index]
+		if not _slot_occupied[slot_index] or slot_tower == null:
+			continue
+		towers.append({
+			"place": "slot",
+			"slot": slot_index,
+			"kind": slot_tower.kind,
+			"level": slot_tower.level,
+			"invested": _slot_invested[slot_index],
+		})
+	for index: int in range(_free_towers.size()):
+		var free_tower: TDTower = _free_towers[index]
+		if free_tower == null or not is_instance_valid(free_tower):
+			continue
+		towers.append({
+			"place": "free",
+			"position": [free_tower.global_position.x, free_tower.global_position.y, free_tower.global_position.z],
+			"kind": free_tower.kind,
+			"level": free_tower.level,
+			"invested": _free_tower_invested[index],
+		})
+	return TDSessionSnapshot.save_state({
+		"wave": clampi(_cleared_waves_for_snapshot(), 0, WAVES.size()),
+		"parts": parts,
+		"integrity": integrity,
+		"towers": towers,
+	})
+
+
+func _restore_session(state: Dictionary) -> void:
+	if state.is_empty():
+		return
+	parts = maxi(int(state.get("parts", START_PARTS)), 0)
+	integrity = clampi(int(state.get("integrity", START_INTEGRITY)), 0, 99)
+	wave_number = clampi(int(state.get("wave", 0)), 0, WAVES.size() - 1)
+	var tower_data_list: Array = state.get("towers", [])
+	for tower_data: Variant in tower_data_list:
+		if typeof(tower_data) == TYPE_DICTIONARY:
+			_restore_tower(tower_data as Dictionary)
+	_resumed = true
+
+
+func _restore_tower(tower_data: Dictionary) -> void:
+	var kind: int = int(tower_data.get("kind", TDTower.Kind.FIELD_TURRET))
+	if not TOWER_DEFS.has(kind):
+		return
+	var stats: TDTowerDefinition = TOWER_DEFS[kind] as TDTowerDefinition
+	var level: int = clampi(int(tower_data.get("level", 0)), 0, TDTower.MAX_LEVEL)
+	var invested: int = maxi(int(tower_data.get("invested", 0)), 0)
+	var tower := TDTower.new()
+	tower.setup(stats.tower_kind, stats.range_radius, stats.damage, stats.fire_interval,
+		stats.splash_radius, stats.slow_factor, _projectile_container, stats.model_scene)
+	add_child(tower)
+	tower.fired.connect(_on_tower_fired)
+	if level > 0:
+		_apply_upgrade_level(tower, stats, level)
+	if String(tower_data.get("place", "free")) == "slot":
+		var slot_index: int = int(tower_data.get("slot", -1))
+		if slot_index < 0 or slot_index >= SLOTS.size() or _slot_occupied[slot_index]:
+			tower.queue_free()
+			return
+		tower.global_position = SLOTS[slot_index]
+		_slot_towers[slot_index] = tower
+		_slot_occupied[slot_index] = true
+		_slot_invested[slot_index] = invested
+		var disk := _slot_disks[slot_index] as MeshInstance3D
+		var disk_material := disk.material_override as StandardMaterial3D
+		disk_material.albedo_color = Color(0.35, 0.8, 0.4, 0.5)
+		return
+	var raw_position: Array = tower_data.get("position", [])
+	if raw_position.size() < 3:
+		tower.queue_free()
+		return
+	var world_position := Vector3(float(raw_position[0]), float(raw_position[1]), float(raw_position[2]))
+	tower.global_position = world_position
+	_free_tower_positions.append(world_position)
+	_free_towers.append(tower)
+	_free_tower_invested.append(invested)
+
+
+## Shared upgrade math: run it on click and on restore alike (same definition).
+func _apply_upgrade_level(tower: TDTower, stats: TDTowerDefinition, level: int) -> void:
+	tower.apply_upgrade(
+		stats.damage * pow(stats.upgrade_damage_factor, level),
+		stats.fire_interval * pow(stats.upgrade_rate_factor, level),
+		stats.range_radius + stats.upgrade_range_bonus * float(level),
+		stats.slow_factor * pow(stats.upgrade_slow_factor, level),
+		level
+	)
+
+
+## One readable telegraph for the boss spawn (docs/GDD_3DTD.md line 96).
+func _announce_boss() -> void:
+	_hud.announce_boss("RIFT WARDEN เคลื่อนเข้ามาแล้ว!")
+	_audio.play_sfx("wave_horn", 0.0, 0.68)
+	_spawn_effect(TDCombatEffect.KIND_WAVE, PATH_POINTS[0])
+	_metrics.record(&"boss_spawned", {"wave": wave_number})

@@ -15,7 +15,9 @@ const KIND_LABELS: Array[String] = ["1  FIELD TURRET\nLaser / ยิงเดี
 var _parts_label: Label
 var _integrity_label: Label
 var _wave_label: Label
+var _enemies_label: Label
 var _preview_label: Label
+var _boss_banner: Label
 var _start_button: Button
 var _overlay: CenterContainer
 var _overlay_message: Label
@@ -71,11 +73,13 @@ func build_ui() -> void:
 	_parts_label = Label.new()
 	_integrity_label = Label.new()
 	_wave_label = Label.new()
+	_enemies_label = Label.new()
 	_preview_label = Label.new()
 	_style_text(_preview_label, "font_size", 15)
 	top.add_child(_parts_label)
 	top.add_child(_integrity_label)
 	top.add_child(_wave_label)
+	top.add_child(_enemies_label)
 	top.add_child(_preview_label)
 
 	var bottom := VBoxContainer.new()
@@ -268,6 +272,43 @@ func update_status(parts: int, integrity: int, wave: int, max_waves: int) -> voi
 	_parts_label.text = "Parts: %d" % parts
 	_integrity_label.text = "Shelter Integrity: %d" % integrity
 	_wave_label.text = "Wave %d / %d" % [wave, max_waves]
+
+
+## GDD: HUD แสดงปริมาณ enemy ทยอย spawn. Hidden outside combat.
+func set_enemies_left(count: int) -> void:
+	if count <= 0:
+		_enemies_label.text = ""
+	else:
+		_enemies_label.text = "Enemies remaining: %d" % count
+
+
+## Boss telegraph: a readable on-screen warning with a brief highlight pulse.
+func announce_boss(text: String) -> void:
+	var store := get_node_or_null("/root/TDSettings") as TDSettingsStore
+	var reduce_flashes: bool = store != null and store.get_reduce_flashes()
+	var reduce_motion: bool = store != null and store.get_reduce_motion()
+	if _boss_banner == null:
+		_boss_banner = Label.new()
+		_boss_banner.name = "BossBanner"
+		_boss_banner.set_anchors_preset(Control.PRESET_CENTER_TOP)
+		_boss_banner.anchor_top = 0.24
+		_boss_banner.anchor_bottom = 0.24
+		_boss_banner.grow_horizontal = Control.GROW_DIRECTION_BOTH
+		_boss_banner.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		_style_text(_boss_banner, "font_size", 26)
+		add_child(_boss_banner)
+	_boss_banner.text = text
+	_boss_banner.visible = true
+	_boss_banner.modulate = Color.WHITE
+	var tween := create_tween()
+	var peak: float = 0.55 if reduce_flashes else 1.0
+	var pulse_count: int = 1 if reduce_motion else 3
+	for _pulse: int in range(pulse_count):
+		tween.tween_property(_boss_banner, "modulate", Color(1.0, 0.4, 0.25, peak), 0.35)
+		tween.tween_property(_boss_banner, "modulate", Color.WHITE, 0.35)
+	tween.tween_property(_boss_banner, "modulate", Color(1.0, 1.0, 1.0, 0.0), 1.6)
+	tween.tween_callback(func () -> void:
+		_boss_banner.visible = false)
 
 
 func show_wave_preview(composition_text: String) -> void:

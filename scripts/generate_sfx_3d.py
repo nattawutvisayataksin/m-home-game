@@ -13,7 +13,7 @@ RATE = 22050
 OUTPUT = Path(__file__).resolve().parents[1] / "projects" / "last-light-3d" / "assets" / "audio" / "sfx"
 MUSIC_OUTPUT = Path(__file__).resolve().parents[1] / "projects" / "last-light-3d" / "assets" / "audio" / "music"
 
-NOISY = {"turret_shot", "resonator_pulse", "hit", "breach"}
+NOISY = {"turret_shot", "resonator_pulse", "hit", "breach", "arc_burst"}
 
 
 def synthesize(name: str, duration: float, start_hz: float, end_hz: float, volume: float = 0.3) -> None:
@@ -46,6 +46,8 @@ for spec in (
 	("turret_shot", 0.05, 820, 420, 0.20),
 	("resonator_pulse", 0.26, 220, 88, 0.30),
 	("tangle_cast", 0.22, 520, 240, 0.20),
+	# arc cannon: crackling energy burst — noisy downward crackle, louder tail
+	("arc_burst", 0.18, 1150, 260, 0.24),
 	("hit", 0.1, 340, 120, 0.26),
 	("leak", 0.34, 460, 180, 0.24),
 	("breach", 0.4, 150, 40, 0.3),

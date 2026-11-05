@@ -20,7 +20,7 @@ scripts/         dev.ps1 / test.ps1 (2D), dev-3d.ps1 / test-3d.ps1 (3D)
 | ตรวจ parse (2D / 3D) | `.\scripts\dev.ps1 -Action check` / `.\scripts\dev-3d.ps1 -Action check` |
 | รันเกม (2D / 3D) | `.\scripts\dev.ps1 -Action run` / `.\scripts\dev-3d.ps1 -Action run` |
 | import scan (3D) | `.\scripts\dev-3d.ps1 -Action import` — ต้องรันทุกครั้งหลังเพิ่ม `class_name` ใหม่ (global class cache) |
-| เทสต์ทั้งหมด (2D: 6 suites / 3D: 2 suites) | `.\scripts\test.ps1` / `.\scripts\test-3d.ps1` |
+| เทสต์ทั้งหมด (2D: 6 suites / 3D: 6 suites) | `.\scripts\test.ps1` / `.\scripts\test-3d.ps1` |
 
 Godot 4.7.2 ต้องอยู่ใน PATH หรือตั้ง env `GODOT_PATH` ไว้ก่อน มิฉะนั้นสคริปต์จะ throw
 
@@ -46,5 +46,6 @@ Godot 4.7.2 ต้องอยู่ใน PATH หรือตั้ง env `GO
 
 1. **TD-1 exit:** verify `.tres` ครบถ้วนผ่านการเล่นจริง; เทสต์ phase2 กลุ่ม coverage คลื่นต่อคลื่น
 2. **Iteration:** ปรับ wave pacing/economy ด้วย metrics ใน `user://metrics/`
-3. **TD-2:** Blender low-poly assets (ผ่าน Blender AI Bridge; ปัจจุบัน bridge ยังไม่เปิด)
-4. Settings (volume/accessibility) ✅ 2026-11-04; flash save บนโปรเจกต์ 3D ยังค้าง (pause menu ทำแล้ว, settings ทำแล้ว — เหลือ flash save)
+3. **TD-2:** Blender low-poly assets ✅ (ผ่าน Blender AI Bridge; asset suite ครบ ป้อม/ศัตรู/props)
+4. Settings (volume/accessibility) ✅ 2026-11-04; flash save บนโปรเจกต์ 3D ✅ 2026-11-05 (`TDSessionSnapshot` + ปุ่ม "เล่นต่อจากภารกิจค้าง" ใน title menu)
+5. **Playtest มนุษย์ TD-2** (ผู้เล่นใหม่วางป้อมแรก < 25 วิ และอธิบาย leak ได้) — เป็นเงื่อนไขจบเฟส อยู่ก่อนการปรับ balance ใด ๆ

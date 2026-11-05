@@ -10,6 +10,7 @@ const SOUND_PATHS: Dictionary = {
 	"turret_shot": "res://assets/audio/sfx/turret_shot.wav",
 	"resonator_pulse": "res://assets/audio/sfx/resonator_pulse.wav",
 	"tangle_cast": "res://assets/audio/sfx/tangle_cast.wav",
+	"arc_burst": "res://assets/audio/sfx/arc_burst.wav",
 	"hit": "res://assets/audio/sfx/hit.wav",
 	"leak": "res://assets/audio/sfx/leak.wav",
 	"breach": "res://assets/audio/sfx/breach.wav",
@@ -59,14 +60,15 @@ func is_enabled() -> bool:
 	return not _players.is_empty()
 
 
-func play_sfx(key: String, pitch_jitter: float = 0.0) -> void:
+func play_sfx(key: String, pitch_jitter: float = 0.0, base_pitch: float = 1.0) -> void:
 	if not _streams.has(key) or _players.is_empty():
 		return
 	var player: AudioStreamPlayer = _players[_next_player]
 	_next_player = (_next_player + 1) % _players.size()
 	player.stream = _streams[key]
 	# Slight pitch variation avoids shot repetition fatigue; 0 keeps it exact.
-	player.pitch_scale = 1.0 + randf_range(-pitch_jitter, pitch_jitter) if pitch_jitter > 0.0 else 1.0
+	var jitter: float = randf_range(-pitch_jitter, pitch_jitter) if pitch_jitter > 0.0 else 0.0
+	player.pitch_scale = base_pitch + jitter
 	player.play()
 
 

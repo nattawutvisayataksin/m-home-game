@@ -1,5 +1,42 @@
 # Nightly Development Log — LAST LIGHT
 
+## Entry — Dasher Telegraph & Dash, HUD Combat Clarity, Arc SFX, Flash Save (2026-11-05)
+
+**Scope:** จากการตรวจสอบโปรเจคทั้งหมด: ทำ TODO ที่รับต่อได้ทันที — Dasher ตาม GDD, ความชัดของ HUD, เสียง Arc Cannon และ Flash save/resume (งานค้างข้อสุดท้ายใน AGENTS.md). เทสต์ผ่าน 6 ชุด / parse check ผ่าน 16 scripts / ไม่แตะตัวเลข balance เดิมใน `.tres`
+
+### Dasher — telegraph และพุ่ง (ตาม GDD_3DTD.md)
+- ลบ stub `dash_speed_scale()` แล้วทำ dash cycle จริงใน `td_enemy.gd`: เดิน → หยุด telegraph (วงแหวนสีส้มขยายใต้ตัว) → พุ่งตาม multiplier → วนกลับมาเดิน
+- เพิ่ม field ใหม่ใน `TDEnemyDefinition` (`dash_walk_time` / `dash_telegraph_time` / `dash_time` / `dash_speed_multiplier`) ค่ากำหนดใน `data/enemies/dasher.tres`
+- ค่าถูกเลือกให้ **ความเร็วเฉลี่ยรวมของรอบเท่าเดิมพอดี** (เดิน 1.8s + telegraph 0.6s + พุ่ง 1.2s ที่ 1.5 เท่า ⇒ ระยะเฉลี่ยต่อรอบเท่าการเดินปกติด้วย `speed` เดิม 1.3) — ไม่เปลี่ยนความยาก และมีเทสต์กั้นไว้
+- การเดินถูก refactor เป็น `apply_step(distance)` พร้อม clamp ที่ขอบเฟส เพื่อไม่ให้ dash ทะลุหน้าต่างตัวเอง; `progress` เดินตามระยะจริงที่ขยับ
+
+### HUD combat clarity (GDD: แสดงจำนวน enemy ทยอย spawn + บอสมี telegraph ชัด)
+- เพิ่มแถว "Enemies remaining: N" ขณะคลื่นกำลังรัน (ซ่อนเมื่อไม่มีคลื่น)
+- บอส Rift Warden เกิดมีข้อความเตือนบน banner กลางจอ + สั่นเสียง wave_horn ในโน้ตต่ำ (`play_sfx(..., base_pitch)` เพิ่มพารามิเตอร์ pitch) + บันทึก metrics `boss_spawned`
+- banner เคารพ `reduce_flashes` (ความสว่างพีคต่ำลง) และ `reduce_motion` (กะพริบครั้งเดียว)
+
+### Arc Cannon — เสียงเฉพาะตัว
+- เดิมใช้เสียง `resonator_pulse` (เสียงของ Sonic Resonator) — สร้าง `arc_burst.wav` ใหม่ผ่าน `scripts/generate_sfx_3d.py` (เสียงหักลงแบบมี noise) และต่อเข้า bus SFX ระบบเดิม
+
+### Flash save / Session resume (ปิด TODO ที่ค้าง)
+- ไฟล์ใหม่ `scripts/systems/td_session_snapshot.gd` (`class_name TDSessionSnapshot`): plain JSON ที่ `user://session_snapshot.json` (schema 1) เขียนแบบ atomic (ไฟล์ tmp แล้ว rename)
+- ทุกครั้งที่ wave clear จะเขียน snapshot; ปิดหน้าต่างกลางคัน (`NOTIFICATION_WM_CLOSE_REQUEST`) เขียนด้วยเมื่อมีความคืบหน้า (ป้อมวางแล้ว / กลางคลื่น / run ต่อมาจาก resume) จึงไม่ทับ snapshot เก่าด้วย run ใหม่เปล่า ๆ
+- snapshot กลางคลื่นถอยไป replay คลื่นที่กำลังเล่นอยู่ (`wave_number - 1`) — เงินลงทุนป้อมไม่หาย
+- Title menu มีปุ่ม "เล่นต่อจากภารกิจค้าง (คลื่น N)" เมื่อมี snapshot; run ต่อเข้ามาเริ่มที่ prep phase ของคลื่นถัดไปพร้อมป้อม/level/invested/parts/integrity ครบ; จบรอบจะลบ snapshot
+- title column ขยายเต็มจอ + ย่อโลโก้ เพื่อไม่ตัดปุ่มล่างเมื่อมีปุ่มพิเศษ (ตรวจด้วย in-engine selfshot)
+
+### Verification
+- `dev-3d.ps1 -Action check` → 0 errors (16 scripts)
+- `test-3d.ps1` → PHASE 1–6 PASSED (ชุดใหม่: phase6 flashsave + dasher)
+- Visual: `_title_continue_selfshot.png` / `_run_hud_selfshot.png` (in-engine capture เท่านั้น, ไฟล์ถูก gitignore ไม่ commit)
+
+### Next
+- ยังค้าง: playtest มนุษย์ TD-2 (ผู้เล่นใหม่วางป้อมแรก < 25 วิ) ก่อนปรับถี่ของคลื่น
+- ชั้นอัปเกรดที่ 2 ของป้อมควรมี visual ต่างจากชั้น 0 มากขึ้น (ปัจจุบันแค่ scale)
+
+
+---
+
 ## Entry — Multi-Path Road, HUD Clarity & Arc Cannon (2026-11-04)
 
 **Scope:** ปรับเส้นทาง, free placement, HUD และเพิ่มอาวุธชนิดที่ 4
