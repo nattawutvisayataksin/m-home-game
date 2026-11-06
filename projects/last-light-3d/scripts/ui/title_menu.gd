@@ -55,11 +55,40 @@ func _store() -> TDSettingsStore:
 
 
 func _build_background() -> void:
-	var background := ColorRect.new()
+	# Vertical brand gradient (#141826 -> #0d1118) per MARKETING.md palette.
+	var gradient := Gradient.new()
+	gradient.colors = PackedColorArray([Color("#151a29"), Color("#0d1118"), Color("#0a0d13")])
+	gradient.offsets = PackedFloat32Array([0.0, 0.62, 1.0])
+	var gradient_texture := GradientTexture2D.new()
+	gradient_texture.gradient = gradient
+	gradient_texture.fill_from = Vector2(0.0, 0.0)
+	gradient_texture.fill_to = Vector2(0.0, 1.0)
+	var background := TextureRect.new()
 	background.name = "Background"
-	background.color = Color(0.078, 0.094, 0.125)
+	background.texture = gradient_texture
 	background.set_anchors_preset(Control.PRESET_FULL_RECT)
 	add_child(background)
+
+	# Faint amber lamp glow rising from the bottom ("แสงสุดท้าย" motif).
+	var glow_gradient := Gradient.new()
+	glow_gradient.colors = PackedColorArray([Color(1.0, 0.85, 0.54, 0.12), Color(1.0, 0.85, 0.54, 0.0)])
+	var glow_texture := GradientTexture2D.new()
+	glow_texture.gradient = glow_gradient
+	glow_texture.fill = GradientTexture2D.FILL_RADIAL
+	glow_texture.fill_from = Vector2(0.5, 0.5)
+	glow_texture.fill_to = Vector2(0.5, 0.0)
+	glow_texture.width = 512
+	glow_texture.height = 256
+	var glow := TextureRect.new()
+	glow.name = "FloorGlow"
+	glow.texture = glow_texture
+	glow.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
+	glow.offset_left = -420.0
+	glow.offset_right = 420.0
+	glow.offset_top = -300.0
+	glow.offset_bottom = 28.0
+	glow.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	add_child(glow)
 
 
 func _build_title_column() -> void:
@@ -70,18 +99,18 @@ func _build_title_column() -> void:
 	column.anchor_right = 0.5
 	column.anchor_top = 0.5
 	column.anchor_bottom = 0.5
-	column.offset_left = -260.0
-	column.offset_right = 260.0
-	column.offset_top = -360.0
-	column.offset_bottom = 360.0
+	column.offset_left = -300.0
+	column.offset_right = 300.0
+	column.offset_top = -400.0
+	column.offset_bottom = 316.0
 	column.alignment = BoxContainer.ALIGNMENT_CENTER
-	column.add_theme_constant_override("separation", 10)
+	column.add_theme_constant_override("separation", 8)
 	add_child(column)
 
 	var logo := TextureRect.new()
 	logo.name = "Logo"
 	logo.texture = LOGO_TEXTURE
-	logo.custom_minimum_size = Vector2(0.0, 190.0)
+	logo.custom_minimum_size = Vector2(0.0, 168.0)
 	logo.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	logo.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	logo.size_flags_vertical = Control.SIZE_SHRINK_CENTER
@@ -101,8 +130,22 @@ func _build_title_column() -> void:
 	tagline.add_theme_color_override("font_color", Color("#9fb2a8"))
 	column.add_child(tagline)
 
+	# Brand rule + feature strip: sell the pillars at a glance.
+	var rule := ColorRect.new()
+	rule.color = Color(0.91, 0.66, 0.36, 0.45)
+	rule.custom_minimum_size = Vector2(240.0, 2.0)
+	rule.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	column.add_child(rule)
+
+	var feature_strip := Label.new()
+	feature_strip.text = "คืนเดียว 8 คลื่น · ป้อม 4 แบบ · อัปเกรด Lv2 · ขายคืน 70%"
+	feature_strip.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_style_text(feature_strip, "font_size", 14)
+	feature_strip.add_theme_color_override("font_color", Color("#e8c27d"))
+	column.add_child(feature_strip)
+
 	var spacer := Control.new()
-	spacer.custom_minimum_size = Vector2(0.0, 12.0)
+	spacer.custom_minimum_size = Vector2(0.0, 10.0)
 	column.add_child(spacer)
 
 	_add_menu_button(column, "เริ่มการรบ", _start_mission)
@@ -121,19 +164,67 @@ func _build_title_column() -> void:
 		)
 		# The resume entry sits right above the fresh-start button so a
 		# returning player finds it first.
-		column.move_child(continue_button, 5)
+		column.move_child(continue_button, 6)
+
+	_build_footer()
+
+
+func _build_footer() -> void:
+	var footer := VBoxContainer.new()
+	footer.name = "Footer"
+	footer.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
+	footer.offset_top = -76.0
+	footer.offset_bottom = -18.0
+	footer.alignment = BoxContainer.ALIGNMENT_END
+	footer.add_theme_constant_override("separation", 3)
+	add_child(footer)
+
+	var slogan := Label.new()
+	slogan.text = "“แสงสุดท้าย คือแนวรบของเรา”"
+	slogan.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_style_text(slogan, "font_size", 14)
+	slogan.add_theme_color_override("font_color", Color("#8a7a5c"))
+	footer.add_child(slogan)
+
+	var version := Label.new()
+	version.text = "เดโม่เทคนิค · Shelter 09 · build 2026-11-06"
+	version.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_style_text(version, "font_size", 12)
+	version.add_theme_color_override("font_color", Color("#5d6a74"))
+	footer.add_child(version)
 
 
 func _add_menu_button(vbox: VBoxContainer, label_text: String, on_pressed: Callable) -> Button:
 	var button := Button.new()
 	button.text = label_text
-	button.custom_minimum_size = Vector2(300.0, 52.0)
+	button.custom_minimum_size = Vector2(340.0, 54.0)
 	button.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	button.focus_mode = Control.FOCUS_ALL
 	_style_text(button, "font_size", 22)
+	button.add_theme_color_override("font_color", Color("#dfe9e2"))
+	button.add_theme_color_override("font_hover_color", Color("#ffd98a"))
+	button.add_theme_color_override("font_pressed_color", Color("#ffd98a"))
+	button.add_theme_color_override("font_focus_color", Color("#ffd98a"))
+	button.add_theme_stylebox_override("normal", _menu_style(Color("#1a2130"), Color("#3a4252")))
+	button.add_theme_stylebox_override("hover", _menu_style(Color("#33291a"), Color("#e8a95c")))
+	button.add_theme_stylebox_override("pressed", _menu_style(Color("#241d12"), Color("#b9863f")))
+	button.add_theme_stylebox_override("focus", _menu_style(Color("#2b2417"), Color("#ffd98a")))
 	button.pressed.connect(on_pressed)
 	vbox.add_child(button)
 	return button
+
+
+func _menu_style(background: Color, border: Color) -> StyleBoxFlat:
+	var style := StyleBoxFlat.new()
+	style.bg_color = background
+	style.border_color = border
+	style.set_border_width_all(1)
+	style.set_corner_radius_all(7)
+	style.content_margin_left = 24.0
+	style.content_margin_right = 24.0
+	style.content_margin_top = 10.0
+	style.content_margin_bottom = 10.0
+	return style
 
 
 func _build_content_panel(bb_text: String) -> Control:

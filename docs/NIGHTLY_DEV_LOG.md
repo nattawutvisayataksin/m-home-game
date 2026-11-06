@@ -1,5 +1,32 @@
 # Nightly Development Log — LAST LIGHT
 
+## Entry — Title Menu ใหม่ (gradient/ปุ่ม/feature strip) + ภาพอัปเดต: Marketing captures (2026-11-06)
+
+**Scope:** Task B — ปรับปรุงหน้า title menu ให้สวยและขายเกมได้ (ตาม palette ใน `docs/MARKETING.md`) และผลิตภาพ menu/showcase ใน `docs/marketing/`
+
+### Title menu (code-built UI, ไม่แตะ .tscn)
+- **พื้นหลัง:** gradient แนวตั้ง `#151a29 → #0d1118 → #0a0d13` (GradientTexture2D) + แสงอำพันนวลจากล่าง (radial glow, "แสงสุดท้าย" ตามแบรนด์)
+- **ปุ่ม:** StyleBoxFlat ชุดเดียว — พื้นโลหะมืด `#1a2130` ขอบ `#3a4252`, hover พื้นอุ่นขอบอำพัน `#e8a95c`, pressed/focus อำพันเข้ม; สีตัวอักษรเปลี่ยนเป็น `#ffd98a` เมื่อ hover/focus
+- **กลางเหนือปุ่ม:** เส้นคั่นแบรนด์อำพัน + feature strip "คืนเดียว 8 คลื่น · ป้อม 4 แบบ · อัปเกรด Lv2 · ขายคืน 70%" (ตัวเลขจาก data จริง)
+- **Footer:** สโลแกน "แสงสุดท้าย คือแนวรบของเรา" + บรรทัดเวอร์ชัน; ย่อโลโก้ 168px และเลื่อนคอลัมน์ขึ้นเพื่อไม่ให้ปุ่มทับ footer (ตรวจจาก selfshot รอบแรกแล้วแก้)
+- คง accessibility: `_style_text` ทุก label/ปุ่ม → large text ยังขยายได้ทันที
+
+### ภาพ marketing (`docs/marketing/`)
+- `menu_title.png` — หน้าเมนูเต็มจอ (จับจาก `root.get_texture()` ในเกมจริง ไม่ใช่ภาพ mock)
+- `showcase_battle.png` — กลางคลื่น: ป้อม 4 ชนิด (บางตัว Lv1–2), เอฟเฟกต์ยิง, ศัตรูใกล้ Shelter, HUD "เรียกคลื่นต่อ (Space)" และการ์ดราคา
+- ทั้งหมดใช้ in-engine capture เท่านั้น (ตาม guardrail) สคริปต์ capture เป็นไฟล์ชั่วคราว รันแล้วลบ
+
+### Verification
+- `dev-3d.ps1 -Action check` → 0 errors
+- `test-3d.ps1` → PHASE 1–6 PASSED
+- Visual: ตรวจภาพจริงทั้งสองไฟล์ (เมนูไม่มี layout ทับซ้อน, ภาพ battle มีจุดขายครบ: ป้อม/เงิน/wave chaining)
+
+### Next
+- ชุดภาพเพิ่มเมื่อมี asset pass: GIF 10 วิ (วางป้อม→คลื่นแรก) กับ Steam caps 460×215 / main capsule ขึ้นอยู่กับ itch/Steam pipeline
+- wave .tres pacing ยังรอ metrics ชุดใหม่หลัง chaining ถูกใช้จริง
+
+---
+
 ## Entry — ข้อมูลป้อมต่อระดับ + ราคาใหม่ + เงิน (แทน Parts) + เรียกคลื่นต่อได้ (2026-11-06)
 
 **Scope:** ชุดงาน 5 ข้อจาก feedback หน้างาน: (1) แสดงพลังการโจมตีต่อระดับป้อม (2) ราคาซื้อ/อัปเกรดแยกตามความแรง (3) เปลี่ยนคำ user-facing "Parts" → "เงิน" (4) เพิ่มความต่างของแต่ละระดับชัดขึ้น (visual + สถิติ) (5) กดเรียกคลื่นถัดไประหว่างคลื่นได้เลย
