@@ -1,5 +1,25 @@
 # Nightly Development Log — LAST LIGHT
 
+## Entry — Barricade purchase flow บนหน้าเมนู (2026-11-06)
+
+**Scope:** งานค้างข้อ 2 ใน AI_HANDOFF — profile schema รองรับ `barricade_level` มาแล้ว (run boot ใช้ +2 Integrity/ระดับที่ `td_run.gd` ว่าง่าย) แต่ไม่มีที่ซื้อ ตอนนี้ซื้อผ่านหน้าเมนูได้
+
+### แพตเทิร์น
+- ทำตามแพตเทิร์น 2D (`progression_service.gd`): ราคา **30 (Lv0→1) / 70 (Lv1→2)**, สูงสุด Lv2 (`ProfileRepository.MAX_BARRICADE_LEVEL`), ซื้อด้วย **Salvage** — ไม่แตะตัวเลขเดิมของ 2D
+- 3D ไม่มี ProgressionService autoload จึงใช้ `ProfileRepository` ตรง ๆ (แนวเดียวกับ `td_run.gd`) ผ่านตัวแปร `_repo` ใน `title_menu.gd`; เพิ่ม test seam `set_profile_repository()` ให้เทสต์ชี้ profile ชั่วคราวได้ ไม่แตะ `profile.json` จริง
+
+### UI (footer จัดใหม่, ยังสร้างในโค้ดทั้งหมด)
+- Footer เป็น HBox 3 ช่อง: **ซ้าย** = อ่านค่าโปรไฟล์ "Salvage N · ชนะ N ครั้ง · คลื่นไกลสุด N" + ปุ่ม "อัปเกรด Barricade → LvN (Salvage X)" (disable เมื่อเงินไม่พอ/สูงสุด), **กลาง** = สโลแกน + build tag เดิม
+- คอลัมน์หลักบีบ (โลโก้ 148px, ปุ่ม 48px) เพื่อให้ปุ่ม "ออกจากเกม" ไม่ตกทับ footer — ตรวจด้วย selfshot แล้ว
+- How-to เพิ่มข้อ 8: ซื้อ Barricade ด้วย Salvage นอกการรบ
+
+### Verification
+- เทสต์ชั่วคราว (ลบแล้ว): repo sandbox → ซื้อ 2 ระดับ (100→70→0 salvage), ลองซื้อระดับ 3 ตัด false, ปุ่ม disable สูงสุด — ผ่าน; selfshot layout ชัด
+- `dev-3d.ps1 -Action check` → 0 errors; `test-3d.ps1` → PHASE 1–6 PASSED
+- Salvage ยังมาจากปลายรอบเดิมใน `td_run.gd` (วอน/ชนะ) — ไม่แก้สูตร
+
+---
+
 ## Entry — Wave pacing data pass ตาม playtest metrics (2026-11-06)
 
 **Scope:** งานค้างข้อ 3 ใน AI_HANDOFF — playtest มนุษย์ผ่านเกณฑ์ TD-2 แล้ว (ผู้เล่นใหม่วางป้อมแรก 5 วิ < 25 วิ, อธิบาย leak ได้) จึงปรับ wave `.tres` ได้อย่างถูกลำดับ อ้างข้อมูลจริง 2 รัน ไม่ใช่ความรู้สึก

@@ -19,7 +19,8 @@ const HOW_TO_PLAY := """[color=#e8c27d]วิธีการเล่น[/color]
 4. กด Esc เพื่อหยุดชั่วคราว — ปิดเกมกลางรอบที่มีความคืบหน้า เมื่อเปิดใหม่จะมีปุ่ม "เล่นต่อจากภารกิจค้าง" รออยู่
 5. ศัตรูที่ลอดผ่านป้อมจะลด Shelter Integrity ถ้าหมด แปลว่าแพ้
 6. กำจัดศัตรูได้เงิน จบคลื่นได้โบนัสตาม Integrity ที่เหลือ
-7. เอาตัวรอดครบ 8 คลื่นจนจัดการ Rift Warden ได้ = ชนะ"""
+7. เอาตัวรอดครบ 8 คลื่นจนจัดการ Rift Warden ได้ = ชนะ
+8. นอกรอบ: Salvage ที่ได้จากการรบใช้อัปเกรด Barricade บนหน้าเมนูได้ — +2 Integrity ต่อระดับ สูงสุด Lv2 (ใช้กับคืนถัด ๆ ไป)"""
 
 const STORY := """[color=#e8c27d]เรื่องราว[/color]
 
@@ -37,9 +38,16 @@ var _how_panel: Control
 var _story_panel: Control
 var _settings_panel: Control
 var _font_texts: Array[Control] = []
+var _profile_label: Label
+var _barricade_button: Button
+var _repo: ProfileRepository
+
+# Meta progression: mirror the 2D project's barricade economy (30/70, cap 2).
+const BARRICADE_COSTS: Array[int] = [30, 70]
 
 
 func _ready() -> void:
+	_repo = ProfileRepository.new()
 	_build_background()
 	_build_title_column()
 	_how_panel = _build_content_panel(HOW_TO_PLAY)
@@ -48,6 +56,13 @@ func _ready() -> void:
 	var store := _store()
 	if store != null:
 		store.settings_changed.connect(_on_settings_changed)
+
+
+## Test seam: swap the repository (e.g. temp path) so tests never touch
+## the player's real profile.json.
+func set_profile_repository(repo: ProfileRepository) -> void:
+	_repo = repo
+	_refresh_profile_row()
 
 
 func _store() -> TDSettingsStore:
@@ -110,7 +125,7 @@ func _build_title_column() -> void:
 	var logo := TextureRect.new()
 	logo.name = "Logo"
 	logo.texture = LOGO_TEXTURE
-	logo.custom_minimum_size = Vector2(0.0, 168.0)
+	logo.custom_minimum_size = Vector2(0.0, 148.0)
 	logo.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	logo.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	logo.size_flags_vertical = Control.SIZE_SHRINK_CENTER
@@ -170,34 +185,122 @@ func _build_title_column() -> void:
 
 
 func _build_footer() -> void:
-	var footer := VBoxContainer.new()
+	var footer := MarginContainer.new()
 	footer.name = "Footer"
 	footer.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
-	footer.offset_top = -76.0
-	footer.offset_bottom = -18.0
-	footer.alignment = BoxContainer.ALIGNMENT_END
-	footer.add_theme_constant_override("separation", 3)
+	footer.offset_top = -108.0
+	footer.offset_bottom = -16.0
+	footer.add_theme_constant_override("margin_left", 56.0)
+	footer.add_theme_constant_override("margin_right", 56.0)
 	add_child(footer)
+
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 18)
+	footer.add_child(row)
+
+	# Left: meta progression — salvage balance + Barricade upgrade purchase.
+	var profile_box := VBoxContainer.new()
+	profile_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	profile_box.alignment = BoxContainer.ALIGNMENT_BEGIN
+	profile_box.add_theme_constant_override("separation", 5)
+	row.add_child(profile_box)
+
+	_profile_label = Label.new()
+	_profile_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	_style_text(_profile_label, "font_size", 14)
+	_profile_label.add_theme_color_override("font_color", Color("#9fb2a8"))
+	profile_box.add_child(_profile_label)
+
+	_barricade_button = Button.new()
+	_barricade_button.custom_minimum_size = Vector2(330.0, 42.0)
+	_barricade_button.focus_mode = Control.FOCUS_ALL
+	_style_text(_barricade_button, "font_size", 15)
+	_barricade_button.tooltip_text = "อัปเกรด Barricade — ยืนรักษาการสังเกตของ Shelter 09\n+2 Shelter Integrity ต่อระดับ (สูงสุด Lv2) ใช้กับคืนถัด ๆ ไป"
+	_barricade_button.add_theme_color_override("font_color", Color("#dfe9e2"))
+	_barricade_button.add_theme_color_override("font_hover_color", Color("#ffd98a"))
+	_barricade_button.add_theme_color_override("font_pressed_color", Color("#ffd98a"))
+	_barricade_button.add_theme_color_override("font_focus_color", Color("#ffd98a"))
+	_barricade_button.add_theme_stylebox_override("normal", _menu_style(Color("#1a2130"), Color("#3a4252")))
+	_barricade_button.add_theme_stylebox_override("hover", _menu_style(Color("#33291a"), Color("#e8a95c")))
+	_barricade_button.add_theme_stylebox_override("pressed", _menu_style(Color("#241d12"), Color("#b9863f")))
+	_barricade_button.add_theme_stylebox_override("focus", _menu_style(Color("#2b2417"), Color("#ffd98a")))
+	_barricade_button.pressed.connect(_upgrade_barricade)
+	profile_box.add_child(_barricade_button)
+	_refresh_profile_row()
+
+	# Center: brand slogan + build tag.
+	var center_box := VBoxContainer.new()
+	center_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	center_box.alignment = BoxContainer.ALIGNMENT_END
+	center_box.add_theme_constant_override("separation", 3)
+	row.add_child(center_box)
 
 	var slogan := Label.new()
 	slogan.text = "“แสงสุดท้าย คือแนวรบของเรา”"
 	slogan.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_style_text(slogan, "font_size", 14)
 	slogan.add_theme_color_override("font_color", Color("#8a7a5c"))
-	footer.add_child(slogan)
+	center_box.add_child(slogan)
 
 	var version := Label.new()
 	version.text = "เดโม่เทคนิค · Shelter 09 · build 2026-11-06"
 	version.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_style_text(version, "font_size", 12)
 	version.add_theme_color_override("font_color", Color("#5d6a74"))
-	footer.add_child(version)
+	center_box.add_child(version)
+
+
+# --- Meta progression: profile row + Barricade purchase --------------------
+
+## Sample the real profile for the footer readout; repo may be swapped by
+## tests through set_profile_repository().
+func _refresh_profile_row() -> void:
+	if _profile_label == null or _barricade_button == null:
+		return
+	var profile: Dictionary = _repo.load_profile()
+	var salvage: int = int(profile.get("salvage", 0))
+	var level: int = clampi(int(profile.get("barricade_level", 0)), 0, ProfileRepository.MAX_BARRICADE_LEVEL)
+	_profile_label.text = "Salvage %d · ชนะ %d ครั้ง · คลื่นไกลสุด %d" % [
+		salvage, int(profile.get("victories", 0)), int(profile.get("best_wave", 1)),
+	]
+	if level >= ProfileRepository.MAX_BARRICADE_LEVEL:
+		_barricade_button.text = "Barricade Lv%d — สูงสุดแล้ว" % level
+		_barricade_button.disabled = true
+		return
+	var cost: int = BARRICADE_COSTS[level]
+	_barricade_button.text = "อัปเกรด Barricade → Lv%d (Salvage %d)" % [level + 1, cost]
+	_barricade_button.disabled = salvage < cost
+
+
+func _upgrade_barricade() -> void:
+	if not _upgrade_barricade_profile():
+		_refresh_profile_row()  # keep readout honest on max/refund paths
+
+
+## Pure meta-progression math over the profile dict; returns true on success.
+func _upgrade_barricade_profile() -> bool:
+	var profile: Dictionary = _repo.load_profile()
+	var level: int = clampi(int(profile.get("barricade_level", 0)), 0, ProfileRepository.MAX_BARRICADE_LEVEL)
+	if level >= ProfileRepository.MAX_BARRICADE_LEVEL:
+		return false
+	var cost: int = BARRICADE_COSTS[level]
+	if int(profile.get("salvage", 0)) < cost:
+		return false
+	profile["salvage"] = int(profile["salvage"]) - cost
+	profile["barricade_level"] = level + 1
+	var save_error: Error = _repo.save_profile(profile)
+	if save_error != OK:
+		push_warning("Title menu: barricade purchase save failed (%s)." % error_string(save_error))
+		_refresh_profile_row()
+		return false
+	_refresh_profile_row()
+	return true
 
 
 func _add_menu_button(vbox: VBoxContainer, label_text: String, on_pressed: Callable) -> Button:
 	var button := Button.new()
 	button.text = label_text
-	button.custom_minimum_size = Vector2(340.0, 54.0)
+	button.custom_minimum_size = Vector2(340.0, 48.0)
 	button.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	button.focus_mode = Control.FOCUS_ALL
 	_style_text(button, "font_size", 22)

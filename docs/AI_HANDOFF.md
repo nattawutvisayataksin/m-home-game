@@ -95,7 +95,7 @@ assets/brand/logo_emblem.svg
 ### งานที่รับต่อได้ทันที (สำหรับ Agent ถัดไป)
 
 1. **Playtest มนุษย์:** ✅ 2026-11-06 — ผู้เล่นใหม่วางป้อมแรก 5 วิ (< 25 วิ) และอธิบาย leak ได้; เกณฑ์จบ TD-2 ผ่านแล้ว
-2. **Barricade purchase flow:** profile schema รองรับ `barricade_level` (สูงสุด 2, +2 Integrity/level) แต่ยังไม่มีปุ่มซื้อด้วย Salvage ใน title menu — ทดสอบวางปุ่มเพิ่มใน title_menu.gd ตามแพตเทิร์น 2D
+2. **Barricade purchase flow:** ✅ 2026-11-06 — ปุ่มซื้อใน footer ของ title menu (ราคาตามแพตเทิร์น 2D: 30/70, cap Lv2); ผลคือ `integrity = START_INTEGRITY + level×2` ตอน run boot; แก้ deviation ที่ `BARRICADE_COSTS` ใน `title_menu.gd`
 3. **Wave pacing data pass:** ✅ 2026-11-06 — ขยายคลื่น 4/5/6/8 (+36% ตัวร่างรวม) + health_bonus คลื่น 8 → 1.2 อ้าง metrics 2 รัน (ชนะ 10/10 ไม่มี leak, เงินเหลือ 660/1130, ไม่เคยอัปเกรด); รอบถัดไปต้องเทียบ metrics ใหม่ว่า leak/upgrade date เริ่มเกิด
 
 ### ข้อควรรู้เพิ่มจากงาน 2026-11-05
