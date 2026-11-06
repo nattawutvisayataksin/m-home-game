@@ -5,6 +5,6 @@
 [resource]
 script = ExtResource("1_def")
 wave_id = &"wave_08"
-composition = {"warden": 1, "drifter": 8}
+composition = {"warden": 1, "drifter": 14}
 spawn_interval = 1.6
-health_bonus = 1.1
+health_bonus = 1.2

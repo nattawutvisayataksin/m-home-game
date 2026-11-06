@@ -94,9 +94,9 @@ assets/brand/logo_emblem.svg
 
 ### งานที่รับต่อได้ทันที (สำหรับ Agent ถัดไป)
 
-1. **Playtest มนุษย์:** ต้องมีผู้เล่นจริง — เงื่อนไขจบ TD-2 คือผู้เล่นใหม่วางป้อมแรก < 25 วินาที และอธิบาย leak ได้ (แผนทดสอบใน `PLAYTEST_PLAN.md` หัวข้อ 3D)
+1. **Playtest มนุษย์:** ✅ 2026-11-06 — ผู้เล่นใหม่วางป้อมแรก 5 วิ (< 25 วิ) และอธิบาย leak ได้; เกณฑ์จบ TD-2 ผ่านแล้ว
 2. **Barricade purchase flow:** profile schema รองรับ `barricade_level` (สูงสุด 2, +2 Integrity/level) แต่ยังไม่มีปุ่มซื้อด้วย Salvage ใน title menu — ทดสอบวางปุ่มเพิ่มใน title_menu.gd ตามแพตเทิร์น 2D
-3. **Wave pacing data pass:** หลัง playtest มนุษย์ รันเล่นจริงเพื่อเก็บ metrics ใน `user://metrics/` และปรับ wave `.tres` เฉพาะเมื่อมีข้อมูลอ้างอิง (ปัจจุบันเตะกติกา "ห้ามแก balance ไม่มี metrics")
+3. **Wave pacing data pass:** ✅ 2026-11-06 — ขยายคลื่น 4/5/6/8 (+36% ตัวร่างรวม) + health_bonus คลื่น 8 → 1.2 อ้าง metrics 2 รัน (ชนะ 10/10 ไม่มี leak, เงินเหลือ 660/1130, ไม่เคยอัปเกรด); รอบถัดไปต้องเทียบ metrics ใหม่ว่า leak/upgrade date เริ่มเกิด
 
 ### ข้อควรรู้เพิ่มจากงาน 2026-11-05
 - Flash save อยู่ที่ `user://session_snapshot.json` (schema 1) — ระบบจะ **ไม่ทับ snapshot ที่มีอยู่** เมื่อ run ใหม่ยังไม่มีความคืบหน้า (`_has_run_progress()`); ปิดหน้าต่างกลางคลื่นจะถอยไป replay คลื่นที่กำลังเล่น (`wave_number - 1`) ไม่มีเงินลงทุนป้อมหาย
