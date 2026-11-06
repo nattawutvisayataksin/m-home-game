@@ -269,7 +269,7 @@ func is_settings_open() -> bool:
 
 
 func update_status(parts: int, integrity: int, wave: int, max_waves: int) -> void:
-	_parts_label.text = "Parts: %d" % parts
+	_parts_label.text = "เงิน: %d" % parts
 	_integrity_label.text = "Shelter Integrity: %d" % integrity
 	_wave_label.text = "Wave %d / %d" % [wave, max_waves]
 
@@ -315,14 +315,27 @@ func show_wave_preview(composition_text: String) -> void:
 	_preview_label.text = "Next: %s" % composition_text
 
 
-func set_combat_state(is_combat_active: bool) -> void:
-	_start_button.disabled = is_combat_active
-	_start_button.text = "Wave running..." if is_combat_active else "Start Wave (Space)"
+## is_combat_active gates the prep button; can_chain enables summoning the
+## next wave while the current one is still running (GDD wave chaining).
+func set_combat_state(is_combat_active: bool, can_chain: bool = false) -> void:
+	_start_button.disabled = is_combat_active and not can_chain
+	if is_combat_active:
+		_start_button.text = "เรียกคลื่นต่อ (Space)" if can_chain else "Wave running..."
+	else:
+		_start_button.text = "Start Wave (Space)"
+
+
+## Override the four tower cards (label + tooltip) with data-driven text:
+## stats per level from the tower .tres, so power/pricing show in-game.
+func set_tower_cards(labels: Array[String], tooltips: Array[String]) -> void:
+	for index: int in range(mini(labels.size(), _tower_buttons.size())):
+		_tower_buttons[index].text = labels[index]
+		_tower_buttons[index].tooltip_text = tooltips[index]
 
 
 func show_result(won: bool, parts_at_end: int) -> void:
 	_overlay.visible = true
-	_overlay_message.text = "SHELTER HELD — Salvage earned" if won else "SHELTER FELL\nParts at end: %d" % parts_at_end
+	_overlay_message.text = "SHELTER HELD — Salvage earned" if won else "SHELTER FELL\nเงินท้ายเกม: %d" % parts_at_end
 
 
 func set_pause_menu(open: bool) -> void:

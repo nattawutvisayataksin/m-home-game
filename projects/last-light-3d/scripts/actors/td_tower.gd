@@ -30,6 +30,7 @@ var _idle_time: float = 0.0
 var _yaw_pivot: Node3D
 var _pitch_pivot: Node3D
 var _barrel_nodes: Array[Node3D] = []
+var _level_markers: Array[Node3D] = []
 
 
 func setup(tower_kind: Kind, new_range: float, new_damage: float,
@@ -52,18 +53,53 @@ func can_upgrade() -> bool:
 
 ## Applies a new level with recomputed stats. Caller owns cost math.
 func apply_upgrade(new_damage: float, new_interval: float, new_range: float,
-		new_slow: float, new_level: int) -> void:
+		new_slow: float, new_level: int, new_splash: float = -1.0) -> void:
 	damage = new_damage
 	fire_interval = new_interval
 	range_radius = new_range
 	slow_factor = new_slow
+	if new_splash >= 0.0:
+		splash_radius = new_splash
 	level = new_level
 	_refresh_visual_level()
 
 
 func _refresh_visual_level() -> void:
-	# Level cue: scale the body slightly with each upgrade.
-	scale = Vector3.ONE * (1.0 + 0.2 * float(level))
+	# Level cue: body scale plus floating chevrons that read from any angle
+	# (the camera is fixed iso, so no billboard is needed).
+	scale = Vector3.ONE * (1.0 + 0.12 * float(level))
+	for marker: Node in _level_markers:
+		if is_instance_valid(marker):
+			marker.queue_free()
+	_level_markers.clear()
+	# L1: one amber chevron; L2: two ember chevrons (clearly distinct species)
+	var trim_colors: Array[Color] = [Color("#e0a93f"), Color("#e0552a")]
+	for chevron_index: int in range(level):
+		_level_markers.append(_build_level_chevron(chevron_index, trim_colors[level - 1]))
+
+
+## Small hovering cone marker above the turret; hue/position encode the level.
+func _build_level_chevron(chevron_index: int, trim_color: Color) -> MeshInstance3D:
+	var chevron := MeshInstance3D.new()
+	chevron.name = "LevelChevron%d" % chevron_index
+	var cone := CylinderMesh.new()
+	cone.top_radius = 0.0
+	cone.bottom_radius = 0.14
+	cone.height = 0.34
+	cone.radial_segments = 10
+	chevron.mesh = cone
+	var chevron_material := StandardMaterial3D.new()
+	chevron_material.albedo_color = trim_color
+	chevron_material.emission_enabled = true
+	chevron_material.emission = trim_color
+	chevron_material.emission_energy_multiplier = 0.55
+	chevron.material_override = chevron_material
+	var slots: int = level
+	var slot_width: float = 0.3
+	var x_offset: float = (float(chevron_index) - float(slots - 1) * 0.5) * slot_width
+	chevron.position = Vector3(x_offset, 1.55, 0.0)
+	add_child(chevron)
+	return chevron
 
 
 func _aim_at(target: TDEnemy, delta: float) -> void:

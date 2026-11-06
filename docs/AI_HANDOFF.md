@@ -107,6 +107,8 @@ assets/brand/logo_emblem.svg
 - **เส้นทาง (PATH_POINTS) เป็น zigzag ตั้งฉากทั้งหมด** (spawn (-11,7) → shelter (8,-7), ระยะรวม ~49 ม. = ยาวขึ้น ~10% จากเดิม) — แก้ layout อย่าลืม: จานมุมอัตโนมัติผ่าน `_corner_patch_radius` (มุมฉาก r 1.86) และ curb หุบปลายผ่าน `_corner_inset`/`PATH_POINTS.size() - 2` ใน `_add_path_detail`; ถ้าเพิ่ม/ลดจุด ให้เช็ก SLOTS 12 จุด + เสาไฟ/กั้นถนนที่ hardcode อยู่ใน `_paint_path_shelter_and_slots()` ว่าไม่ตกกลางถนน
 - จานมุม/แถบถนน **แชร์วัสดุเดียวกัน** (`_road_material_a/b` สร้างใน `_paint_path_shelter_and_slots()`) — ถ้าเปลี่ยนสีถนนแก้ที่นี่ที่เดียว
 - กฎกล้อง scatter: `_open_ground` รับ `z_min/z_max` แล้ว — tall props (ต้นไม้ z ≤ 8.5, บ้าน z ≤ 6.0) ห้ามตกโซนใกล้กล้อง (4,17,15) ไม่งั้นกลายเป็นก้อนยักษ์กลางจอ; selfshot ตรวจด้วย `tests/dev_run_selfshot.gd`
+- **สถิติป้อมต่อระดับ (งาน 2026-11-06):** `TDTowerDefinition` ใช้ arrays `level_damage/level_fire_interval/level_range/level_splash/level_slow` (index 0..2) เป็น authoritative — **factor fields ถูกลบไปแล้ว** (สคริปต์ที่อ้าง `upgrade_damage_factor` ฯลฯ จะพัง); base fields เป็น mirror ของ level 0 ไว้ให้เทสต์เดิม; ทุกเส้นทางอัปเกรดต้องผ่าน `TDRun._apply_upgrade_level()` ที่เดียว
+- **Wave chaining:** `start_wave()` เรียกได้กลางคลื่น — ผสม spawn queue พร้อม meta ต่อ entry (`_spawn_queue_meta`); โบนัสจ่ายต่อคลื่นผ่าน `_waves_in_flight`/`_pending_wave_numbers`; HUD `set_combat_state(is_combat, can_chain)` — caller ที่ต่อ playtest/wave logic ใหม่ต้องคุมสองอาร์กให้ตรง
 - ข้อควรรู้เดิมจากงาน 2026-11-05 และ 2026-11-04 ทั้งหมดยังใช้อยู่
 
 ## 5) กติกาสากลของ repo (อ่าน AGENTS.md แล้วสรุปเพิ่มที่นี้)

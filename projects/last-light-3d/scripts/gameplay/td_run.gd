@@ -103,9 +103,13 @@ var _selected_kind: int = TDTower.Kind.FIELD_TURRET
 var _hovered_slot: int = -1
 var _last_clicked_slot: int = -1  # test seam; set by place/upgrade handlers
 var _spawn_queue: Array[StringName] = []
+# parallel metadata per queued enemy: (spawn interval, health bonus, 0)
+var _spawn_queue_meta: Array[Vector3] = []
 var _spawn_cooldown: float = 0.0
-var _spawn_spacing: float = 1.0
 var _spawned_alive: int = 0
+# wave-chaining bookkeeping: merges mid-combat summons into the running wave
+var _waves_in_flight: int = 0
+var _pending_wave_numbers: Array[int] = []
 var _metrics: RunMetrics
 var _profile_repo: ProfileRepository
 var _audio: TDAudioDirector
@@ -847,6 +851,7 @@ func _build_hud() -> void:
 		return
 	add_child(hud_layer)
 	_hud.build_ui()
+	_refresh_tower_cards()
 	_hud.tower_selected.connect(_on_tower_selected)
 	_hud.start_wave_pressed.connect(start_wave)
 	_hud.restart_pressed.connect(_restart)
@@ -856,6 +861,59 @@ func _build_hud() -> void:
 
 func _on_tower_selected(kind: int) -> void:
 	_select_kind(kind)
+
+
+# --- Tower cards & hover (งานข้อ 1/2/4: พลัง+ราคาต่อระดับบน HUD) ----------
+
+## Data-driven tower cards: label = name + price, tooltip lists every level's
+## power from the .tres arrays so pricing/power stay readable in-game.
+func _refresh_tower_cards() -> void:
+	if _hud == null:
+		return
+	var labels: Array[String] = []
+	var tooltips: Array[String] = []
+	for kind: int in TOWER_DEFS.keys():
+		var stats: TDTowerDefinition = TOWER_DEFS[kind] as TDTowerDefinition
+		labels.append("%d  %s — เงิน %d" % [kind + 1, stats.display_name, stats.cost])
+		tooltips.append(_tower_stats_text(stats))
+	_hud.set_tower_cards(labels, tooltips)
+
+
+## One line per level: "Lv0: ดาเมจ 6 · 0.45 วิ/นัด · DPS 13.3" (+ splash/slow).
+func _tower_stats_text(stats: TDTowerDefinition) -> String:
+	var lines: Array[String] = []
+	for level: int in range(TDTower.MAX_LEVEL + 1):
+		lines.append(_tower_level_summary(stats, level))
+	return "\n".join(lines)
+
+
+func _tower_level_summary(stats: TDTowerDefinition, level: int) -> String:
+	if stats.tower_kind == TDTower.Kind.TANGLE_EMITTER:
+		var range_text: String = "ระยะ %.1f ม." % stats.level_range[level]
+		return "Lv%d: ช้า ×%.2f · %s" % [level, stats.level_slow[level], range_text]
+	var damage: float = stats.level_damage[level]
+	var interval: float = stats.level_fire_interval[level]
+	var dps: float = damage / maxf(interval, 0.01)
+	var summary: String = "Lv%d: ดาเมจ %.1f · %.2f วิ/นัด · DPS %.1f" % [level, damage, interval, dps]
+	if stats.level_splash[level] > 0.0:
+		summary += " · ระเบิด %.1f ม." % stats.level_splash[level]
+	return summary
+
+
+## Hover on an occupied slot: current stats plus what the next level buys.
+func _occupied_hover_text(tower: TDTower) -> String:
+	var stats: TDTowerDefinition = _tower_def(tower.kind)
+	var current_line: String = "%s Lv%d · %s" % [stats.display_name, tower.level, _tower_level_summary(stats, tower.level)]
+	if tower.level >= TDTower.MAX_LEVEL:
+		return "%s\nLv สูงสุดแล้ว · RMB ขาย" % current_line
+	var next_level: int = tower.level + 1
+	var upgrade_cost: int = stats.upgrade_costs[tower.level]
+	return "%s\nLMB อัปเกรด: เงิน %d → Lv%d · %s" % [
+		current_line,
+		upgrade_cost,
+		next_level,
+		_tower_level_summary(stats, next_level),
+	]
 
 
 # --- Input & placement -------------------------------------------------
@@ -951,11 +1009,11 @@ func place_tower(slot_index: int, kind: int) -> bool:
 	var tower := TDTower.new()
 	tower.setup(
 		stats.tower_kind,
-		stats.range_radius,
-		stats.damage,
-		stats.fire_interval,
-		stats.splash_radius,
-		stats.slow_factor,
+		stats.level_range[0],
+		stats.level_damage[0],
+		stats.level_fire_interval[0],
+		stats.level_splash[0],
+		stats.level_slow[0],
 		_projectile_container,
 		stats.model_scene
 	)
@@ -985,8 +1043,8 @@ func place_tower_at(world_position: Vector3, kind: int) -> bool:
 		return false
 	parts -= stats.cost
 	var tower := TDTower.new()
-	tower.setup(stats.tower_kind, stats.range_radius, stats.damage, stats.fire_interval,
-		stats.splash_radius, stats.slow_factor, _projectile_container, stats.model_scene)
+	tower.setup(stats.tower_kind, stats.level_range[0], stats.level_damage[0], stats.level_fire_interval[0],
+		stats.level_splash[0], stats.level_slow[0], _projectile_container, stats.model_scene)
 	add_child(tower)
 	tower.global_position = world_position
 	tower.fired.connect(_on_tower_fired)
@@ -1012,11 +1070,7 @@ func upgrade_free_tower(index: int) -> bool:
 		return false
 	parts -= cost
 	_free_tower_invested[index] += cost
-	var next_level: int = tower.level + 1
-	tower.apply_upgrade(stats.damage * pow(stats.upgrade_damage_factor, next_level),
-		stats.fire_interval * pow(stats.upgrade_rate_factor, next_level),
-		stats.range_radius + stats.upgrade_range_bonus * float(next_level),
-		stats.slow_factor * pow(stats.upgrade_slow_factor, next_level), next_level)
+	_apply_upgrade_level(tower, stats, tower.level + 1)
 	_hud.update_status(parts, integrity, wave_number, WAVES.size())
 	_spawn_effect(TDCombatEffect.KIND_UPGRADE, tower.global_position)
 	_audio.play_sfx("upgrade")
@@ -1062,14 +1116,7 @@ func upgrade_tower(slot_index: int) -> bool:
 		return false
 	parts -= cost
 	_slot_invested[slot_index] += cost
-	var next_level: int = tower.level + 1
-	tower.apply_upgrade(
-		stats.damage * pow(stats.upgrade_damage_factor, next_level),
-		stats.fire_interval * pow(stats.upgrade_rate_factor, next_level),
-		stats.range_radius + stats.upgrade_range_bonus * float(next_level),
-		stats.slow_factor * pow(stats.upgrade_slow_factor, next_level),
-		next_level
-	)
+	_apply_upgrade_level(tower, stats, tower.level + 1)
 	_hud.update_status(parts, integrity, wave_number, WAVES.size())
 	_metrics.record(&"tower_upgraded", {"kind": tower.kind, "level": tower.level, "cost": cost, "parts_after": parts})
 	_spawn_effect(TDCombatEffect.KIND_UPGRADE, tower.global_position)
@@ -1156,8 +1203,8 @@ func _update_hover() -> void:
 	if slot != _hovered_slot:
 		_hovered_slot = slot
 		if slot >= 0:
-			if _slot_occupied[slot]:
-				_hud.show_wave_preview("Occupied: LMB upgrade, RMB sell")
+			if _slot_occupied[slot] and _slot_towers[slot] != null:
+				_hud.show_wave_preview(_occupied_hover_text(_slot_towers[slot]))
 			else:
 				_hud.show_wave_preview(_preview_default)
 		else:
@@ -1183,19 +1230,25 @@ func _update_hover() -> void:
 
 # --- Waves -------------------------------------------------------------
 
+## Chaining: starting a wave while another is still running merges the new
+## composition into the same spawn queue; clear bonuses pay per queued wave
+## (_pending_wave_numbers tracks who has not been paid yet).
+
 func start_wave() -> void:
-	if is_combat or is_over or wave_number >= WAVES.size():
+	if is_over or wave_number >= WAVES.size():
 		return
-	wave_number += 1
+	wave_number += 1  # works in prep (first call) and mid-combat (chains)
 	is_combat = true
 	var wave: TDWaveDefinition = _wave_def(wave_number)
-	_spawn_spacing = wave.spawn_interval
-	_spawn_queue.clear()
 	for enemy_id: StringName in wave.composition.keys():
 		var count: int = int(wave.composition[enemy_id])
 		for _index: int in range(count):
 			_spawn_queue.append(enemy_id)
-	_hud.set_combat_state(true)
+			# per-entry spacing/health so mixed waves behave correctly
+			_spawn_queue_meta.append(Vector3(wave.spawn_interval, wave.health_bonus, 0.0))
+	_waves_in_flight += 1
+	_pending_wave_numbers.append(wave_number)
+	_hud.set_combat_state(true, wave_number < WAVES.size())
 	_spawn_effect(TDCombatEffect.KIND_WAVE, PATH_POINTS[0])
 	_audio.play_sfx("wave_horn")
 	_metrics.record(&"wave_started", {"wave": wave_number})
@@ -1203,21 +1256,21 @@ func start_wave() -> void:
 
 func _spawn_tick(delta: float) -> void:
 	if _spawn_queue.is_empty():
-		if _spawned_alive <= 0:
+		if _spawned_alive <= 0 and _waves_in_flight > 0:
 			_clear_wave()
 		return
 	_spawn_cooldown = maxf(_spawn_cooldown - delta, 0.0)
 	if _spawn_cooldown > 0.0:
 		return
-	_spawn_cooldown = _spawn_spacing
+	_spawn_cooldown = _spawn_queue_meta[0].x
 	var enemy_id: StringName = _spawn_queue.pop_front()
+	var spawn_meta: Vector3 = _spawn_queue_meta.pop_front()
 	var stats: TDEnemyDefinition = _enemy_def(enemy_id)
-	var wave: TDWaveDefinition = _wave_def(wave_number)
 	var enemy := TDEnemy.new()
 	enemy.setup(
 		PATH_POINTS,
 		stats.archetype,
-		stats.base_health * (1.0 + wave.health_bonus),
+		stats.base_health * (1.0 + spawn_meta.y),
 		stats.speed,
 		stats.bounty,
 		stats.integrity_damage,
@@ -1238,14 +1291,18 @@ func _spawn_tick(delta: float) -> void:
 
 func _clear_wave() -> void:
 	is_combat = false
-	parts += WAVE_CLEAR_BONUS + INTEGRITY_BONUS * integrity
-	_metrics.record(&"wave_cleared", {"wave": wave_number, "integrity": integrity, "parts_after": parts})
+	# every merged wave pays its own clear bonus
+	for pending_wave_number: int in _pending_wave_numbers:
+		parts += WAVE_CLEAR_BONUS + INTEGRITY_BONUS * integrity
+		_metrics.record(&"wave_cleared", {"wave": pending_wave_number, "integrity": integrity, "parts_after": parts})
+	_waves_in_flight = 0
+	_pending_wave_numbers.clear()
 	# Flash save: the prep boundary is the only coherent checkpoint.
 	save_session_snapshot()
 	if wave_number >= WAVES.size():
 		_end_run(true)
 		return
-	_hud.set_combat_state(false)
+	_hud.set_combat_state(false, false)
 	_preview_default = _composition_text(wave_number + 1)
 	_hud.show_wave_preview(_preview_default)
 
@@ -1435,8 +1492,8 @@ func _restore_tower(tower_data: Dictionary) -> void:
 	var level: int = clampi(int(tower_data.get("level", 0)), 0, TDTower.MAX_LEVEL)
 	var invested: int = maxi(int(tower_data.get("invested", 0)), 0)
 	var tower := TDTower.new()
-	tower.setup(stats.tower_kind, stats.range_radius, stats.damage, stats.fire_interval,
-		stats.splash_radius, stats.slow_factor, _projectile_container, stats.model_scene)
+	tower.setup(stats.tower_kind, stats.level_range[0], stats.level_damage[0], stats.level_fire_interval[0],
+		stats.level_splash[0], stats.level_slow[0], _projectile_container, stats.model_scene)
 	add_child(tower)
 	tower.fired.connect(_on_tower_fired)
 	if level > 0:
@@ -1465,14 +1522,16 @@ func _restore_tower(tower_data: Dictionary) -> void:
 	_free_tower_invested.append(invested)
 
 
-## Shared upgrade math: run it on click and on restore alike (same definition).
+## Shared upgrade math: run it on click and on restore alike — per-level stats
+## all read from the definition arrays (data .tres), levels index 0..2.
 func _apply_upgrade_level(tower: TDTower, stats: TDTowerDefinition, level: int) -> void:
 	tower.apply_upgrade(
-		stats.damage * pow(stats.upgrade_damage_factor, level),
-		stats.fire_interval * pow(stats.upgrade_rate_factor, level),
-		stats.range_radius + stats.upgrade_range_bonus * float(level),
-		stats.slow_factor * pow(stats.upgrade_slow_factor, level),
-		level
+		stats.level_damage[level],
+		stats.level_fire_interval[level],
+		stats.level_range[level],
+		stats.level_slow[level],
+		level,
+		stats.level_splash[level]
 	)
 
 

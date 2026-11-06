@@ -1,5 +1,42 @@
 # Nightly Development Log — LAST LIGHT
 
+## Entry — ข้อมูลป้อมต่อระดับ + ราคาใหม่ + เงิน (แทน Parts) + เรียกคลื่นต่อได้ (2026-11-06)
+
+**Scope:** ชุดงาน 5 ข้อจาก feedback หน้างาน: (1) แสดงพลังการโจมตีต่อระดับป้อม (2) ราคาซื้อ/อัปเกรดแยกตามความแรง (3) เปลี่ยนคำ user-facing "Parts" → "เงิน" (4) เพิ่มความต่างของแต่ละระดับชัดขึ้น (visual + สถิติ) (5) กดเรียกคลื่นถัดไประหว่างคลื่นได้เลย
+
+### สถิติต่อระดับใน data (ข้อ 1/2/4)
+- `TDTowerDefinition` ใหม่: arrays `level_damage / level_fire_interval / level_range / level_splash / level_slow` (index = level 0..2, authoritative) — **factor fields (`upgrade_damage_factor` ฯลฯ) ลบทิ้ง**; base fields คงไว้เป็น mirror ของ level 0 ให้เทสต์เดิมผ่าน
+- ค่าใน `.tres` ทั้ง 4 ป้อม: FT ดาเมจ [6,9,14] @ [0.45,0.36,0.29] วิ, Sonic [10,15,22] + splash [2.8,3.4,4.0], Arc [16,24,36] + splash [1.6,1.9,2.2] + ระยะถึง 7.0, Tangle ช้า [×0.70,×0.60,×0.50] + ระยะ [4,4.6,5.2]
+- **ราคาใหม่แยกตามความแรง** (อัปเกรด 2 ขั้น): FT 80→[70,130], Sonic 120→[80,150], Tangle 60→[60,110], Arc 140→[100,190]
+- แหล่งเดียวจริง: `upgrade_tower` / `upgrade_free_tower` / `_restore_tower` ทุกเส้นทางเรียก `_apply_upgrade_level()` ซึ่งอ่าน arrays — apply_upgrade เพิ่มพารามิเตอร์ `new_splash` (default −1 = ไม่แตะ)
+
+### ความต่างต่อระดับบนภาพ (ข้อ 4)
+- ป้อม scale 1+0.12×level + **chevron ลอยยอด หันเห็นทุกมุม**: L1 = ทอง `#e0a93f` 1 อัน, L2 = ส้มแดง `#e0552a` 2 อัน (emission 0.55, y=1.55) — เลือก chevron แทน ring เพราะกลืนทั้ง .glb และ greybox ไม่มีปัญหา clip
+
+### เงิน แทน Parts (ข้อ 3)
+- เปลี่ยนเฉพาะข้อความ user-facing: HUD `เงิน: %d`, overlay แพ้ `เงินท้ายเกม`, การ์ดป้อม `— เงิน 80`, title menu "(80 Parts)" → "(80 เงิน)" — internal `parts` / `parts_bounty` / metric key `parts_after` คงเดิมเพราะเทสต์อ้างอยู่
+
+### เรียกคลื่นต่อระหว่างคลื่น (ข้อ 5)
+- `start_wave()` ตัด guard `is_combat`: กดได้กลางคลื่น — composition ของคลื่นใหม่ **ผสมเข้า spawn queue เดิม** พร้อม meta ต่อ entry (`_spawn_queue_meta: Array[Vector3]` = interval/health_bonus) ให้ pacing+HP ของแต่ละคลื่นยังถูกต้องแม้ปนกัน
+- โบนัสจบคลื่นจ่าย **ต่อคลื่น** ผ่าน `_waves_in_flight` + `_pending_wave_numbers`; metrics ยังบันทึก `wave_started`/`wave_cleared` ต่อคลื่นครบ
+- HUD: `set_combat_state(is_combat, can_chain)` — กลางคลื่นที่ยังมีคลื่นถัดไป ปุ่มกลายเป็น **"เรียกคลื่นต่อ (Space)"**; คลื่นสุดท้าย disabled ตามเดิม (กด Space ก็ยัง guard ที่ `wave_number >= WAVES.size()`)
+- สแนปช็อต flash save ยัง save ตอนจบคลื่นเหมือนเดิม
+
+### ข้อมูลบน HUD (เสริมข้อ 1)
+- การ์ดป้อม 4 ใบ generate จาก `.tres`: ป้าย = ชื่อ+ราคา, tooltip = ตาราง Lv0–Lv2 (ดาเมจ/interval/DPS + splash หรือ ช้า×factor)
+- เมาส์ชี้ป้อมที่วางแล้ว: แถวสถิติปัจจุบัน + "LMB อัปเกรด: เงิน N → LvX · สถิติถัดไป" (ตาม GDD หัวข้อ 9 power readable)
+
+### Verification
+- `dev-3d.ps1 -Action check` → 0 errors (16 scripts)
+- `test-3d.ps1` → PHASE 1–6 PASSED ทั้งหมด (phase2 ยัง assert ราคา Tangle 60 / upgrade flow / sell refund ผ่านโดยไม่แก้เทสต์)
+- Visual: in-engine selfshot กลางเกม — ป้าย "เงิน: 320", การ์ดมีราคา, Wave 2/8 กลางคลื่นแรก (chaining), chevron L2 ชัด; ไฟล์ png gitignored ตาม guardrail
+
+### Next
+- Task B: ปรับปรุง title menu ให้สวยงาม + Logo + ภาพ Marketing/ตัวอย่างเกม (ผูกเนื้อเรื่องจาก docs/STORY.md)
+- wave .tres ยังไม่แตะ (รอ metrics ชุดใหม่หลัง chaining ถูกใช้จริง)
+
+---
+
 ## Entry — ถนน zigzag มุมฉากใหม่ + สานมุมถนนให้เชื่อมสวย + โหมดฉากรอบทาง (2026-11-06)
 
 **Scope:** ปรับปรุงพื้นถนนมุมขอบให้เชื่อมต่อกันสวยงาม และปรับฉากรอบ ๆ ตาม feedback หน้างาน — เปลี่ยน layout เส้นทางเป็น zigzag มุมฉาก 90° ตามข้อเสนอ ("ขึ้น ลง ขึ้น ลง / ตัว M-N แบบง่าย") เพราะรอยต่อเส้นตรงชัดเจนทำให้จุดสานมุมอ่านสวยกว่าการเก็บมุมเอียงหลายองศา
