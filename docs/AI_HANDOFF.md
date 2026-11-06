@@ -1,6 +1,6 @@
 # LAST LIGHT — AI Handoff Document
 
-อัปเดต: 2026-11-05 — หลัง flash save / dasher / HUD clarity pass
+อัปเดต: 2026-11-06 — หลังถนน zigzag มุมฉาก + สานมุมถนน + ฉากรอบทาง
 ข้อมูลสำหรับ AI agent (Codex / Copilot / Antigravity / opencode) ที่รับงานพัฒนาต่อภายใน repo นี้
 คู่มือย่อฉบับเริ่มงาน: `AGENTS.md` (root) | กติกาข้อนี้ใช้ตามที่เขียนไว้ทั้งหมด
 
@@ -102,7 +102,12 @@ assets/brand/logo_emblem.svg
 - Flash save อยู่ที่ `user://session_snapshot.json` (schema 1) — ระบบจะ **ไม่ทับ snapshot ที่มีอยู่** เมื่อ run ใหม่ยังไม่มีความคืบหน้า (`_has_run_progress()`); ปิดหน้าต่างกลางคลื่นจะถอยไป replay คลื่นที่กำลังเล่น (`wave_number - 1`) ไม่มีเงินลงทุนป้อมหาย
 - Dasher dash cycle ถูกกั้นด้วยเทสต์ว่าความเร็วเฉลี่ยรวมของรอบเท่า `speed` เดิม — ห้ามแก้ค่าใน `dasher.tres` ให้เฉลี่ยไม่เท่าเดิมเว้นแต่มี playtest มาอ้าง
 - `play_sfx(key, pitch_jitter, base_pitch)` มี pitch override สำหรับเหตุการณ์พิเศษ
-- ข้อควรรู้เดิมจากงาน 2026-11-04 ทั้งหมดยังใช้อยู่
+
+### ข้อควรรู้เพิ่มจากงาน 2026-11-06
+- **เส้นทาง (PATH_POINTS) เป็น zigzag ตั้งฉากทั้งหมด** (spawn (-11,7) → shelter (8,-7), ระยะรวม ~49 ม. = ยาวขึ้น ~10% จากเดิม) — แก้ layout อย่าลืม: จานมุมอัตโนมัติผ่าน `_corner_patch_radius` (มุมฉาก r 1.86) และ curb หุบปลายผ่าน `_corner_inset`/`PATH_POINTS.size() - 2` ใน `_add_path_detail`; ถ้าเพิ่ม/ลดจุด ให้เช็ก SLOTS 12 จุด + เสาไฟ/กั้นถนนที่ hardcode อยู่ใน `_paint_path_shelter_and_slots()` ว่าไม่ตกกลางถนน
+- จานมุม/แถบถนน **แชร์วัสดุเดียวกัน** (`_road_material_a/b` สร้างใน `_paint_path_shelter_and_slots()`) — ถ้าเปลี่ยนสีถนนแก้ที่นี่ที่เดียว
+- กฎกล้อง scatter: `_open_ground` รับ `z_min/z_max` แล้ว — tall props (ต้นไม้ z ≤ 8.5, บ้าน z ≤ 6.0) ห้ามตกโซนใกล้กล้อง (4,17,15) ไม่งั้นกลายเป็นก้อนยักษ์กลางจอ; selfshot ตรวจด้วย `tests/dev_run_selfshot.gd`
+- ข้อควรรู้เดิมจากงาน 2026-11-05 และ 2026-11-04 ทั้งหมดยังใช้อยู่
 
 ## 5) กติกาสากลของ repo (อ่าน AGENTS.md แล้วสรุปเพิ่มที่นี้)
 

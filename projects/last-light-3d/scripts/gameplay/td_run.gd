@@ -45,32 +45,45 @@ const INTEGRITY_BONUS: int = 5
 const SELL_REFUND_RATIO: float = 0.7
 
 const PATH_POINTS: PackedVector3Array = [
-	Vector3(-14.0, 0.0, 12.0),
-	Vector3(-14.0, 0.0, 0.0),
-	Vector3(-12.0, 0.0, 0.0),
-	Vector3(-9.0, 0.0, -2.0),
-	Vector3(-6.0, 0.0, 0.0),
-	Vector3(-4.0, 0.0, -4.0),
-	Vector3(-4.0, 0.0, -8.0),
-	Vector3(0.0, 0.0, -10.0),
-	Vector3(5.0, 0.0, -8.0),
-	Vector3(10.0, 0.0, -8.0),
+	Vector3(-11.0, 0.0, 7.0),
+	Vector3(-11.0, 0.0, -6.0),
+	Vector3(-7.0, 0.0, -6.0),
+	Vector3(-7.0, 0.0, 2.0),
+	Vector3(0.0, 0.0, 2.0),
+	Vector3(0.0, 0.0, -7.0),
+	Vector3(8.0, 0.0, -7.0),
 ]
 
 const SLOTS: Array[Vector3] = [
-	Vector3(-11.0, 0.0, 4.0),
-	Vector3(-11.0, 0.0, -2.0),
-	Vector3(-9.0, 0.0, 6.0),
-	Vector3(-7.5, 0.0, -2.5),
-	Vector3(-1.0, 0.0, -2.5),
-	Vector3(-1.0, 0.0, 2.5),
-	Vector3(-7.0, 0.0, -7.0),
-	Vector3(-1.0, 0.0, -11.0),
-	Vector3(2.0, 0.0, -4.5),
-	Vector3(2.0, 0.0, -11.5),
-	Vector3(7.0, 0.0, -4.5),
-	Vector3(12.0, 0.0, -3.5),
+	Vector3(-13.6, 0.0, 4.6),
+	Vector3(-8.4, 0.0, 5.0),
+	Vector3(-13.6, 0.0, -2.0),
+	Vector3(-1.8, 0.0, 4.6),
+	Vector3(-9.2, 0.0, -9.2),
+	Vector3(-4.8, 0.0, -8.6),
+	Vector3(-4.4, 0.0, -2.2),
+	Vector3(-9.4, 0.0, -0.4),
+	Vector3(2.3, 0.0, -1.2),
+	Vector3(-2.4, 0.0, -4.0),
+	Vector3(2.4, 0.0, -9.6),
+	Vector3(5.8, 0.0, -4.4),
 ]
+
+# --- Scattered dressing (deterministic: identical layout every boot) ---
+const DECOR_SEED: int = 20261106
+const HILL_POSITIONS: Array[Vector3] = [
+	Vector3(-26.0, 0.0, -24.0),
+	Vector3(-10.0, 0.0, -25.0),
+	Vector3(6.0, 0.0, -25.0),
+	Vector3(20.0, 0.0, -23.0),
+	Vector3(27.0, 0.0, -14.0),
+	Vector3(30.0, 0.0, 2.0),
+	Vector3(26.0, 0.0, 13.0),
+	Vector3(-27.0, 0.0, -12.0),
+	Vector3(-29.0, 0.0, 2.0),
+	Vector3(-26.0, 0.0, 12.0),
+]
+const HILL_SCALES: Array[float] = [2.0, 1.8, 1.9, 1.7, 1.6, 1.5, 1.5, 1.6, 1.55, 1.5]
 
 # --- Run state ---
 var parts: int = START_PARTS
@@ -103,6 +116,8 @@ var _preview_default: String = ""
 
 var _camera: Camera3D
 var _ghost: MeshInstance3D
+var _road_material_a: StandardMaterial3D
+var _road_material_b: StandardMaterial3D
 var _placement_marker: MeshInstance3D
 var _free_tower_positions: Array[Vector3] = []
 var _free_towers: Array[TDTower] = []
@@ -114,6 +129,7 @@ var _world_time: float = 0.0
 var _shelter_crystal: Node3D
 var _tangle_effect_cooldowns: Dictionary = {}
 var _resumed: bool = false
+var _prop_points: Array[Vector3] = []
 
 
 func _enemy_def(enemy_id: StringName) -> TDEnemyDefinition:
@@ -178,6 +194,13 @@ func _build_world() -> void:
 
 
 func _paint_path_shelter_and_slots() -> void:
+	# One pair of shared road materials: strips and bend patches use the exact
+	# same surface so patches can never drift lighter than the strips.
+	_road_material_a = StandardMaterial3D.new()
+	_road_material_a.albedo_color = Color("#4b4a42")
+	_road_material_b = StandardMaterial3D.new()
+	_road_material_b.albedo_color = Color("#474541")
+
 	# path strips between consecutive waypoints
 	for index: int in range(PATH_POINTS.size() - 1):
 		var start_point: Vector3 = PATH_POINTS[index]
@@ -187,14 +210,17 @@ func _paint_path_shelter_and_slots() -> void:
 		var length: float = start_point.distance_to(end_point)
 		box.size = Vector3(2.6, 0.08, length)
 		strip.mesh = box
-		var strip_material := StandardMaterial3D.new()
-		strip_material.albedo_color = Color("#4b4a42")
-		strip.material_override = strip_material
+		# subtle per-segment tone drift keeps long straights from reading flat
+		strip.material_override = _road_material_a if index % 2 == 0 else _road_material_b
 		strip.position = (start_point + end_point) * 0.5 + Vector3(0.0, 0.05, 0.0)
 		var direction: Vector3 = (end_point - start_point).normalized()
 		strip.look_at_from_position(strip.position, strip.position + direction, Vector3.UP)
 		add_child(strip)
 		_add_path_detail(start_point, end_point, index)
+
+	# Bend seams: straight strips leave wedge gaps wherever the lane turns.
+	for corner_index: int in range(1, PATH_POINTS.size() - 1):
+		_add_road_corner(PATH_POINTS[corner_index], PATH_POINTS[corner_index - 1], PATH_POINTS[corner_index + 1])
 
 	_add_spawn_beacon(PATH_POINTS[0])
 
@@ -205,16 +231,18 @@ func _paint_path_shelter_and_slots() -> void:
 	var tree_scene: PackedScene = load("res://assets/models/props/ash_tree.glb")
 	var house_scene: PackedScene = load("res://assets/models/props/ruined_house.glb")
 	if barricade_scene != null:
-		for position: Vector3 in [Vector3(-12.8, 0.0, 8.8), Vector3(-5.4, 0.0, -9.3), Vector3(9.2, 0.0, -6.8)]:
+		for position: Vector3 in [Vector3(-12.8, 0.0, 8.8), Vector3(-6.6, 0.0, -10.8), Vector3(11.2, 0.0, -10.0)]:
 			var barricade := barricade_scene.instantiate()
 			barricade.position = position
 			barricade.rotation.y = position.x * 0.08
 			add_child(barricade)
+			_prop_points.append(position)
 	if street_light_scene != null:
-		for position: Vector3 in [Vector3(-15.0, 0.0, 8.0), Vector3(8.5, 0.0, -9.0)]:
+		for position: Vector3 in [Vector3(-15.0, 0.0, 8.0), Vector3(10.0, 0.0, -4.4), Vector3(-4.2, 0.0, 4.6), Vector3(0.6, 0.0, -11.4)]:
 			var street_light := street_light_scene.instantiate()
 			street_light.position = position
 			add_child(street_light)
+			_prop_points.append(position)
 	if tree_scene != null:
 		for position: Vector3 in [Vector3(-18.0, 0.0, 11.0), Vector3(-10.0, 0.0, -12.5), Vector3(14.5, 0.0, 7.5), Vector3(16.0, 0.0, -11.5)]:
 			var tree := tree_scene.instantiate()
@@ -222,6 +250,7 @@ func _paint_path_shelter_and_slots() -> void:
 			tree.rotation.y = position.x * 0.17
 			tree.scale = Vector3.ONE * (0.85 + absf(position.z) * 0.012)
 			add_child(tree)
+			_prop_points.append(position)
 	if house_scene != null:
 		for position: Vector3 in [Vector3(16.0, 0.0, 11.0), Vector3(-17.0, 0.0, -7.5)]:
 			var house := house_scene.instantiate()
@@ -229,6 +258,7 @@ func _paint_path_shelter_and_slots() -> void:
 			house.rotation.y = -0.35 if position.x > 0.0 else 0.55
 			house.scale = Vector3.ONE * 0.9
 			add_child(house)
+			_prop_points.append(position)
 
 	# the Shelter 09 blockhouse at path end
 	var shelter_scene: PackedScene = load("res://assets/models/props/shelter.glb")
@@ -249,11 +279,13 @@ func _paint_path_shelter_and_slots() -> void:
 		shelter_mesh.name = "Shelter"
 		shelter = shelter_mesh
 	add_child(shelter)
+	_prop_points.append(shelter.position)
 	if sign_scene != null:
 		var sign := sign_scene.instantiate()
 		sign.position = PATH_POINTS[PATH_POINTS.size() - 1] + Vector3(0.0, 0.0, -2.0)
 		sign.rotation.y = PI
 		add_child(sign)
+		_prop_points.append(sign.position)
 	_add_shelter_crystal(PATH_POINTS[PATH_POINTS.size() - 1] + Vector3(2.4, 0.0, 0.0))
 
 	for slot_index: int in range(SLOTS.size()):
@@ -274,6 +306,8 @@ func _paint_path_shelter_and_slots() -> void:
 		_slot_invested.append(0)
 		_slot_towers.append(null)
 		disk.visible = TOWER_SLOT_PREVIEW_ENABLED
+
+	_scatter_environment()
 
 
 func _add_shelter_crystal(position: Vector3) -> void:
@@ -317,30 +351,320 @@ func _add_path_detail(start_point: Vector3, end_point: Vector3, segment_index: i
 	var side := Vector3(-direction.z, 0.0, direction.x)
 	var midpoint: Vector3 = (start_point + end_point) * 0.5
 	var segment_length: float = start_point.distance_to(end_point)
-	var shoulder_material := StandardMaterial3D.new()
-	shoulder_material.albedo_color = Color("#252b27")
-	shoulder_material.roughness = 1.0
-	for side_sign: float in [-1.0, 1.0]:
-		var shoulder := MeshInstance3D.new()
-		var shoulder_mesh := BoxMesh.new()
-		shoulder_mesh.size = Vector3(0.38, 0.035, segment_length)
-		shoulder.mesh = shoulder_mesh
-		shoulder.material_override = shoulder_material
-		shoulder.position = midpoint + side * side_sign * 1.52 + Vector3(0.0, 0.11, 0.0)
-		shoulder.look_at_from_position(shoulder.position, shoulder.position + direction, Vector3.UP)
-		add_child(shoulder)
-	for mark_index: int in range(ceili(segment_length / 3.0)):
+	# Junction insets: shoulder curbs must stop at the rim of the corner
+	# patches, otherwise their ends streak across the crossing road strip.
+	var start_inset: float = _corner_inset(segment_index) if segment_index > 0 else 0.0
+	var end_inset: float = _corner_inset(segment_index + 1) if segment_index < PATH_POINTS.size() - 2 else 0.0
+	var curb_length: float = segment_length - start_inset - end_inset
+	if curb_length > 0.05:
+		var shoulder_material := StandardMaterial3D.new()
+		shoulder_material.albedo_color = Color("#252b27")
+		shoulder_material.roughness = 1.0
+		for side_sign: float in [-1.0, 1.0]:
+			var shoulder := MeshInstance3D.new()
+			var shoulder_mesh := BoxMesh.new()
+			shoulder_mesh.size = Vector3(0.38, 0.035, curb_length)
+			shoulder.mesh = shoulder_mesh
+			shoulder.material_override = shoulder_material
+			var shoulder_position: Vector3 = midpoint + direction * ((start_inset - end_inset) * 0.5) + side * side_sign * 1.52 + Vector3(0.0, 0.11, 0.0)
+			shoulder.look_at_from_position(shoulder_position, shoulder_position + direction, Vector3.UP)
+			add_child(shoulder)
+	var dash_start: float = start_inset + 0.5
+	var dash_end: float = segment_length - end_inset - 0.3
+	var mark_along: float = dash_start
+	while mark_along <= dash_end:
 		var mark := MeshInstance3D.new()
 		var mark_mesh := BoxMesh.new()
 		mark_mesh.size = Vector3(0.09, 0.018, 1.0)
 		mark.mesh = mark_mesh
-		var mark_position: Vector3 = start_point + direction * (float(mark_index) * 3.0 + 1.5) + Vector3(0.0, 0.105, 0.0)
+		var mark_position: Vector3 = start_point + direction * mark_along + Vector3(0.0, 0.105, 0.0)
 		mark.position = mark_position
 		mark.look_at_from_position(mark_position, mark_position + direction, Vector3.UP)
 		var mark_material := StandardMaterial3D.new()
 		mark_material.albedo_color = Color("#a99873")
 		mark.material_override = mark_material
 		add_child(mark)
+		mark_along += 3.0
+
+
+## Junction geometry shared by the road painter: the patch radius at a corner
+## (from how sharply the two legs bend) and how far along each leg the patch
+## reaches at curb offset, so curbs and caps can end flush on the patch rim.
+func _corner_patch_radius(turn_dot: float) -> float:
+	# right-angle zigzag bends: the outer wedge apex sits ~1.84 m out on the
+	# diagonal, so the disc must reach that far or a grass nick survives
+	if absf(turn_dot) <= 0.15:
+		return 1.86
+	if turn_dot < -0.05:
+		return 1.66
+	return 1.44
+
+
+func _corner_inset(corner_index: int) -> float:
+	var incoming_dir: Vector3 = (PATH_POINTS[corner_index] - PATH_POINTS[corner_index - 1]).normalized()
+	var outgoing_dir: Vector3 = (PATH_POINTS[corner_index + 1] - PATH_POINTS[corner_index]).normalized()
+	var radius: float = _corner_patch_radius(incoming_dir.dot(outgoing_dir))
+	return sqrt(maxf(radius * radius - 1.52 * 1.52, 0.0))
+
+
+# --- Road bends & environment dressing ------------------------------------
+# The straight road strips leave wedge seams of raw ground at every turning
+# point; these helpers quilt the bends shut and pitch in the low-poly dressing.
+
+func _flat_material(albedo_color: Color, roughness_value: float = 0.95) -> StandardMaterial3D:
+	var material := StandardMaterial3D.new()
+	material.albedo_color = albedo_color
+	material.roughness = roughness_value
+	return material
+
+
+## One bend of the road: straight strips leave wedge seams at turning points,
+## so a round asphalt patch (a hair above the strips so nothing z-fights)
+## quilts the bend shut. It reuses the strip material so its tone can never
+## drift, and curb-end caps sit on the patch rim to keep the shoulder line
+## reading continuously through the junction.
+func _add_road_corner(point: Vector3, incoming: Vector3, outgoing: Vector3) -> void:
+	var incoming_dir: Vector3 = (point - incoming).normalized()
+	var outgoing_dir: Vector3 = (outgoing - point).normalized()
+	var turn_dot: float = incoming_dir.dot(outgoing_dir)
+
+	var patch_radius: float = _corner_patch_radius(turn_dot)
+	var patch := MeshInstance3D.new()
+	var patch_mesh := CylinderMesh.new()
+	patch_mesh.top_radius = patch_radius
+	patch_mesh.bottom_radius = patch_radius
+	patch_mesh.height = 0.084
+	patch.mesh = patch_mesh
+	patch.material_override = _road_material_a
+	patch.position = point + Vector3(0.0, 0.052, 0.0)
+	add_child(patch)
+
+	# how far the patch reaches along each leg at curb offset — the curb ends
+	# and their caps land exactly on that rim
+	var inset: float = sqrt(maxf(patch_radius * patch_radius - 1.52 * 1.52, 0.0))
+	var curb_material := _flat_material(Color("#252b27"), 1.0)
+	var incoming_side: Vector3 = Vector3(-incoming_dir.z, 0.0, incoming_dir.x)
+	var outgoing_side: Vector3 = Vector3(-outgoing_dir.z, 0.0, outgoing_dir.x)
+	for side_sign: float in [-1.0, 1.0]:
+		for cap_spot: Vector3 in [
+			point - incoming_dir * inset + incoming_side * side_sign * 1.52,
+			point + outgoing_dir * inset + outgoing_side * side_sign * 1.52,
+		]:
+			var cap := MeshInstance3D.new()
+			var cap_mesh := CylinderMesh.new()
+			cap_mesh.top_radius = 0.24
+			cap_mesh.bottom_radius = 0.24
+			cap_mesh.height = 0.035
+			cap.mesh = cap_mesh
+			cap.material_override = curb_material
+			cap.position = cap_spot + Vector3(0.0, 0.113, 0.0)
+			add_child(cap)
+
+
+## Shortest distance from a point to the whole enemy path (segment-wise).
+func _path_distance_to(point: Vector3) -> float:
+	var best: float = INF
+	for index: int in range(PATH_POINTS.size() - 1):
+		var to_end: Vector3 = PATH_POINTS[index + 1] - PATH_POINTS[index]
+		var along: float = clampf((point - PATH_POINTS[index]).dot(to_end) / to_end.length_squared(), 0.0, 1.0)
+		best = minf(best, (PATH_POINTS[index] + to_end * along).distance_to(point))
+	return best
+
+
+## Finds a position on open ground away from the road and placed props;
+## Vector3.INF when nothing qualifies after the attempts budget. z_min/z_max
+## bound the search band (tall props keep away from the camera frustum).
+func _open_ground(rng: RandomNumberGenerator, path_min: float, path_max: float = 0.0, prop_min: float = 2.0, z_min: float = -15.5, z_max: float = 15.5) -> Vector3:
+	for _attempt: int in range(40):
+		var candidate := Vector3(rng.randf_range(-19.0, 19.0), 0.0, rng.randf_range(z_min, z_max))
+		var path_distance: float = _path_distance_to(candidate)
+		if path_distance < path_min:
+			continue
+		if path_max > 0.0 and path_distance > path_max:
+			continue
+		var blocked := false
+		for prop_position: Vector3 in _prop_points:
+			if prop_position.distance_to(candidate) < prop_min:
+				blocked = true
+				break
+		if blocked:
+			continue
+		return candidate
+	return Vector3.INF
+
+
+func _scatter_environment() -> void:
+	# Deterministic seed: identical dressing every boot keeps selfshots and
+	# player learning stable.
+	var rng := RandomNumberGenerator.new()
+	rng.seed = DECOR_SEED
+	_scatter_dirt_patches(rng)
+	_scatter_rocks(rng)
+	_scatter_grass(rng)
+	_scatter_rift_shards(rng)
+	_scatter_distant_hills()
+	_scatter_extra_props(rng)
+
+
+func _scatter_dirt_patches(rng: RandomNumberGenerator) -> void:
+	var disc_mesh := CylinderMesh.new()
+	disc_mesh.top_radius = 1.0
+	disc_mesh.bottom_radius = 1.0
+	disc_mesh.height = 0.024
+	disc_mesh.radial_segments = 24
+	# all tones sit just darker than the ground: reads as damp ground, not mud
+	var dirt_colors := [Color("#383f35"), Color("#343a31"), Color("#3a4036"), Color("#333830")]
+	for _index: int in range(12):
+		var raw: Vector3 = _open_ground(rng, 2.8)
+		if raw == Vector3.INF:
+			continue
+		var patch := MeshInstance3D.new()
+		patch.mesh = disc_mesh
+		patch.material_override = _flat_material(dirt_colors[rng.randi_range(0, dirt_colors.size() - 1)], 1.0)
+		patch.position = raw + Vector3(0.0, 0.022, 0.0)
+		patch.scale = Vector3(rng.randf_range(0.8, 1.8), 1.0, rng.randf_range(0.8, 1.6))
+		patch.rotation.y = rng.randf() * TAU
+		add_child(patch)
+
+
+func _scatter_rocks(rng: RandomNumberGenerator) -> void:
+	var rock_material := _flat_material(Color("#62625a"), 1.0)
+	var variants: Array[Mesh] = []
+	for _variant: int in range(3):
+		variants.append(_build_rock_variant(rng))
+	for index: int in range(26):
+		var raw: Vector3
+		if index < 10:
+			raw = _open_ground(rng, 2.3, 4.2, 2.4)  # shoulder boulders road-side
+		else:
+			raw = _open_ground(rng, 5.5, 0.0, 2.2)
+		if raw == Vector3.INF:
+			continue
+		var rock := MeshInstance3D.new()
+		rock.mesh = variants[rng.randi_range(0, variants.size() - 1)]
+		rock.material_override = rock_material
+		var size_factor: float = rng.randf_range(0.5, 1.0)
+		rock.scale = Vector3(size_factor, size_factor * rng.randf_range(0.6, 0.85), size_factor * rng.randf_range(0.85, 1.15))
+		rock.position = raw + Vector3(0.0, -0.03, 0.0)
+		rock.rotation.y = rng.randf() * TAU
+		add_child(rock)
+		_prop_points.append(raw)
+
+
+## Deforms a unit icosahedron once; per-face normals on the unindexed surface
+## give the flat-shaded low-poly boulder look with zero imported assets.
+func _build_rock_variant(rng: RandomNumberGenerator) -> ArrayMesh:
+	var unit_vertices := PackedVector3Array([
+		Vector3(-1.0, 1.618, 0.0), Vector3(1.0, 1.618, 0.0), Vector3(-1.0, -1.618, 0.0), Vector3(1.0, -1.618, 0.0),
+		Vector3(0.0, -1.0, 1.618), Vector3(0.0, 1.0, 1.618), Vector3(0.0, -1.0, -1.618), Vector3(0.0, 1.0, -1.618),
+		Vector3(1.618, 0.0, -1.0), Vector3(1.618, 0.0, 1.0), Vector3(-1.618, 0.0, -1.0), Vector3(-1.618, 0.0, 1.0),
+	])
+	var unit_faces := [
+		PackedInt32Array([0, 11, 5]), PackedInt32Array([0, 5, 1]), PackedInt32Array([0, 1, 7]), PackedInt32Array([0, 7, 10]), PackedInt32Array([0, 10, 11]),
+		PackedInt32Array([1, 5, 9]), PackedInt32Array([5, 11, 4]), PackedInt32Array([11, 10, 2]), PackedInt32Array([10, 7, 6]), PackedInt32Array([7, 1, 8]),
+		PackedInt32Array([3, 9, 4]), PackedInt32Array([3, 4, 2]), PackedInt32Array([3, 2, 6]), PackedInt32Array([3, 6, 8]), PackedInt32Array([3, 8, 9]),
+		PackedInt32Array([4, 9, 5]), PackedInt32Array([2, 4, 11]), PackedInt32Array([6, 2, 10]), PackedInt32Array([8, 6, 7]), PackedInt32Array([9, 8, 1]),
+	]
+	var deformed_vertices: Array[Vector3] = []
+	for unit_vertex: Vector3 in unit_vertices:
+		var deformed := unit_vertex.normalized() * rng.randf_range(0.72, 1.05)
+		deformed.y *= 0.75
+		deformed_vertices.append(deformed)
+	var surface := SurfaceTool.new()
+	surface.begin(Mesh.PRIMITIVE_TRIANGLES)
+	for face: PackedInt32Array in unit_faces:
+		for vertex_index: int in range(3):
+			surface.add_vertex(deformed_vertices[face[vertex_index]])
+	surface.generate_normals()
+	return surface.commit()
+
+
+func _scatter_grass(rng: RandomNumberGenerator) -> void:
+	var tuft_mesh := CylinderMesh.new()
+	tuft_mesh.top_radius = 0.01
+	tuft_mesh.bottom_radius = 0.13
+	tuft_mesh.height = 0.5
+	tuft_mesh.radial_segments = 7
+	var grass_colors := [Color("#54624a"), Color("#4c5942"), Color("#5b684f"), Color("#45523d")]
+	for index: int in range(56):
+		var raw: Vector3 = _open_ground(rng, 2.1, 0.0, 1.2)
+		if raw == Vector3.INF:
+			continue
+		var tuft := MeshInstance3D.new()
+		tuft.mesh = tuft_mesh
+		tuft.material_override = _flat_material(grass_colors[index % grass_colors.size()], 1.0)
+		tuft.position = raw + Vector3(0.0, 0.22, 0.0)
+		var tuft_scale: float = rng.randf_range(0.7, 1.3)
+		tuft.scale = Vector3(tuft_scale, tuft_scale, tuft_scale)
+		tuft.rotation = Vector3(rng.randf_range(-0.16, 0.16), rng.randf() * TAU, rng.randf_range(-0.16, 0.16))
+		add_child(tuft)
+
+
+func _scatter_rift_shards(rng: RandomNumberGenerator) -> void:
+	var shard_mesh := PrismMesh.new()
+	shard_mesh.size = Vector3(0.22, 0.6, 0.22)
+	var shard_material := _flat_material(Color(0.28, 0.18, 0.42), 0.6)
+	shard_material.emission_enabled = true
+	shard_material.emission = Color(0.38, 0.1, 0.62)
+	shard_material.emission_energy_multiplier = 0.55
+	for _index: int in range(3):
+		var raw: Vector3 = _open_ground(rng, 2.2, 4.0, 2.2)
+		if raw == Vector3.INF:
+			continue
+		var shard := MeshInstance3D.new()
+		shard.mesh = shard_mesh
+		shard.material_override = shard_material
+		shard.position = raw + Vector3(0.0, 0.12, 0.0)
+		shard.scale = Vector3.ONE * rng.randf_range(0.55, 0.9)
+		shard.rotation = Vector3(rng.randf_range(-0.5, 0.5), rng.randf() * TAU, rng.randf_range(-0.5, 0.5))
+		add_child(shard)
+
+
+func _scatter_distant_hills() -> void:
+	var hill_mesh := SphereMesh.new()
+	hill_mesh.radius = 7.0
+	hill_mesh.height = 14.0
+	hill_mesh.radial_segments = 24
+	hill_mesh.rings = 14
+	# hazy tones so the ridge reads as distant landscape, not heavy props
+	var hill_materials := [_flat_material(Color("#3a4138"), 1.0), _flat_material(Color("#3e443b"), 1.0)]
+	for index: int in range(HILL_POSITIONS.size()):
+		var hill := MeshInstance3D.new()
+		hill.mesh = hill_mesh
+		var scale_base: float = HILL_SCALES[index]
+		hill.scale = Vector3(scale_base, 0.42, scale_base)
+		hill.position = HILL_POSITIONS[index] + Vector3(0.0, -1.6, 0.0)
+		hill.material_override = hill_materials[index % 2]
+		add_child(hill)
+
+
+func _scatter_extra_props(rng: RandomNumberGenerator) -> void:
+	var tree_scene: PackedScene = load("res://assets/models/props/ash_tree.glb")
+	if tree_scene != null:
+		for _index: int in range(7):
+			# z capped at 8.5: closer to the camera a tree fills the frustum
+			# as a beige blob instead of reading as a tree
+			var raw: Vector3 = _open_ground(rng, 3.4, 0.0, 3.2, -15.5, 8.5)
+			if raw == Vector3.INF:
+				continue
+			var tree := tree_scene.instantiate()
+			tree.position = raw
+			tree.rotation.y = rng.randf() * TAU
+			tree.scale = Vector3.ONE * rng.randf_range(0.85, 1.25)
+			add_child(tree)
+			_prop_points.append(raw)
+	var house_scene: PackedScene = load("res://assets/models/props/ruined_house.glb")
+	if house_scene != null:
+		# houses stay deep in the field (z <= 6): near the camera they tower
+		# over the lane instead of dressing the horizon
+		var raw_house: Vector3 = _open_ground(rng, 7.0, 0.0, 5.0, -15.5, 6.0)
+		if raw_house != Vector3.INF:
+			var house := house_scene.instantiate()
+			house.position = raw_house
+			house.rotation.y = rng.randf() * TAU
+			house.scale = Vector3.ONE * 0.9
+			add_child(house)
+			_prop_points.append(raw_house)
 
 
 func _add_spawn_beacon(position: Vector3) -> void:
