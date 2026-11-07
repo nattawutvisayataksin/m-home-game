@@ -74,6 +74,7 @@
 - **ทำแล้ว (2026-11-04):** Audio Buses & SFX — bus layout Master/Music/SFX/UI + procedural SFX 11 ไฟล์ (`scripts/generate_sfx_3d.py`) + `TDAudioDirector` ต่อรอบ เสียงยิงป้อม 3 ชนิด / วาง-อัปเกรด-ขาย / เปิดคลื่น / hit-leak-breach / ambient; settings sliders คุม bus ได้ทันที; เทสต์ phase4 ชุดที่ 4
 - **ทำแล้ว (2026-11-04):** visual/combat pass — multi-waypoint road, free tower placement, 4th Arc Cannon, laser/rocket/electric weapon feedback, Shelter Core crystal, roadside props, trees and ruined houses; `test-3d.ps1` ผ่าน PHASE 1–5
 - **ทำแล้ว (2026-11-05):** Dasher มี dash cycle + telegraph อ่านชัดตาม GDD (ค่าใน `dasher.tres` คงความเร็วเฉลี่ยเดิม); HUD แสดง "Enemies remaining" ระหว่างคลื่น + บอส Rift Warden มี banner telegraph; Flash save / session resume (snapshot ที่ wave-clear + ปิดหน้าต่าง, ปุ่ม "เล่นต่อจากภารกิจค้าง" ใน title menu); Arc Cannon มีเสียง `arc_burst` เฉพาะตัว; เทสต์ phase6 เพิ่มเป็นชุดที่ 6
+- **ทำแล้ว (2026-11-07):** Localization ไทย/อังกฤษ — `translations.csv` (keys,en,th) + เลือกภาษาใน settings panel + เปลี่ยนภาษาสดทุกหน้าที่เปิดอยู่ (menu/HUD/การ์ดป้อม/หน้าจบ) ผ่าน `TDSettingsStore` (section `localization`, ค่าเริ่มต้น `th`); เทสต์ phase7 เพิ่มเป็นชุดที่ 7 — **เช็กลิสต์ TD-2 ปิดครบทุกหัวข้อ**
 
 ### ระเบียบการตัดสินข้ามฉบับ
 

@@ -1,5 +1,33 @@
 # Nightly Development Log — LAST LIGHT
 
+## Entry — Localization ไทย/อังกฤษ ครบทุกหน้า + เปลี่ยนภาษาสด (2026-11-07)
+
+**Scope:** หัวข้อสุดท้ายในเช็กลิสต์ TD-2 ที่ยังไม่ทำ (ROADMAP: "Localization ไทย/อังกฤษ") — ปุ่มเลือกภาษาในแผงตั้งค่า, แปลหน้าจอ user-facing ทุกตัว, เทสต์ชุดที่ 7. ไม่แตะ balance/ตัวเลข data `.tres` แม้แต่ตัวเดียว
+
+### โครงสร้าง
+- `assets/localization/translations.csv` (รูปแบบ `keys,en,th` แบบฉบับ 2D, 104 แถว) — ครอบเมนูหลัก/วิธีเล่น/เรื่องราว/HUD/หน้าจบ/การ์ดป้อม+tooltip/hover อัปเกรด/บอสแบนเนอร์/แผงตั้งค่า; คอมไพล์เป็น `translations.{en,th}.translation` ผ่าน import scan (ไฟล์ commit ตามแบบ 2D)
+- `project.godot` เพิ่ม `[internationalization] locale/translations`
+- copy ยาว (HOW_TO_BODY / STORY_BODY) อยู่ใน CSV ทั้งสองภาษา — จบการ hardcode bbcode ใน `title_menu.gd`
+
+### Locale store
+- `TDSettingsStore` เพิ่ม `get_locale()` / `set_locale()` (section `localization`, key `locale`, **ค่าเริ่มต้น `th`** ตามกติกา "ภาษาเป็นไทยก่อน") + `_apply_locale()` เรียกทั้งตอนโหลด; ค่าแปลกปลอม fallback ไป `th`
+- สัญญาณ `settings_changed(&"localization", &"locale")` — ทุก UI ที่เปิดอยู่รีเรนเดอร์ **ทันที** (เหมือนกับที่ large text ทำอยู่): title menu, HUD (รวม label ไดนามิก — เก็บ state ล่าสุดไว้ render ซ้ำ), แผงตั้งค่า, การ์ดป้อมของ `td_run`
+- แผงตั้งค่าเพิ่มแถว OptionButton ไทย/อังกฤษ (แพตเทิร์นเดียวกับ `title_screen.gd` ของ 2D; ตัวเลือก sync กับ locale โดยไม่ emit ย้อน)
+
+### Convention ที่วางไว้ต่อจากนี้
+- ข้อความ user-facing ใหม่ **ต้องผ่าน `tr(KEY)` + เพิ่ม key ใน CSV** เสมอ — ห้าม hardcode ไทยในสคริปต์; ส่วน internal (metric keys, `parts_bounty`) คงเดิม
+
+### Verification
+- `dev-3d.ps1 -Action check` → 0 errors (16 scripts)
+- `test-3d.ps1` → **PHASE 1–7 PASSED** (ชุดใหม่ `tests/phase7_localization_test.gd`: CSV lookup สองภาษา, store round-trip + fallback, เมนู/การ์ด/HUD รีเรนเดอร์สด, คนละไฟล์ settings.cfg)
+- Visual: selfshot title ไทย + แผงวิธีเล่น — layout ตรงเดิม ข้อความครบ 8 ข้อ (in-engine capture เท่านั้น)
+
+### Next
+- **ยังค้างเชิงข้อมูล:** wave .tres ใหม่ (pacing pass 2026-11-06) รอ metrics จากการเล่นจริงชุดใหม่เพื่อเทียบ — เป้า leak > 0 ในคลื่น 5–7 และ upgrade เริ่มถูกใช้ (ห้ามแตะต่อก่อนมีข้อมูล)
+- เสนอชุดถัดไปหลัง vertical-slice gate ผ่านแล้ว: targeting mode ต่อป้อม (GDD §5 "หลัง vertical slice") — ต้องได้ Game Director กลับมายืนยันก่อนลงมือ
+
+---
+
 ## Entry — Barricade purchase flow บนหน้าเมนู (2026-11-06)
 
 **Scope:** งานค้างข้อ 2 ใน AI_HANDOFF — profile schema รองรับ `barricade_level` มาแล้ว (run boot ใช้ +2 Integrity/ระดับที่ `td_run.gd` ว่าง่าย) แต่ไม่มีที่ซื้อ ตอนนี้ซื้อผ่านหน้าเมนูได้

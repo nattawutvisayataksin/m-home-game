@@ -10,7 +10,10 @@ signal restart_pressed
 signal resume_pressed
 signal title_pressed
 
-const KIND_LABELS: Array[String] = ["1  FIELD TURRET\nLaser / ยิงเดี่ยว", "2  SONIC RESONATOR\nRocket / ยิงหมู่", "3  TANGLE EMITTER\nElectric / ชะลอ", "4  ARC CANNON\nBurst / พลังงาน"]
+## Tower card texts start as localization keys; `td_run` replaces them with
+## data-driven labels once definitions load (see set_tower_cards).
+const KIND_LABEL_KEYS: Array[String] = ["TOWER_CARD_1", "TOWER_CARD_2", "TOWER_CARD_3", "TOWER_CARD_4"]
+const KIND_TIP_KEYS: Array[String] = ["TOWER_TIP_1", "TOWER_TIP_2", "TOWER_TIP_3", "TOWER_TIP_4"]
 
 var _parts_label: Label
 var _integrity_label: Label
@@ -30,6 +33,21 @@ var _settings_panel_node: TDSettingsPanel
 var _pause_was_open: bool = false
 var _flash_rect: ColorRect
 var _font_texts: Array[Control] = []
+## Locale registry: [Object node, StringName property, String key] entries
+## replayed when the language changes, then dynamic labels rerender below.
+var _locale_texts: Array[Array] = []
+## Last-seen dynamic state so a mid-run language switch rerenders the HUD.
+var _status_parts: int = 0
+var _status_integrity: int = 0
+var _status_wave: int = 1
+var _status_max_waves: int = 1
+var _enemies_count: int = 0
+var _preview_text: String = ""
+var _combat_active: bool = false
+var _can_chain: bool = false
+var _result_shown: bool = false
+var _result_won: bool = false
+var _result_parts: int = 0
 
 
 func _ready() -> void:
@@ -94,25 +112,25 @@ func build_ui() -> void:
 
 	for index: int in range(4):
 		var button := Button.new()
-		button.text = KIND_LABELS[index]
 		button.custom_minimum_size = Vector2(158.0, 58.0)
-		button.tooltip_text = ["เลเซอร์ยิงเดี่ยว ระยะกลาง", "จรวดระเบิดโจมตีเป็นวง", "ไฟฟ้าชะลอศัตรูในระยะ", "พลังงานอาร์คระเบิดแรง"][index]
 		button.focus_mode = Control.FOCUS_NONE
 		_style_text(button, "font_size", 13)
 		var kind: int = index
 		button.pressed.connect(func () -> void: tower_selected.emit(kind))
 		buttons.add_child(button)
 		_tower_buttons.append(button)
+		_register_locale_text(button, &"text", KIND_LABEL_KEYS[index])
+		_register_locale_text(button, &"tooltip_text", KIND_TIP_KEYS[index])
 
 	var start_row := HBoxContainer.new()
 	start_row.alignment = BoxContainer.ALIGNMENT_END
 	_start_button = Button.new()
-	_start_button.text = "Start Wave (Space)"
 	_start_button.focus_mode = Control.FOCUS_NONE
 	_style_text(_start_button, "font_size", 16)
 	_start_button.pressed.connect(func () -> void: start_wave_pressed.emit())
 	start_row.add_child(_start_button)
 	bottom.add_child(start_row)
+	_refresh_start_button()
 
 	_overlay = CenterContainer.new()
 	_overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -126,18 +144,18 @@ func build_ui() -> void:
 	_overlay_message = Label.new()
 	overlay_stack.add_child(_overlay_message)
 	_overlay_restart = Button.new()
-	_overlay_restart.text = "Restart"
 	_overlay_restart.focus_mode = Control.FOCUS_NONE
 	_style_text(_overlay_restart, "font_size", 16)
 	_overlay_restart.pressed.connect(func () -> void: restart_pressed.emit())
 	overlay_stack.add_child(_overlay_restart)
+	_register_locale_text(_overlay_restart, &"text", "RESTART_BTN")
 
 	var overlay_title := Button.new()
-	overlay_title.text = "Main Menu"
 	overlay_title.focus_mode = Control.FOCUS_NONE
 	_style_text(overlay_title, "font_size", 16)
 	overlay_title.pressed.connect(func () -> void: title_pressed.emit())
 	overlay_stack.add_child(overlay_title)
+	_register_locale_text(overlay_title, &"text", "MAIN_MENU_BTN")
 
 	_flash_rect = ColorRect.new()
 	_flash_rect.name = "LeakFlash"
@@ -173,38 +191,38 @@ func build_ui() -> void:
 	pause_box.add_child(pause_stack)
 
 	var pause_title := Label.new()
-	pause_title.text = "PAUSED / พักเกม"
 	pause_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_style_text(pause_title, "font_size", 20)
 	pause_stack.add_child(pause_title)
+	_register_locale_text(pause_title, &"text", "PAUSED")
 
 	var resume_btn := Button.new()
-	resume_btn.text = "Resume (เล่นต่อ / Esc)"
 	resume_btn.focus_mode = Control.FOCUS_NONE
 	_style_text(resume_btn, "font_size", 16)
 	resume_btn.pressed.connect(func () -> void: resume_pressed.emit())
 	pause_stack.add_child(resume_btn)
+	_register_locale_text(resume_btn, &"text", "RESUME_BTN")
 
 	var restart_pause_btn := Button.new()
-	restart_pause_btn.text = "Restart Mission (เริ่มใหม่)"
 	restart_pause_btn.focus_mode = Control.FOCUS_NONE
 	_style_text(restart_pause_btn, "font_size", 16)
 	restart_pause_btn.pressed.connect(func () -> void: restart_pressed.emit())
 	pause_stack.add_child(restart_pause_btn)
+	_register_locale_text(restart_pause_btn, &"text", "RESTART_MISSION_BTN")
 
 	var settings_btn := Button.new()
-	settings_btn.text = "ตั้งค่า (Settings)"
 	settings_btn.focus_mode = Control.FOCUS_NONE
 	_style_text(settings_btn, "font_size", 16)
 	settings_btn.pressed.connect(_open_settings)
 	pause_stack.add_child(settings_btn)
+	_register_locale_text(settings_btn, &"text", "SETTINGS")
 
 	var title_btn := Button.new()
-	title_btn.text = "Title Menu (กลับหน้าหลัก)"
 	title_btn.focus_mode = Control.FOCUS_NONE
 	_style_text(title_btn, "font_size", 16)
 	title_btn.pressed.connect(func () -> void: title_pressed.emit())
 	pause_stack.add_child(title_btn)
+	_register_locale_text(title_btn, &"text", "TITLE_MENU_BTN")
 
 	_build_settings_overlay()
 
@@ -269,17 +287,22 @@ func is_settings_open() -> bool:
 
 
 func update_status(parts: int, integrity: int, wave: int, max_waves: int) -> void:
-	_parts_label.text = "เงิน: %d" % parts
-	_integrity_label.text = "Shelter Integrity: %d" % integrity
-	_wave_label.text = "Wave %d / %d" % [wave, max_waves]
+	_status_parts = parts
+	_status_integrity = integrity
+	_status_wave = wave
+	_status_max_waves = max_waves
+	_parts_label.text = tr("HUD_MONEY") % parts
+	_integrity_label.text = tr("HUD_INTEGRITY") % integrity
+	_wave_label.text = tr("HUD_WAVE") % [wave, max_waves]
 
 
 ## GDD: HUD แสดงปริมาณ enemy ทยอย spawn. Hidden outside combat.
 func set_enemies_left(count: int) -> void:
+	_enemies_count = count
 	if count <= 0:
 		_enemies_label.text = ""
 	else:
-		_enemies_label.text = "Enemies remaining: %d" % count
+		_enemies_label.text = tr("HUD_ENEMIES_LEFT") % count
 
 
 ## Boss telegraph: a readable on-screen warning with a brief highlight pulse.
@@ -312,17 +335,26 @@ func announce_boss(text: String) -> void:
 
 
 func show_wave_preview(composition_text: String) -> void:
-	_preview_label.text = "Next: %s" % composition_text
+	_preview_text = composition_text
+	_preview_label.text = tr("HUD_NEXT") % composition_text
 
 
 ## is_combat_active gates the prep button; can_chain enables summoning the
 ## next wave while the current one is still running (GDD wave chaining).
 func set_combat_state(is_combat_active: bool, can_chain: bool = false) -> void:
-	_start_button.disabled = is_combat_active and not can_chain
-	if is_combat_active:
-		_start_button.text = "เรียกคลื่นต่อ (Space)" if can_chain else "Wave running..."
+	_combat_active = is_combat_active
+	_can_chain = can_chain
+	_refresh_start_button()
+
+
+func _refresh_start_button() -> void:
+	if _start_button == null:
+		return
+	_start_button.disabled = _combat_active and not _can_chain
+	if _combat_active:
+		_start_button.text = tr("CHAIN_WAVE_BTN") if _can_chain else tr("WAVE_RUNNING_BTN")
 	else:
-		_start_button.text = "Start Wave (Space)"
+		_start_button.text = tr("START_WAVE_BTN")
 
 
 ## Override the four tower cards (label + tooltip) with data-driven text:
@@ -334,8 +366,11 @@ func set_tower_cards(labels: Array[String], tooltips: Array[String]) -> void:
 
 
 func show_result(won: bool, parts_at_end: int) -> void:
+	_result_shown = true
+	_result_won = won
+	_result_parts = parts_at_end
 	_overlay.visible = true
-	_overlay_message.text = "SHELTER HELD — Salvage earned" if won else "SHELTER FELL\nเงินท้ายเกม: %d" % parts_at_end
+	_overlay_message.text = tr("RESULT_WON") if won else tr("RESULT_LOST") % parts_at_end
 
 
 func set_pause_menu(open: bool) -> void:
@@ -359,6 +394,28 @@ func flash_leak() -> void:
 
 
 # --- Text scaling (large text option) -------------------------------------
+
+## Set a property to its translated value now and register it so language
+## switches rerender static texts. Dynamic labels rerender from stored state.
+func _register_locale_text(node: Object, prop: StringName, key: String) -> void:
+	node.set(prop, tr(key))
+	_locale_texts.append([node, prop, key])
+
+
+func _apply_locale_texts() -> void:
+	for entry: Array in _locale_texts:
+		var node: Object = entry[0]
+		if is_instance_valid(node):
+			node.set(entry[1], tr(entry[2]))
+	_refresh_start_button()
+	if _status_parts != 0 or _status_integrity != 0:
+		update_status(_status_parts, _status_integrity, _status_wave, _status_max_waves)
+	set_enemies_left(_enemies_count)
+	if _preview_text != "":
+		show_wave_preview(_preview_text)
+	if _result_shown:
+		show_result(_result_won, _result_parts)
+
 
 func _style_text(node: Control, theme_item: String, base_size: int) -> void:
 	node.add_theme_font_size_override(theme_item, _text_size(base_size))
@@ -384,3 +441,5 @@ func _apply_text_scale() -> void:
 func _on_settings_changed(section: StringName, key: StringName) -> void:
 	if section == &"accessibility" and key == &"large_text":
 		_apply_text_scale()
+	elif section == &"localization" and key == &"locale":
+		_apply_locale_texts()

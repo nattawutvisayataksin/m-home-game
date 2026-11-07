@@ -1,6 +1,6 @@
 # LAST LIGHT — AI Handoff Document
 
-อัปเดต: 2026-11-06 — หลังถนน zigzag มุมฉาก + สานมุมถนน + ฉากรอบทาง
+อัปเดต: 2026-11-07 — หลัง Localization ไทย/อังกฤษครบทุกหน้า (TD-2 เช็กลิสต์ปิดครบ)
 ข้อมูลสำหรับ AI agent (Codex / Copilot / Antigravity / opencode) ที่รับงานพัฒนาต่อภายใน repo นี้
 คู่มือย่อฉบับเริ่มงาน: `AGENTS.md` (root) | กติกาข้อนี้ใช้ตามที่เขียนไว้ทั้งหมด
 
@@ -85,6 +85,7 @@ assets/brand/logo_emblem.svg
 - **Audio Buses & SFX (2026-11-04):** bus layout `assets/audio/audio_bus_layout.tres` (Master/Music/SFX/UI) + procedural SFX 11 ไฟล์จาก `scripts/generate_sfx_3d.py` + `TDAudioDirector` (`scripts/systems/td_audio_director.gd`) ต่อรอบ — เสียงยิงป้อม 3 ชนิดแยก voice, วาง/อัปเกรด/ขาย, wave_horn, hit/leak/breach, ambient; sliders ของ settings คุมเสียงได้ชุดนี้ทันที (bus SFX/Music จึงไม่ต้อง guard แล้ว)
 - **3D VFX & Screen Juice (2026-11-04):** ระบบ `TDCombatEffect` (`scripts/actors/td_combat_effect.gd`) จัดการวงแหวนแสง procedural + sparks (hit, death, placed, upgrade, sold, leak, wave, muzzle) พร้อม camera trauma shake และ HUD leak flash overlay (`flash_leak()`); ทุกเอฟเฟกต์เคารพ `reduce_flashes` และ `reduce_motion` จาก `TDSettings`
 - **Weapon/Environment pass (2026-11-04):** Field Turret ใช้ laser, Sonic ใช้ rocket, Tangle ใช้ electric slow feedback, Arc Cannon เป็น tower ชนิดที่ 4; เพิ่ม multi-waypoint road, Shelter Core crystal, trees/houses/roadside props และซ่อน fixed slot visuals
+- **Localization ไทย/อังกฤษ (2026-11-07):** `assets/localization/translations.csv` (keys,en,th ตามฉบับ 2D) + เลือกภาษาได้จากแผงตั้งค่า (OptionButton) — เปลี่ยนภาษามีผล **ทันที** ที่เมนู/HUD/แผงตั้งค่าที่เปิดอยู่ผ่าน signal `localization/locale`; ค่าบันทึกใน settings.cfg section `localization` **ค่าเริ่มต้น `th`**; TDSettingsStore.get_locale()/set_locale() + fallback stray→th; ข้อความ user-facing ใหม่ห้าม hardcode — ต้อง `tr(KEY)` + เพิ่ม key ใน CSV; เทสต์ phase7
 - **Save/Progression Linkage:** ระบบบันทึกและอ่าน ProfileRepository (`user://profile.json`) เชื่อมต่อเข้ากับ `td_run.gd` เรียบร้อยแล้ว (Integrity ได้รับโบนัสตาม Barricade Level, เมื่อจบรอบบันทึกสถิติและแจก Salvage)
 
 ### ข้อควรรู้เพิ่มจากงาน 2026-11-04
@@ -102,6 +103,11 @@ assets/brand/logo_emblem.svg
 - Flash save อยู่ที่ `user://session_snapshot.json` (schema 1) — ระบบจะ **ไม่ทับ snapshot ที่มีอยู่** เมื่อ run ใหม่ยังไม่มีความคืบหน้า (`_has_run_progress()`); ปิดหน้าต่างกลางคลื่นจะถอยไป replay คลื่นที่กำลังเล่น (`wave_number - 1`) ไม่มีเงินลงทุนป้อมหาย
 - Dasher dash cycle ถูกกั้นด้วยเทสต์ว่าความเร็วเฉลี่ยรวมของรอบเท่า `speed` เดิม — ห้ามแก้ค่าใน `dasher.tres` ให้เฉลี่ยไม่เท่าเดิมเว้นแต่มี playtest มาอ้าง
 - `play_sfx(key, pitch_jitter, base_pitch)` มี pitch override สำหรับเหตุการณ์พิเศษ
+
+### ข้อควรรู้เพิ่มจากงาน 2026-11-07
+- **Localization:** UI ทุกสตริงผู้ใช้อ่าน ต้องผ่าน `tr(KEY)` — keys อยู่ใน `projects/last-light-3d/assets/localization/translations.csv` (เพิ่ม key ใหม่แล้วต้องรัน `dev-3d.ps1 -Action import` ให้ .translation คอมไพล์); ปุ่มเลือกภาษาใน `td_settings_panel.gd`; locale ไป section `localization/locale` ของ settings.cfg (ค่าเริ่มต้น `th`); เทสต์ phase7 รันผ่าน store ด้วย TEST_PATH แยกจากไฟล์จริง
+- HUD เก็บค่าแสดงล่าสุดไว้ (`_status_*`, `_enemies_count`, `_preview_text`, `_result_*`) และ registry `_locale_texts` — ถ้าเพิ่ม UI ไดนามิกใหม่ใน HUD ให้ follow แพตเทิร์นเดียวกันจึงจะ locale-switch ได้ทันที
+- **เทสต์ผูกกับภาษา:** `phase7_localization_test.gd` เทสต์ด้วย locale อังกฤษ/ไทยสลับ — ถ้าเบอร์แก้สตริง CSV ให้เทสต์ตาม; ค่าเริ่มต้น locale = th ตามกติกา "ภาษาเป็นไทยก่อน" (ตัดสินแล้ว)
 
 ### ข้อควรรู้เพิ่มจากงาน 2026-11-06
 - **เส้นทาง (PATH_POINTS) เป็น zigzag ตั้งฉากทั้งหมด** (spawn (-11,7) → shelter (8,-7), ระยะรวม ~49 ม. = ยาวขึ้น ~10% จากเดิม) — แก้ layout อย่าลืม: จานมุมอัตโนมัติผ่าน `_corner_patch_radius` (มุมฉาก r 1.86) และ curb หุบปลายผ่าน `_corner_inset`/`PATH_POINTS.size() - 2` ใน `_add_path_detail`; ถ้าเพิ่ม/ลดจุด ให้เช็ก SLOTS 12 จุด + เสาไฟ/กั้นถนนที่ hardcode อยู่ใน `_paint_path_shelter_and_slots()` ว่าไม่ตกกลางถนน

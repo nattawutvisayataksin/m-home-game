@@ -19,6 +19,10 @@ buses/default_bus_layout="res://assets/audio/audio_bus_layout.tres"
 window/size/viewport_width=1280
 window/size/viewport_height=720
 
+[internationalization]
+
+locale/translations=PackedStringArray("res://assets/localization/translations.en.translation", "res://assets/localization/translations.th.translation")
+
 [autoload]
 
 TDSettings="*res://scripts/systems/td_settings_store.gd"

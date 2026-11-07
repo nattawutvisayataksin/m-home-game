@@ -45,7 +45,8 @@ Godot 4.7.2 ต้องอยู่ใน PATH หรือตั้ง env `GO
 ## Known TODO / งานค้าง (เลือกจากนี้ได้เลย)
 
 1. **TD-1 exit:** verify `.tres` ครบถ้วนผ่านการเล่นจริง; เทสต์ phase2 กลุ่ม coverage คลื่นต่อคลื่น
-2. **Iteration:** ปรับ wave pacing/economy ด้วย metrics ใน `user://metrics/`
+2. **Iteration:** ปรับ wave pacing/economy ด้วย metrics ใน `user://metrics/` — wave .tres ชุด 2026-11-06 รอ metrics รอบใหม่เทียบ (เป้า: leak > 0 ในคลื่น 5–7, upgrade เริ่มถูกใช้)
 3. **TD-2:** Blender low-poly assets ✅ (ผ่าน Blender AI Bridge; asset suite ครบ ป้อม/ศัตรู/props)
-4. Settings (volume/accessibility) ✅ 2026-11-04; flash save บนโปรเจกต์ 3D ✅ 2026-11-05 (`TDSessionSnapshot` + ปุ่ม "เล่นต่อจากภารกิจค้าง" ใน title menu)
-5. **Playtest มนุษย์ TD-2** (ผู้เล่นใหม่วางป้อมแรก < 25 วิ และอธิบาย leak ได้) — เป็นเงื่อนไขจบเฟส อยู่ก่อนการปรับ balance ใด ๆ
+4. Settings (volume/accessibility) ✅ 2026-11-04; flash save บนโปรเจกต์ 3D ✅ 2026-11-05; **Localization ไทย/อังกฤษ ✅ 2026-11-07** (translations.csv + เลือกภาษาใน settings, เปลี่ยนสดทุกหน้า, เทสต์ phase7)
+5. **Playtest มนุษย์ TD-2** ✅ 2026-11-06 — เกณฑ์ผ่าน (วางป้อมแรก 5 วิ < 25 วิ, อธิบาย leak ได้)
+6. **งานเสนอชุดถัดไป (ต้องได้ Game Director รับก่อน):** targeting mode ต่อป้อม (GDD §5 "หลัง vertical slice"), โหมดภาษาอังกฤษต่อยอดใน marketing copy

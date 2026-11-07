@@ -1,0 +1,103 @@
+keys,en,th
+START_MISSION,START MISSION,เริ่มการรบ
+HOW_TO,HOW TO PLAY,วิธีการเล่น
+STORY,STORY,เรื่องราว
+SETTINGS,SETTINGS,ตั้งค่า
+QUIT,QUIT,ออกจากเกม
+BACK_BTN,BACK (Esc),ย้อนกลับ (Esc)
+CONTINUE_MISSION,RESUME MISSION (WAVE %d),เล่นต่อจากภารกิจค้าง (คลื่น %d)
+TITLE_SUBTITLE,LAST LIGHT — THE LAST LINE,LAST LIGHT — แนวรบสุดท้าย
+TAGLINE,3D Tower Defense — set towers  beat the swarm  keep the last night,3D Tower Defense — ตั้งป้อม รับฝูง คุมคืนสุดท้าย
+FEATURE_STRIP,One night · 8 waves · 4 towers · Lv2 upgrades · sell back 70%,คืนเดียว 8 คลื่น · ป้อม 4 แบบ · อัปเกรด Lv2 · ขายคืน 70%
+SLOGAN,“The last light is our front line.”,“แสงสุดท้าย คือแนวรบของเรา”
+BUILD_TAG,Tech demo · Shelter 09 · build 2026-11-07,เดโม่เทคนิค · Shelter 09 · build 2026-11-07
+PROFILE_ROW,Salvage %d · Wins %d · Best wave %d,Salvage %d · ชนะ %d ครั้ง · คลื่นไกลสุด %d
+BARRICADE_BUY,UPGRADE BARRICADE → Lv%d (%d Salvage),อัปเกรด Barricade → Lv%d (Salvage %d)
+BARRICADE_MAX,BARRICADE Lv%d — MAXED OUT,Barricade Lv%d — สูงสุดแล้ว
+BARRICADE_TOOLTIP,Upgrade the Barricade — Shelter 09 keeps the watch.\n+2 Shelter Integrity per level (max Lv2). Applied to the following nights.,อัปเกรด Barricade — ยืนรักษาการสังเกตของ Shelter 09\n+2 Shelter Integrity ต่อระดับ (สูงสุด Lv2) ใช้กับคืนถัด ๆ ไป
+SETTINGS_TITLE,SETTINGS,ตั้งค่า
+MASTER_VOLUME,Master volume,เสียงหลัก
+SFX_VOLUME,SFX volume,เสียงเอฟเฟกต์
+MUSIC_VOLUME,Music volume,เสียงเพลง
+REDUCE_FLASHES,Reduce screen flashes,ลดแสงวาบหน้าจอ
+REDUCE_MOTION,Reduce motion,ลดการเคลื่อนไหว
+LARGE_TEXT,Large text,ข้อความขนาดใหญ่
+LANGUAGE,Language,ภาษา
+ENGLISH,English,English
+THAI,ไทย,ไทย
+HUD_MONEY,Money: %d,เงิน: %d
+HUD_INTEGRITY,Shelter Integrity: %d,Shelter Integrity: %d
+HUD_WAVE,Wave %d / %d,คลื่น %d / %d
+HUD_ENEMIES_LEFT,Enemies remaining: %d,ศัตรูคงเหลือ: %d
+HUD_NEXT,Next: %s,ศัตรูถัดไป: %s
+START_WAVE_BTN,Start Wave (Space),เริ่มคลื่น (Space)
+CHAIN_WAVE_BTN,Chain Wave (Space),เรียกคลื่นต่อ (Space)
+WAVE_RUNNING_BTN,Wave running...,คลื่นกำลังมา...
+PAUSED,PAUSED,พักเกม
+RESUME_BTN,Resume (Esc),เล่นต่อ (Esc)
+RESTART_MISSION_BTN,Restart Mission,เริ่มภารกิจใหม่
+TITLE_MENU_BTN,Title Menu,กลับหน้าหลัก
+RESULT_WON,SHELTER HELD — Salvage earned,รักษา Shelter ไว้ได้ — ได้รับ Salvage
+RESULT_LOST,SHELTER FELL\nMoney at end: %d,Shelter ล่มสลาย\nเงินท้ายเกม: %d
+RESTART_BTN,Restart,เริ่มใหม่
+MAIN_MENU_BTN,Main Menu,กลับหน้าหลัก
+BOSS_INCOMING,RIFT WARDEN IS CLOSING IN!,RIFT WARDEN เคลื่อนเข้ามาแล้ว!
+TOWER_CARD_LABEL,%d  %s — %d Money,%d  %s — เงิน %d
+TOWER_SUMMARY,Lv%d: dmg %.1f · %.2f s/shot · DPS %.1f,Lv%d: ดาเมจ %.1f · %.2f วิ/นัด · DPS %.1f
+TOWER_SPLASH,splash %.1f m,ระเบิด %.1f ม.
+TOWER_SLOW,Lv%d: slow ×%.2f · %s,Lv%d: ช้า ×%.2f · %s
+TOWER_RANGE,range %.1f m,ระยะ %.1f ม.
+HOVER_MAXED,Max level · RMB to sell,Lv สูงสุดแล้ว · RMB ขาย
+HOVER_UPGRADE,LMB upgrade: %d Money → Lv%d · %s,LMB อัปเกรด: เงิน %d → Lv%d · %s
+TOWER_CARD_1,1  FIELD TURRET\nLaser / single shot,1  FIELD TURRET\nLaser / ยิงเดี่ยว
+TOWER_CARD_2,2  SONIC RESONATOR\nRocket / splash,2  SONIC RESONATOR\nRocket / ยิงหมู่
+TOWER_CARD_3,3  TANGLE EMITTER\nElectric / slow,3  TANGLE EMITTER\nElectric / ชะลอ
+TOWER_CARD_4,4  ARC CANNON\nBurst / heavy,4  ARC CANNON\nBurst / พลังงาน
+TOWER_TIP_1,Laser single shots at medium range,เลเซอร์ยิงเดี่ยว ระยะกลาง
+TOWER_TIP_2,Rockets that detonate across an area,จรวดระเบิดโจมตีเป็นวง
+TOWER_TIP_3,Electric field slows enemies in range,ไฟฟ้าชะลอศัตรูในระยะ
+TOWER_TIP_4,Arc energy that detonates hard,พลังงานอาร์คระเบิดแรง
+HOW_TO_BODY,"[color=#e8c27d]HOW TO PLAY[/color]
+
+1. Prep before the wave opens — left-click a placement spot (the yellow points) to build a tower; pick the type with keys 1/2/3/4:
+   [b]1[/b] Field Turret  fast single shots (80 Money)
+   [b]2[/b] Sonic Resonator  wide-area splash (120 Money)
+   [b]3[/b] Tangle Emitter  slows enemies in radius (60 Money)
+   [b]4[/b] Arc Cannon  heavy long-range bursts (140 Money)
+2. Left-click a placed tower = upgrade (max Lv2 — hover a tower to see its stats and price per level) — right-click a tower = sell back 70%
+3. Press Space or the Start Wave button to open a wave — you may chain the next wave while the current one is live; no need to wait (riskier, but the money flows faster)
+4. Press Esc to pause — closing the game mid-run with progress leaves a resume button waiting on the title menu next time
+5. Enemies slipping past the towers lower Shelter Integrity; at zero you lose
+6. Kills pay money. Clearing a wave pays a bonus scaled by remaining Integrity
+7. Surviving all 8 waves and bringing down the Rift Warden = victory
+8. Out of the run: Salvage earned in combat buys Barricade upgrades on the title menu — +2 Integrity per level, max Lv2 (used on later nights)","[color=#e8c27d]วิธีการเล่น[/color]
+
+1. เตรียมตัวก่อนเปิดคลื่น — คลิกซ้ายที่จุดวาง (จุดสีเหลือง) เพื่อวางป้อม ใช้ปุ่ม 1/2/3/4 เลือกชนิด:
+   [b]1[/b] Field Turret ยิงเดี่ยวรวดเร็ว (80 เงิน)
+   [b]2[/b] Sonic Resonator ระเบิดวงกว้าง (120 เงิน)
+   [b]3[/b] Tangle Emitter ช้าศัตรูในรัศมี (60 เงิน)
+   [b]4[/b] Arc Cannon ลูกใหญ่ระเบิดแรง ระยะไกล (140 เงิน)
+2. คลิกซ้ายที่ป้อมที่วางไว้แล้ว = อัปเกรด (สูงสุด Lv2 — เอาเมาส์ชี้ป้อมเพื่อดูพลังแต่ละระดับและราคา) — คลิกขวาที่ป้อม = ขายคืน 70%
+3. กด Space หรือปุ่ม Start Wave เพื่อเปิดคลื่น — จะกดเรียกคลื่นต่อไปเลยระหว่างคลื่นก็ได้ ไม่ต้องรอคลื่นเดิมจบ (อันตรายแต่รางวัลไหลเร็ว)
+4. กด Esc เพื่อหยุดชั่วคราว — ปิดเกมกลางรอบที่มีความคืบหน้า เมื่อเปิดใหม่จะมีปุ่ม resume พร้อมรออยู่
+5. ศัตรูที่ลอดผ่านป้อมจะลด Shelter Integrity ถ้าหมด แปลว่าแพ้
+6. กำจัดศัตรูได้เงิน จบคลื่นได้โบนัสตาม Integrity ที่เหลือ
+7. เอาตัวรอดครบ 8 คลื่นจนจัดการ Rift Warden ได้ = ชนะ
+8. นอกรอบ: Salvage ที่ได้จากการรบใช้อัปเกรด Barricade บนหน้าเมนูได้ — +2 Integrity ต่อระดับ สูงสุด Lv2 (ใช้กับคืนถัด ๆ ไป)"
+STORY_BODY,"[color=#e8c27d]STORY[/color]
+
+After the starless night, the coast world collapsed into dark zones. The [b]Hollows[/b] swarm is drawn to heat and noise of survivors, and they come every night along the roads that still hold.
+
+[b]Shelter 09[/b] is the last standing point, where [color=#d6a453]Rin[/color], the systems repairwoman, set up the defensive line. The Shelter evacuation mast is still transmitting, and [color=#d6a453]Mira[/color], the radio keeper at the evacuation hub, says that holding this night pushes the relief route one zone further.
+
+Rin could no longer hold the road with a rifle alone, so she collects Salvage and turns it into towers: an adapted rifle, a wave projector built from the signal mast, and cable snares raked across the feet. Your battle plan matters far more than your trigger.
+
+The largest swarm of them all, led by the [b]Rift Warden[/b], waits at the end of the night.","[color=#e8c27d]เรื่องราว[/color]
+
+หลังคืนไร้ดาว โลกชายฝั่งล่มสลายเป็นเขตมืด ฝูง [b]Hollows[/b] ถูกดึงดูดด้วยความร้อนและเสียงของผู้รอดชีวิต และยกมาทุกคืนตามถนนที่ยังใช้ได้
+
+[b]Shelter 09[/b] คือจุดยืนสุดท้ายที่ [color=#d6a453]ริน[/color] ช่างซ่อมระบบตั้งแนวรบเอาไว้ เสาส่งสัญญาณอพยพของ Shelter ยังติด และ [color=#d6a453]มีรา[/color] ผู้คุมวิทยุจากศูนย์อพยพบอกว่า ถ้ายืนรับคืนนี้ได้ ทีมกู้จะเลื่อนชั้นเส้นทางอพยพอีกหนึ่งเขต
+
+รินหยุดยิงปิดถนนไม่ไหวอีกต่อไป จึงสะสมเศษ Salvage ไว้แปลงเป็นป้อม: ไรเฟิลดัดแปลง เครื่องส่งคลื่นจากเสาสัญญาณ และสายสลักพันเท้า แผนการรบของคุณสำคัญกว่าแต้มยิง
+
+ฝูงกลุ่มใหญ่ที่สุดนำโดย [b]Rift Warden[/b] รออยู่ท้ายคืน"

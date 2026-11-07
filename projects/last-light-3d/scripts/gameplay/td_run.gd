@@ -161,6 +161,11 @@ func _ready() -> void:
 	_build_env()
 	_build_hud()
 	_build_audio()
+	# Language switch (only reachable from the pause settings) rerenders the
+	# data-driven tower cards so their text follows the new locale.
+	var store := get_node_or_null("/root/TDSettings") as TDSettingsStore
+	if store != null:
+		store.settings_changed.connect(_on_settings_changed)
 	# Flash-save resume: the title menu sets resume_requested before entering.
 	if TDSessionSnapshot.resume_requested:
 		TDSessionSnapshot.resume_requested = false
@@ -863,6 +868,13 @@ func _on_tower_selected(kind: int) -> void:
 	_select_kind(kind)
 
 
+## Language switch rerenders the data-driven cards; everything else flows
+## through the HUD registry already.
+func _on_settings_changed(section: StringName, key: StringName) -> void:
+	if section == &"localization" and key == &"locale":
+		_refresh_tower_cards()
+
+
 # --- Tower cards & hover (งานข้อ 1/2/4: พลัง+ราคาต่อระดับบน HUD) ----------
 
 ## Data-driven tower cards: label = name + price, tooltip lists every level's
@@ -874,7 +886,7 @@ func _refresh_tower_cards() -> void:
 	var tooltips: Array[String] = []
 	for kind: int in TOWER_DEFS.keys():
 		var stats: TDTowerDefinition = TOWER_DEFS[kind] as TDTowerDefinition
-		labels.append("%d  %s — เงิน %d" % [kind + 1, stats.display_name, stats.cost])
+		labels.append(tr("TOWER_CARD_LABEL") % [kind + 1, stats.display_name, stats.cost])
 		tooltips.append(_tower_stats_text(stats))
 	_hud.set_tower_cards(labels, tooltips)
 
@@ -889,14 +901,14 @@ func _tower_stats_text(stats: TDTowerDefinition) -> String:
 
 func _tower_level_summary(stats: TDTowerDefinition, level: int) -> String:
 	if stats.tower_kind == TDTower.Kind.TANGLE_EMITTER:
-		var range_text: String = "ระยะ %.1f ม." % stats.level_range[level]
-		return "Lv%d: ช้า ×%.2f · %s" % [level, stats.level_slow[level], range_text]
+		var range_text: String = tr("TOWER_RANGE") % stats.level_range[level]
+		return tr("TOWER_SLOW") % [level, stats.level_slow[level], range_text]
 	var damage: float = stats.level_damage[level]
 	var interval: float = stats.level_fire_interval[level]
 	var dps: float = damage / maxf(interval, 0.01)
-	var summary: String = "Lv%d: ดาเมจ %.1f · %.2f วิ/นัด · DPS %.1f" % [level, damage, interval, dps]
+	var summary: String = tr("TOWER_SUMMARY") % [level, damage, interval, dps]
 	if stats.level_splash[level] > 0.0:
-		summary += " · ระเบิด %.1f ม." % stats.level_splash[level]
+		summary += " · " + (tr("TOWER_SPLASH") % stats.level_splash[level])
 	return summary
 
 
@@ -905,14 +917,12 @@ func _occupied_hover_text(tower: TDTower) -> String:
 	var stats: TDTowerDefinition = _tower_def(tower.kind)
 	var current_line: String = "%s Lv%d · %s" % [stats.display_name, tower.level, _tower_level_summary(stats, tower.level)]
 	if tower.level >= TDTower.MAX_LEVEL:
-		return "%s\nLv สูงสุดแล้ว · RMB ขาย" % current_line
+		return "%s\n%s" % [current_line, tr("HOVER_MAXED")]
 	var next_level: int = tower.level + 1
 	var upgrade_cost: int = stats.upgrade_costs[tower.level]
-	return "%s\nLMB อัปเกรด: เงิน %d → Lv%d · %s" % [
+	return "%s\n%s" % [
 		current_line,
-		upgrade_cost,
-		next_level,
-		_tower_level_summary(stats, next_level),
+		tr("HOVER_UPGRADE") % [upgrade_cost, next_level, _tower_level_summary(stats, next_level)],
 	]
 
 
@@ -1537,7 +1547,7 @@ func _apply_upgrade_level(tower: TDTower, stats: TDTowerDefinition, level: int) 
 
 ## One readable telegraph for the boss spawn (docs/GDD_3DTD.md line 96).
 func _announce_boss() -> void:
-	_hud.announce_boss("RIFT WARDEN เคลื่อนเข้ามาแล้ว!")
+	_hud.announce_boss(tr("BOSS_INCOMING"))
 	_audio.play_sfx("wave_horn", 0.0, 0.68)
 	_spawn_effect(TDCombatEffect.KIND_WAVE, PATH_POINTS[0])
 	_metrics.record(&"boss_spawned", {"wave": wave_number})

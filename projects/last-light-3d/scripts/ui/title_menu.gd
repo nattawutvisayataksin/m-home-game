@@ -7,30 +7,10 @@ class_name TDTitleMenu
 const RUN_SCENE_PATH := "res://scenes/gameplay/run.tscn"
 const LOGO_TEXTURE := preload("res://assets/brand/logo_emblem.svg")
 
-const HOW_TO_PLAY := """[color=#e8c27d]วิธีการเล่น[/color]
-
-1. เตรียมตัวก่อนเปิดคลื่น — คลิกซ้ายที่จุดวาง (จุดสีเหลือง) เพื่อวางป้อม ใช้ปุ่ม 1/2/3/4 เลือกชนิด:
-   [b]1[/b] Field Turret ยิงเดี่ยวรวดเร็ว (80 เงิน)
-   [b]2[/b] Sonic Resonator ระเบิดวงกว้าง (120 เงิน)
-   [b]3[/b] Tangle Emitter ช้าศัตรูในรัศมี (60 เงิน)
-   [b]4[/b] Arc Cannon ลูกใหญ่ระเบิดแรง ระยะไกล (140 เงิน)
-2. คลิกซ้ายที่ป้อมที่วางไว้แล้ว = อัปเกรด (สูงสุด Lv2 — เอาเมาส์ชี้ป้อมเพื่อดูพลังแต่ละระดับและราคา) — คลิกขวาที่ป้อม = ขายคืน 70%
-3. กด Space หรือปุ่ม Start Wave เพื่อเปิดคลื่น — จะกดเรียกคลื่นต่อไปเลยระหว่างคลื่นก็ได้ ไม่ต้องรอคลื่นเดิมจบ (อันตรายแต่รางวัลไหลเร็ว)
-4. กด Esc เพื่อหยุดชั่วคราว — ปิดเกมกลางรอบที่มีความคืบหน้า เมื่อเปิดใหม่จะมีปุ่ม "เล่นต่อจากภารกิจค้าง" รออยู่
-5. ศัตรูที่ลอดผ่านป้อมจะลด Shelter Integrity ถ้าหมด แปลว่าแพ้
-6. กำจัดศัตรูได้เงิน จบคลื่นได้โบนัสตาม Integrity ที่เหลือ
-7. เอาตัวรอดครบ 8 คลื่นจนจัดการ Rift Warden ได้ = ชนะ
-8. นอกรอบ: Salvage ที่ได้จากการรบใช้อัปเกรด Barricade บนหน้าเมนูได้ — +2 Integrity ต่อระดับ สูงสุด Lv2 (ใช้กับคืนถัด ๆ ไป)"""
-
-const STORY := """[color=#e8c27d]เรื่องราว[/color]
-
-หลังคืนไร้ดาว โลกชายฝั่งล่มสลายเป็นเขตมืด ฝูง [b]Hollows[/b] ถูกดึงดูดด้วยความร้อนและเสียงของผู้รอดชีวิต และยกมาทุกคืนตามถนนที่ยังใช้ได้
-
-[b]Shelter 09[/b] คือจุดยืนสุดท้ายที่ [color=#d6a453]ริน[/color] ช่างซ่อมระบบตั้งแนวรบเอาไว้ เสาส่งสัญญาณอพยพของ Shelter ยังติด และ [color=#d6a453]มีรา[/color] ผู้คุมวิทยุจากศูนย์อพยพบอกว่า ถ้ายืนรับคืนนี้ได้ ทีมกู้จะเลื่อนชั้นเส้นทางอพยพอีกหนึ่งเขต
-
-รินหยุดยิงปิดถนนไม่ไหวอีกต่อไป จึงสะสมเศษ Salvage ไว้แปลงเป็นป้อม: ไรเฟิลดัดแปลง เครื่องส่งคลื่นจากเสาสัญญาณ และสายสลักพันเท้า แผนการรบของคุณสำคัญกว่าแต้มยิง
-
-ฝูงกลุ่มใหญ่ที่สุดนำโดย [b]Rift Warden[/b] รออยู่ท้ายคืน"""
+## Long copy lives in assets/localization/translations.csv (HOW_TO_BODY /
+## STORY_BODY) so the language switch rerenders these panels live.
+const HOW_TO_KEY := "HOW_TO_BODY"
+const STORY_KEY := "STORY_BODY"
 
 var _menu_root: VBoxContainer
 var _subtitle: Label
@@ -38,8 +18,14 @@ var _how_panel: Control
 var _story_panel: Control
 var _settings_panel: Control
 var _font_texts: Array[Control] = []
+## Locale registry: [Object node, StringName property, String key] entries
+## replayed when the language changes; dynamic formats live in _refreshers.
+var _locale_texts: Array[Array] = []
+var _locale_refreshers: Array[Callable] = []
 var _profile_label: Label
 var _barricade_button: Button
+var _continue_button: Button
+var _snapshot_wave: int = 0
 var _repo: ProfileRepository
 
 # Meta progression: mirror the 2D project's barricade economy (30/70, cap 2).
@@ -50,8 +36,8 @@ func _ready() -> void:
 	_repo = ProfileRepository.new()
 	_build_background()
 	_build_title_column()
-	_how_panel = _build_content_panel(HOW_TO_PLAY)
-	_story_panel = _build_content_panel(STORY)
+	_how_panel = _build_content_panel(HOW_TO_KEY)
+	_story_panel = _build_content_panel(STORY_KEY)
 	_settings_panel = _build_settings_overlay()
 	var store := _store()
 	if store != null:
@@ -132,18 +118,18 @@ func _build_title_column() -> void:
 	column.add_child(logo)
 
 	_subtitle = Label.new()
-	_subtitle.text = "LAST LIGHT — แนวรบสุดท้าย"
 	_subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_style_text(_subtitle, "font_size", 26)
 	_subtitle.add_theme_color_override("font_color", Color("#dfe9e2"))
 	column.add_child(_subtitle)
+	_register_locale_text(_subtitle, &"text", "TITLE_SUBTITLE")
 
 	var tagline := Label.new()
-	tagline.text = "3D Tower Defense — ตั้งป้อม รับฝูง คุมคืนสุดท้าย"
 	tagline.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_style_text(tagline, "font_size", 16)
 	tagline.add_theme_color_override("font_color", Color("#9fb2a8"))
 	column.add_child(tagline)
+	_register_locale_text(tagline, &"text", "TAGLINE")
 
 	# Brand rule + feature strip: sell the pillars at a glance.
 	var rule := ColorRect.new()
@@ -153,33 +139,36 @@ func _build_title_column() -> void:
 	column.add_child(rule)
 
 	var feature_strip := Label.new()
-	feature_strip.text = "คืนเดียว 8 คลื่น · ป้อม 4 แบบ · อัปเกรด Lv2 · ขายคืน 70%"
 	feature_strip.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_style_text(feature_strip, "font_size", 14)
 	feature_strip.add_theme_color_override("font_color", Color("#e8c27d"))
 	column.add_child(feature_strip)
+	_register_locale_text(feature_strip, &"text", "FEATURE_STRIP")
 
 	var spacer := Control.new()
 	spacer.custom_minimum_size = Vector2(0.0, 10.0)
 	column.add_child(spacer)
 
-	_add_menu_button(column, "เริ่มการรบ", _start_mission)
-	_add_menu_button(column, "วิธีการเล่น", func () -> void: _show_panel(_how_panel))
-	_add_menu_button(column, "เรื่องราว", func () -> void: _show_panel(_story_panel))
-	_add_menu_button(column, "ตั้งค่า", func () -> void: _show_panel(_settings_panel))
-	_add_menu_button(column, "ออกจากเกม", func () -> void: get_tree().quit())
+	_add_menu_button(column, "START_MISSION", _start_mission)
+	_add_menu_button(column, "HOW_TO", func () -> void: _show_panel(_how_panel))
+	_add_menu_button(column, "STORY", func () -> void: _show_panel(_story_panel))
+	_add_menu_button(column, "SETTINGS", func () -> void: _show_panel(_settings_panel))
+	_add_menu_button(column, "QUIT", func () -> void: get_tree().quit())
 
 	# Flash-save resume: shown only when a valid snapshot is on disk.
-	var snapshot_wave: int = TDSessionSnapshot.get_resume_wave()
-	if snapshot_wave > 0:
+	_snapshot_wave = TDSessionSnapshot.get_resume_wave()
+	if _snapshot_wave > 0:
 		var continue_button := _add_menu_button(
 			column,
-			"เล่นต่อจากภารกิจค้าง (คลื่น %d)" % (snapshot_wave + 1),
+			"",
 			_continue_mission
 		)
 		# The resume entry sits right above the fresh-start button so a
 		# returning player finds it first.
 		column.move_child(continue_button, 6)
+		_continue_button = continue_button
+		_locale_refreshers.append(_refresh_continue_button)
+		_refresh_continue_button()
 
 	_build_footer()
 
@@ -215,7 +204,6 @@ func _build_footer() -> void:
 	_barricade_button.custom_minimum_size = Vector2(330.0, 42.0)
 	_barricade_button.focus_mode = Control.FOCUS_ALL
 	_style_text(_barricade_button, "font_size", 15)
-	_barricade_button.tooltip_text = "อัปเกรด Barricade — ยืนรักษาการสังเกตของ Shelter 09\n+2 Shelter Integrity ต่อระดับ (สูงสุด Lv2) ใช้กับคืนถัด ๆ ไป"
 	_barricade_button.add_theme_color_override("font_color", Color("#dfe9e2"))
 	_barricade_button.add_theme_color_override("font_hover_color", Color("#ffd98a"))
 	_barricade_button.add_theme_color_override("font_pressed_color", Color("#ffd98a"))
@@ -226,6 +214,7 @@ func _build_footer() -> void:
 	_barricade_button.add_theme_stylebox_override("focus", _menu_style(Color("#2b2417"), Color("#ffd98a")))
 	_barricade_button.pressed.connect(_upgrade_barricade)
 	profile_box.add_child(_barricade_button)
+	_register_locale_text(_barricade_button, &"tooltip_text", "BARRICADE_TOOLTIP")
 	_refresh_profile_row()
 
 	# Center: brand slogan + build tag.
@@ -236,18 +225,18 @@ func _build_footer() -> void:
 	row.add_child(center_box)
 
 	var slogan := Label.new()
-	slogan.text = "“แสงสุดท้าย คือแนวรบของเรา”"
 	slogan.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_style_text(slogan, "font_size", 14)
 	slogan.add_theme_color_override("font_color", Color("#8a7a5c"))
 	center_box.add_child(slogan)
+	_register_locale_text(slogan, &"text", "SLOGAN")
 
 	var version := Label.new()
-	version.text = "เดโม่เทคนิค · Shelter 09 · build 2026-11-06"
 	version.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_style_text(version, "font_size", 12)
 	version.add_theme_color_override("font_color", Color("#5d6a74"))
 	center_box.add_child(version)
+	_register_locale_text(version, &"text", "BUILD_TAG")
 
 
 # --- Meta progression: profile row + Barricade purchase --------------------
@@ -260,15 +249,15 @@ func _refresh_profile_row() -> void:
 	var profile: Dictionary = _repo.load_profile()
 	var salvage: int = int(profile.get("salvage", 0))
 	var level: int = clampi(int(profile.get("barricade_level", 0)), 0, ProfileRepository.MAX_BARRICADE_LEVEL)
-	_profile_label.text = "Salvage %d · ชนะ %d ครั้ง · คลื่นไกลสุด %d" % [
+	_profile_label.text = tr("PROFILE_ROW") % [
 		salvage, int(profile.get("victories", 0)), int(profile.get("best_wave", 1)),
 	]
 	if level >= ProfileRepository.MAX_BARRICADE_LEVEL:
-		_barricade_button.text = "Barricade Lv%d — สูงสุดแล้ว" % level
+		_barricade_button.text = tr("BARRICADE_MAX") % level
 		_barricade_button.disabled = true
 		return
 	var cost: int = BARRICADE_COSTS[level]
-	_barricade_button.text = "อัปเกรด Barricade → Lv%d (Salvage %d)" % [level + 1, cost]
+	_barricade_button.text = tr("BARRICADE_BUY") % [level + 1, cost]
 	_barricade_button.disabled = salvage < cost
 
 
@@ -297,9 +286,8 @@ func _upgrade_barricade_profile() -> bool:
 	return true
 
 
-func _add_menu_button(vbox: VBoxContainer, label_text: String, on_pressed: Callable) -> Button:
+func _add_menu_button(vbox: VBoxContainer, key: String, on_pressed: Callable) -> Button:
 	var button := Button.new()
-	button.text = label_text
 	button.custom_minimum_size = Vector2(340.0, 48.0)
 	button.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	button.focus_mode = Control.FOCUS_ALL
@@ -314,7 +302,16 @@ func _add_menu_button(vbox: VBoxContainer, label_text: String, on_pressed: Calla
 	button.add_theme_stylebox_override("focus", _menu_style(Color("#2b2417"), Color("#ffd98a")))
 	button.pressed.connect(on_pressed)
 	vbox.add_child(button)
+	# Menu buttons hold a plain key; formatted texts use a refresher instead.
+	if key != "":
+		_register_locale_text(button, &"text", key)
 	return button
+
+
+## Formatted resume label; rerendered through _locale_refreshers on switch.
+func _refresh_continue_button() -> void:
+	if _continue_button != null and is_instance_valid(_continue_button):
+		_continue_button.text = tr("CONTINUE_MISSION") % (_snapshot_wave + 1)
 
 
 func _menu_style(background: Color, border: Color) -> StyleBoxFlat:
@@ -330,7 +327,7 @@ func _menu_style(background: Color, border: Color) -> StyleBoxFlat:
 	return style
 
 
-func _build_content_panel(bb_text: String) -> Control:
+func _build_content_panel(bb_key: String) -> Control:
 	var overlay := ColorRect.new()
 	overlay.name = "ContentPanel"
 	overlay.color = Color(0.05, 0.06, 0.09, 0.96)
@@ -351,23 +348,24 @@ func _build_content_panel(bb_text: String) -> Control:
 
 	var label := RichTextLabel.new()
 	label.bbcode_enabled = true
-	label.text = bb_text
 	label.fit_content = false
 	label.scroll_active = true
 	label.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	label.add_theme_font_size_override("normal_font_size", _text_size(21))
 	column.add_child(label)
+	# Long copy rerenders on locale switch so the panel body follows too.
+	_register_locale_text(label, &"text", bb_key)
 
 	var bottom_row := HBoxContainer.new()
 	column.add_child(bottom_row)
 	var back := Button.new()
-	back.text = "ย้อนกลับ (Esc)"
 	back.custom_minimum_size = Vector2(220.0, 46.0)
 	_style_text(back, "font_size", 19)
 	back.focus_mode = Control.FOCUS_ALL
 	back.pressed.connect(_close_panels)
 	bottom_row.add_child(back)
+	_register_locale_text(back, &"text", "BACK_BTN")
 
 	overlay.visible = false
 	overlay.set_meta("back_button", back)
@@ -432,7 +430,24 @@ func _build_settings_overlay() -> Control:
 	return overlay
 
 
-# --- Text scaling (large text option) -------------------------------------
+# --- Text scaling (large text option) + locale refresh ---------------------
+
+## Set a property to its translated value now and register it for locale
+## switches — open panels rerender live (same rule as the large-text option).
+func _register_locale_text(node: Object, prop: StringName, key: String) -> void:
+	node.set(prop, tr(key))
+	_locale_texts.append([node, prop, key])
+
+
+func _apply_locale_texts() -> void:
+	for entry: Array in _locale_texts:
+		var node: Object = entry[0]
+		if is_instance_valid(node):
+			node.set(entry[1], tr(entry[2]))
+	for refresher: Callable in _locale_refreshers:
+		refresher.call()
+	_refresh_profile_row()
+
 
 func _style_text(node: Control, theme_item: String, base_size: int) -> void:
 	node.add_theme_font_size_override(theme_item, _text_size(base_size))
@@ -458,6 +473,8 @@ func _apply_text_scale() -> void:
 func _on_settings_changed(section: StringName, key: StringName) -> void:
 	if section == &"accessibility" and key == &"large_text":
 		_apply_text_scale()
+	elif section == &"localization" and key == &"locale":
+		_apply_locale_texts()
 
 
 func _unhandled_input(event: InputEvent) -> void:

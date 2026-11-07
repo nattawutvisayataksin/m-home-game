@@ -13,6 +13,8 @@ const DEFAULT_MASTER_DB: float = 0.0
 const DEFAULT_SFX_DB: float = 0.0
 const DEFAULT_MUSIC_DB: float = -12.0
 const LARGE_TEXT_DELTA: int = 4
+## Thai-first per the decided rules (AI_HANDOFF: ภาษาเป็นไทยก่อน).
+const DEFAULT_LOCALE: String = "th"
 
 ## Overridable for tests; production path is user://settings.cfg.
 var settings_path: String = "user://settings.cfg"
@@ -29,6 +31,7 @@ func load_settings() -> void:
 	if error != OK and error != ERR_FILE_NOT_FOUND:
 		push_warning("Could not load settings: %s" % error_string(error))
 	apply_audio_settings()
+	_apply_locale()
 	settings_changed.emit(&"file", &"loaded")
 
 
@@ -84,6 +87,29 @@ func apply_audio_settings() -> void:
 func _set_bus_volume(bus_index: int, volume_db: float) -> void:
 	if bus_index >= 0:
 		AudioServer.set_bus_volume_db(bus_index, volume_db)
+
+
+# --- Localization -----------------------------------------------------------
+
+## Uses the localization section of settings.cfg (same pattern as the 2D
+## build). The stored value is "th"/"en"; everything user-facing reads it
+## through tr(KEY) so switching takes effect on the next text render.
+func get_locale() -> String:
+	return str(_config.get_value("localization", "locale", DEFAULT_LOCALE))
+
+
+func set_locale(locale: String) -> void:
+	_config.set_value("localization", "locale", locale if locale in ["th", "en"] else DEFAULT_LOCALE)
+	save_settings()
+	_apply_locale()
+	settings_changed.emit(&"localization", &"locale")
+
+
+## Applies the saved locale to the Godot translation server (no-op value guard
+## above keeps stray test values from wiping the UI language).
+func _apply_locale() -> void:
+	var locale: String = get_locale()
+	TranslationServer.set_locale(locale if locale in ["th", "en"] else DEFAULT_LOCALE)
 
 
 # --- Accessibility --------------------------------------------------------
