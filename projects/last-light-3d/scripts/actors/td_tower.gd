@@ -126,6 +126,8 @@ func _aim_at(target: TDEnemy, delta: float) -> void:
 func _play_recoil() -> void:
 	if _model_node == null or not is_instance_valid(_model_node):
 		return
+	if _barrel_nodes.is_empty():
+		return
 	if _recoil_tween != null and _recoil_tween.is_valid():
 		_recoil_tween.kill()
 	for barrel: Node3D in _barrel_nodes:
