@@ -148,9 +148,17 @@ func _wave_def(wave_index: int) -> TDWaveDefinition:
 	return WAVES[wave_index - 1] as TDWaveDefinition
 
 
+## Game-time accessor for RunMetrics.game_time_provider (in-game seconds,
+## unaffected by Engine.time_scale wall-clock compression in headless sims).
+func _world_game_time() -> float:
+	return _world_time
+
+
 func _ready() -> void:
 	_metrics = METRICS_SCRIPT.new()
 	_metrics.begin()
+	# Game-time stamping so pacing survives time-scaled headless sims.
+	_metrics.game_time_provider = _world_game_time
 	_profile_repo = PROFILE_SCRIPT.new()
 	var profile: Dictionary = _profile_repo.load_profile()
 	var barricade_level: int = int(profile.get("barricade_level", 0))
@@ -238,7 +246,6 @@ func _paint_path_shelter_and_slots() -> void:
 	var street_light_scene: PackedScene = load("res://assets/models/props/street_light.glb")
 	var sign_scene: PackedScene = load("res://assets/models/props/shelter_09_sign.glb")
 	var tree_scene: PackedScene = load("res://assets/models/props/ash_tree.glb")
-	var house_scene: PackedScene = load("res://assets/models/props/ruined_house.glb")
 	if barricade_scene != null:
 		for position: Vector3 in [Vector3(-12.8, 0.0, 8.8), Vector3(-6.6, 0.0, -10.8), Vector3(11.2, 0.0, -10.0)]:
 			var barricade := barricade_scene.instantiate()
@@ -253,29 +260,35 @@ func _paint_path_shelter_and_slots() -> void:
 			add_child(street_light)
 			_prop_points.append(position)
 	if tree_scene != null:
-		for position: Vector3 in [Vector3(-18.0, 0.0, 11.0), Vector3(-10.0, 0.0, -12.5), Vector3(14.5, 0.0, 7.5), Vector3(16.0, 0.0, -11.5)]:
+		# The tree right of the road mouth sat next to the shelter compound;
+		# it moved to the far back-left so the base reads unobstructed.
+		for position: Vector3 in [Vector3(-18.0, 0.0, 9.0), Vector3(-10.0, 0.0, -12.5), Vector3(14.5, 0.0, 7.5)]:
 			var tree := tree_scene.instantiate()
 			tree.position = position
 			tree.rotation.y = position.x * 0.17
 			tree.scale = Vector3.ONE * (0.85 + absf(position.z) * 0.012)
 			add_child(tree)
 			_prop_points.append(position)
-	if house_scene != null:
-		for position: Vector3 in [Vector3(16.0, 0.0, 11.0), Vector3(-17.0, 0.0, -7.5)]:
-			var house := house_scene.instantiate()
-			house.position = position
-			house.rotation.y = -0.35 if position.x > 0.0 else 0.55
-			house.scale = Vector3.ONE * 0.9
-			add_child(house)
-			_prop_points.append(position)
+	# One kept ruin anchors the story (the coast is broken); the settlement
+	# itself is the modern survivor village built below.
+	var ruin_scene: PackedScene = load("res://assets/models/props/ruined_house.glb")
+	if ruin_scene != null:
+		for placement: Array in [[Vector3(-15.0, 0.0, -13.5), 0.7]]:
+			var ruin := ruin_scene.instantiate()
+			ruin.position = placement[0]
+			ruin.rotation.y = float(placement[1])
+			add_child(ruin)
+			_prop_points.append(placement[0])
 
-	# the Shelter 09 blockhouse at path end
+	# the Shelter 09 blockhouse, now centered on the defensive compound east
+	# of the road mouth — the whole grounds read as the valuable last holdout
+	var compound_center: Vector3 = PATH_POINTS[PATH_POINTS.size() - 1] + Vector3(4.0, 0.0, 0.0)
 	var shelter_scene: PackedScene = load("res://assets/models/props/shelter.glb")
 	var shelter: Node3D
 	if shelter_scene != null:
 		shelter = shelter_scene.instantiate()
 		shelter.name = "Shelter"
-		shelter.position = PATH_POINTS[PATH_POINTS.size() - 1] + Vector3(2.4, 0.0, 0.0)
+		shelter.position = compound_center
 	else:
 		var shelter_mesh := MeshInstance3D.new()
 		var shelter_box := BoxMesh.new()
@@ -284,18 +297,19 @@ func _paint_path_shelter_and_slots() -> void:
 		var shelter_material := StandardMaterial3D.new()
 		shelter_material.albedo_color = Color("#6e5c40")
 		shelter_mesh.material_override = shelter_material
-		shelter_mesh.position = PATH_POINTS[PATH_POINTS.size() - 1] + Vector3(2.4, 1.1, 0.0)
+		shelter_mesh.position = compound_center + Vector3(0.0, 1.1, 0.0)
 		shelter_mesh.name = "Shelter"
 		shelter = shelter_mesh
 	add_child(shelter)
 	_prop_points.append(shelter.position)
+	_build_shelter_grounds(compound_center)
 	if sign_scene != null:
 		var sign := sign_scene.instantiate()
 		sign.position = PATH_POINTS[PATH_POINTS.size() - 1] + Vector3(0.0, 0.0, -2.0)
 		sign.rotation.y = PI
 		add_child(sign)
 		_prop_points.append(sign.position)
-	_add_shelter_crystal(PATH_POINTS[PATH_POINTS.size() - 1] + Vector3(2.4, 0.0, 0.0))
+	_add_shelter_crystal(compound_center)
 
 	for slot_index: int in range(SLOTS.size()):
 		var disk := MeshInstance3D.new()
@@ -316,6 +330,9 @@ func _paint_path_shelter_and_slots() -> void:
 		_slot_towers.append(null)
 		disk.visible = TOWER_SLOT_PREVIEW_ENABLED
 
+	_build_village()
+	_build_extra_trees()
+	_build_pond()
 	_scatter_environment()
 
 
@@ -353,6 +370,325 @@ func _add_shelter_crystal(position: Vector3) -> void:
 	light.light_energy = 2.2
 	light.omni_range = 7.0
 	_shelter_crystal.add_child(light)
+
+
+## Warm-glowing surface for lit faces (windows, wall strips, beacon tips).
+func _glow_material(albedo: Color, emission_color: Color, energy: float) -> StandardMaterial3D:
+	var material := StandardMaterial3D.new()
+	material.albedo_color = albedo
+	material.emission_enabled = true
+	material.emission = emission_color
+	material.emission_energy_multiplier = energy
+	return material
+
+
+## The Shelter 09 compound grounds: raised platform with a light halo, a rear
+## wall arc with lit crenels, front pylons, banner pair, and a road spur into
+## the open terrace mouth. The road-facing side stays wall-free so walking
+## enemies reach the path end without clipping anything (verified radii).
+func _build_shelter_grounds(center: Vector3) -> void:
+	var platform := MeshInstance3D.new()
+	var platform_mesh := CylinderMesh.new()
+	platform_mesh.top_radius = 3.0
+	platform_mesh.bottom_radius = 3.3
+	platform_mesh.height = 0.19
+	platform_mesh.radial_segments = 28
+	platform.mesh = platform_mesh
+	var platform_material := StandardMaterial3D.new()
+	platform_material.albedo_color = Color("#4a5058")
+	platform_material.metallic = 0.35
+	platform_material.roughness = 0.75
+	platform.material_override = platform_material
+	platform.position = center + Vector3(0.0, 0.095, 0.0)
+	add_child(platform)
+
+	var edge := MeshInstance3D.new()
+	var edge_mesh := TorusMesh.new()
+	edge_mesh.inner_radius = 3.0
+	edge_mesh.outer_radius = 3.15
+	edge.mesh = edge_mesh
+	edge.material_override = _glow_material(Color(0.3, 0.6, 0.9), Color(0.25, 0.6, 1.0), 1.35)
+	edge.position = center + Vector3(0.0, 0.2, 0.0)
+	add_child(edge)
+
+	var wall_material := _flat_material(Color("#535a60"), 0.8)
+	var crenel_material := _glow_material(Color(0.4, 0.7, 1.0), Color(0.2, 0.55, 1.0), 0.85)
+	for angle_degrees: int in [15, 60, 105, 255, 300, 345]:
+		var angle: float = deg_to_rad(float(angle_degrees))
+		var direction := Vector3(sin(angle), 0.0, -cos(angle))  # wall long axis
+		var radian_position: Vector3 = center + Vector3(cos(angle), 0.0, sin(angle)) * 3.9
+		var wall := MeshInstance3D.new()
+		var wall_box := BoxMesh.new()
+		wall_box.size = Vector3(3.0, 1.0, 0.5)
+		wall.mesh = wall_box
+		wall.material_override = wall_material
+		wall.position = radian_position + Vector3(0.0, 0.5, 0.0)
+		wall.rotation.y = deg_to_rad(float(angle_degrees)) + PI / 2.0
+		add_child(wall)
+		var crenel := MeshInstance3D.new()
+		var crenel_box := BoxMesh.new()
+		crenel_box.size = Vector3(3.0, 0.08, 0.62)
+		crenel.mesh = crenel_box
+		crenel.material_override = crenel_material
+		crenel.position = radian_position + Vector3(0.0, 1.1, 0.0)
+		crenel.rotation.y = wall.rotation.y
+		add_child(crenel)
+		_prop_points.append(radian_position)
+
+	# Front pylons flank the open terrace mouth (not blocking the road).
+	var pylon_material := _flat_material(Color("#4c5259"), 0.75)
+	var tip_material := _glow_material(Color(0.45, 0.8, 1.0), Color(0.25, 0.6, 1.0), 1.7)
+	for side_z: float in [-2.9, 2.9]:
+		var pylon_position: Vector3 = center + Vector3(-3.6, 0.0, side_z)
+		var pylon := MeshInstance3D.new()
+		var pylon_box := BoxMesh.new()
+		pylon_box.size = Vector3(0.4, 2.7, 0.4)
+		pylon.mesh = pylon_box
+		pylon.material_override = pylon_material
+		pylon.position = pylon_position + Vector3(0.0, 1.35, 0.0)
+		add_child(pylon)
+		var tip := MeshInstance3D.new()
+		var tip_box := BoxMesh.new()
+		tip_box.size = Vector3(0.3, 0.24, 0.3)
+		tip.mesh = tip_box
+		tip.material_override = tip_material
+		tip.position = pylon_position + Vector3(0.0, 2.85, 0.0)
+		add_child(tip)
+		_prop_points.append(pylon_position)
+
+	# Banner pair framing the mouth: warm amber = "the last light" held here.
+	var pole_material := _flat_material(Color("#393f45"), 0.7)
+	var banner_material := _glow_material(Color(0.95, 0.62, 0.2), Color(0.9, 0.5, 0.12), 1.1)
+	for side_z: float in [-1.9, 1.9]:
+		var pole_position: Vector3 = center + Vector3(-2.6, 0.0, side_z)
+		var pole := MeshInstance3D.new()
+		var pole_mesh := CylinderMesh.new()
+		pole_mesh.top_radius = 0.05
+		pole_mesh.bottom_radius = 0.05
+		pole_mesh.height = 3.0
+		pole.mesh = pole_mesh
+		pole.material_override = pole_material
+		pole.position = pole_position + Vector3(0.0, 1.5, 0.0)
+		add_child(pole)
+		var banner := MeshInstance3D.new()
+		var banner_box := BoxMesh.new()
+		banner_box.size = Vector3(0.04, 0.9, 0.8)
+		banner.mesh = banner_box
+		banner.material_override = banner_material
+		banner.position = pole_position + Vector3(0.0, 2.1, 0.0)
+		add_child(banner)
+		_prop_points.append(pole_position)
+
+	# Road spur from the lane end into the compound mouth.
+	var spur := MeshInstance3D.new()
+	var spur_box := BoxMesh.new()
+	spur_box.size = Vector3(2.4, 0.08, 2.6)
+	spur.mesh = spur_box
+	spur.material_override = _road_material_a
+	spur.position = center + Vector3(-3.4, 0.05, 0.0)
+	add_child(spur)
+	_prop_points.append(spur.position)
+
+
+## Survivor settlement: seven modern low-poly houses along the left ridge and
+## the road-front bend, plus settlement lighting. Built in code (zero assets).
+func _build_village() -> void:
+	var house_layout: Array[Array] = [
+		[Vector3(-17.5, 0.0, 5.5), -0.35, 1.0],
+		[Vector3(-19.0, 0.0, 2.5), 0.55, 0.92],
+		[Vector3(-19.0, 0.0, -1.0), 2.55, 1.06],
+		[Vector3(-16.0, 0.0, 0.0), 0.15, 0.96],
+		[Vector3(-14.5, 0.0, -5.5), 2.2, 1.0],
+		[Vector3(4.5, 0.0, 6.6), -0.6, 0.8],
+		[Vector3(7.0, 0.0, 4.2), 0.12, 0.84],
+	]
+	for entry: Array in house_layout:
+		var position: Vector3 = entry[0]
+		_build_modern_house(position, float(entry[1]), float(entry[2]))
+		_prop_points.append(position)
+	var street_light_scene: PackedScene = load("res://assets/models/props/street_light.glb")
+	if street_light_scene != null:
+		for position: Vector3 in [Vector3(-16.2, 0.0, 2.6), Vector3(-17.3, 0.0, -3.2), Vector3(5.6, 0.0, 6.3)]:
+			var street_light := street_light_scene.instantiate()
+			street_light.position = position
+			add_child(street_light)
+			_prop_points.append(position)
+
+
+## One modern low-poly house: stacked slabs, flat roof with overhang, tilted
+## solar panel, warm lit window bands and a doorway — a survivor-tech look
+## that reads clean at the fixed iso angle.
+func _build_modern_house(position: Vector3, rotation_y: float, scale_factor: float) -> void:
+	var house := Node3D.new()
+	house.position = position
+	house.rotation.y = rotation_y
+	house.scale = Vector3.ONE * scale_factor
+	add_child(house)
+	var wall_material := _flat_material(Color("#79817a"), 0.85)
+	var upper_material := _flat_material(Color("#8a9188"), 0.85)
+	var trim_material := _flat_material(Color("#31363a"), 0.7)
+	var window_material := _glow_material(Color(1.0, 0.78, 0.45), Color(1.0, 0.62, 0.22), 1.6)
+	var panel_material := StandardMaterial3D.new()
+	panel_material.albedo_color = Color(0.16, 0.3, 0.52)
+	panel_material.metallic = 0.65
+	panel_material.roughness = 0.3
+
+	var lower := MeshInstance3D.new()
+	var lower_box := BoxMesh.new()
+	lower_box.size = Vector3(3.4, 1.5, 2.8)
+	lower.mesh = lower_box
+	lower.material_override = wall_material
+	lower.position.y = 0.75
+	house.add_child(lower)
+	var upper := MeshInstance3D.new()
+	var upper_box := BoxMesh.new()
+	upper_box.size = Vector3(2.5, 1.1, 2.3)
+	upper.mesh = upper_box
+	upper.material_override = upper_material
+	upper.position = Vector3(0.25, 2.05, 0.0)
+	house.add_child(upper)
+	var roof := MeshInstance3D.new()
+	var roof_box := BoxMesh.new()
+	roof_box.size = Vector3(3.75, 0.12, 3.15)
+	roof.mesh = roof_box
+	roof.material_override = trim_material
+	roof.position = Vector3(0.0, 2.68, 0.0)
+	house.add_child(roof)
+	var front_window := MeshInstance3D.new()
+	var front_window_box := BoxMesh.new()
+	front_window_box.size = Vector3(3.45, 0.55, 0.05)
+	front_window.mesh = front_window_box
+	front_window.material_override = window_material
+	front_window.position = Vector3(0.0, 1.05, 1.42)
+	house.add_child(front_window)
+	var back_window := MeshInstance3D.new()
+	back_window.mesh = front_window_box
+	back_window.material_override = window_material
+	back_window.position = Vector3(0.0, 1.05, -1.42)
+	house.add_child(back_window)
+	var door := MeshInstance3D.new()
+	var door_box := BoxMesh.new()
+	door_box.size = Vector3(0.8, 1.35, 0.06)
+	door.mesh = door_box
+	door.material_override = trim_material
+	door.position = Vector3(-0.95, 0.68, 1.42)
+	house.add_child(door)
+	var solar := MeshInstance3D.new()
+	var solar_box := BoxMesh.new()
+	solar_box.size = Vector3(1.3, 0.04, 1.0)
+	solar.mesh = solar_box
+	solar.material_override = panel_material
+	solar.position = Vector3(0.35, 2.86, 0.7)
+	solar.rotation.x = -0.42
+	house.add_child(solar)
+	var antenna := MeshInstance3D.new()
+	var antenna_mesh := CylinderMesh.new()
+	antenna_mesh.top_radius = 0.02
+	antenna_mesh.bottom_radius = 0.02
+	antenna_mesh.height = 0.9
+	antenna.mesh = antenna_mesh
+	antenna.material_override = trim_material
+	antenna.position = Vector3(-0.95, 3.1, -0.65)
+	house.add_child(antenna)
+
+
+## Extra trees placed deliberately far from the shelter compound so the base
+## stays the visual hero; positions verified clear of road, slots and hills.
+func _build_extra_trees() -> void:
+	var tree_scene: PackedScene = load("res://assets/models/props/ash_tree.glb")
+	if tree_scene == null:
+		return
+	for placement: Array in [
+		[Vector3(-13.5, 0.0, 8.8), 0.9, 1.0],
+		[Vector3(-12.5, 0.0, -15.5), 2.4, 1.15],
+		[Vector3(6.0, 0.0, 9.2), 1.6, 0.9],
+		[Vector3(-6.5, 0.0, 8.6), 5.0, 0.95],
+	]:
+		var tree := tree_scene.instantiate()
+		tree.position = placement[0]
+		tree.rotation.y = float(placement[1])
+		tree.scale = Vector3.ONE * float(placement[2])
+		add_child(tree)
+		_prop_points.append(placement[0])
+
+
+## Moonlit foreground pond (shore, water with a deep tint, rim rocks and
+## reeds). Pure dressing; gameplay slots stay outside the shore radius.
+func _build_pond() -> void:
+	var pond_center: Vector3 = Vector3(-2.5, 0.0, 10.5)
+	var shore := MeshInstance3D.new()
+	var shore_mesh := CylinderMesh.new()
+	shore_mesh.top_radius = 4.35
+	shore_mesh.bottom_radius = 4.55
+	shore_mesh.height = 0.12
+	shore_mesh.radial_segments = 26
+	shore.mesh = shore_mesh
+	shore.material_override = _flat_material(Color("#6d6555"), 1.0)
+	shore.position = pond_center + Vector3(0.0, 0.05, 0.0)
+	add_child(shore)
+	var water := MeshInstance3D.new()
+	var water_mesh := CylinderMesh.new()
+	water_mesh.top_radius = 4.1
+	water_mesh.bottom_radius = 4.25
+	water_mesh.height = 0.09
+	water_mesh.radial_segments = 26
+	water.mesh = water_mesh
+	var water_material := StandardMaterial3D.new()
+	water_material.albedo_color = Color(0.13, 0.3, 0.4, 0.88)
+	water_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	water_material.metallic = 0.4
+	water_material.roughness = 0.12
+	water_material.emission_enabled = true
+	water_material.emission = Color(0.05, 0.18, 0.26)
+	water_material.emission_energy_multiplier = 0.5
+	water.material_override = water_material
+	water.position = pond_center + Vector3(0.0, 0.09, 0.0)
+	add_child(water)
+	var deep := MeshInstance3D.new()
+	var deep_mesh := CylinderMesh.new()
+	deep_mesh.top_radius = 2.2
+	deep_mesh.bottom_radius = 2.3
+	deep_mesh.height = 0.05
+	deep_mesh.radial_segments = 24
+	deep.mesh = deep_mesh
+	deep.material_override = _flat_material(Color(0.07, 0.2, 0.27), 0.15)
+	deep.position = pond_center + Vector3(0.0, 0.14, 0.0)
+	add_child(deep)
+	# rim rocks + reeds: seeded so the shore reads the same every boot
+	var rng := RandomNumberGenerator.new()
+	rng.seed = DECOR_SEED + 17
+	var rock_material := _flat_material(Color("#62625a"), 1.0)
+	var reed_material := _flat_material(Color("#4b5c3c"), 1.0)
+	for angle_degrees: int in [40, 150, 265]:
+		var angle: float = deg_to_rad(float(angle_degrees))
+		var rock := MeshInstance3D.new()
+		rock.mesh = _build_rock_variant(rng)
+		rock.material_override = rock_material
+		rock.position = pond_center + Vector3(cos(angle), 0.0, sin(angle)) * 4.25 + Vector3(0.0, 0.02, 0.0)
+		rock.scale = Vector3.ONE * 0.55
+		add_child(rock)
+	for angle_degrees: int in [110, 200, 330]:
+		var angle: float = deg_to_rad(float(angle_degrees))
+		for reed_index: int in range(3):
+			var reed := MeshInstance3D.new()
+			var reed_mesh := CylinderMesh.new()
+			reed_mesh.top_radius = 0.02
+			reed_mesh.bottom_radius = 0.04
+			reed_mesh.height = rng.randf_range(0.5, 0.8)
+			reed_mesh.radial_segments = 6
+			reed.mesh = reed_mesh
+			reed.material_override = reed_material
+			var jitter := Vector3(rng.randf_range(-0.5, 0.5), 0.0, rng.randf_range(-0.5, 0.5))
+			reed.position = pond_center + Vector3(cos(angle), 0.0, sin(angle)) * 4.0 + jitter + Vector3(0.0, 0.28, 0.0)
+			reed.rotation.z = rng.randf_range(-0.12, 0.12)
+			add_child(reed)
+	# keep-out ring so scatter never lands on the water
+	for ring_radius: float in [2.0, 3.2]:
+		for ring_index: int in range(8):
+			var ring_angle: float = TAU * float(ring_index) / 8.0
+			_prop_points.append(pond_center + Vector3(cos(ring_angle), 0.0, sin(ring_angle)) * ring_radius)
+	_prop_points.append(pond_center)
+	_prop_points.append(pond_center + Vector3(0.0, 0.0, 4.6))
 
 
 func _add_path_detail(start_point: Vector3, end_point: Vector3, segment_index: int) -> void:

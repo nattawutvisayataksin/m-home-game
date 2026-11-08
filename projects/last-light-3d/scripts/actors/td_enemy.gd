@@ -21,6 +21,7 @@ var slow_factor: float = 1.0
 var progress: float = 0.0
 var is_boss: bool = false
 var alive: bool = true
+var archetype: Archetype = Archetype.DRIFTER
 
 var _path: PackedVector3Array = PackedVector3Array()
 var _waypoint_index: int = 1
@@ -42,12 +43,13 @@ var _dash_phase_clock: float = 0.0
 var _telegraph_ring: MeshInstance3D
 
 
-func setup(path: PackedVector3Array, archetype: Archetype, new_health: float,
+func setup(path: PackedVector3Array, new_archetype: Archetype, new_health: float,
 		new_speed: float, bounty: int, breach_damage: int,
 		model_scene: PackedScene = null, dash_walk: float = 0.0,
 		dash_telegraph: float = 0.0, dash_time: float = 0.0,
 		dash_multiplier: float = 1.0) -> void:
 	_path = path
+	archetype = new_archetype
 	health = maxf(new_health, 1.0)
 	max_health = health
 	speed = maxf(new_speed, 0.1)

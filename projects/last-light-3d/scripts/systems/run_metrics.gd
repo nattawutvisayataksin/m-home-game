@@ -13,6 +13,10 @@ var run_id: String = ""
 var started_at_unix: float = 0.0
 var events: Array[Dictionary] = []
 var result: Dictionary = {}
+## Optional game-time provider (set to a Callable returning in-game seconds).
+## Stamped into every event as "game_time" so time-scaled headless sims still
+## produce meaningful pacing numbers; falls back to real elapsed only.
+var game_time_provider: Callable = Callable()
 
 
 func begin() -> void:
@@ -23,6 +27,8 @@ func begin() -> void:
 
 func record(event_type: StringName, data: Dictionary = {}) -> void:
 	var entry: Dictionary = {"type": String(event_type), "elapsed": _current_elapsed()}
+	if game_time_provider.is_valid():
+		entry["game_time"] = float(game_time_provider.call())
 	for key: String in data.keys():
 		entry[key] = data[key]
 	events.append(entry)

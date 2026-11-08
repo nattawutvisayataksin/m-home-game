@@ -200,13 +200,19 @@ func _test_title_menu() -> bool:
 		return false
 	title._close_panels()
 
+	# Baseline economy: integrity includes the barricade perk the profile has
+	# unlocked, so compare against the expected start value with barricade.
+	# The barricade level is read before _start_mission() frees the title.
+	var barricade: int = clampi(int(title._repo.load_profile().get("barricade_level", 0)), 0, ProfileRepository.MAX_BARRICADE_LEVEL)
+
 	title._start_mission()
 	await scene_changed
 	await physics_frame
 	var run := current_scene as TDRun
 	if not _check(run != null, "Start Mission did not reach the run scene."):
 		return false
-	if not _check(run.parts == run.START_PARTS and run.integrity == run.START_INTEGRITY, "Run did not boot with baseline economy."):
+	if not _check(run.parts == run.START_PARTS and run.integrity == run.START_INTEGRITY + barricade * 2,
+			"Run did not boot with baseline economy (parts=%d integrity=%d barricade=%d)." % [run.parts, run.integrity, barricade]):
 		return false
 
 	# Pause menu toggle test
