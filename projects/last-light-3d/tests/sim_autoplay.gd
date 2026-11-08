@@ -31,19 +31,25 @@ const UPGRADE_FROM_WAVE: int = 4
 const MAX_FRAMES_PER_RUN: int = 200000
 
 
+## Sim invocation: `-- <runs> <time_scale> <map>` (map 0 = whatever the
+## session hands over, i.e. the default map 1).
 var _sim_runs: int = DEFAULT_RUNS
 var _time_scale: float = DEFAULT_TIME_SCALE
+var _sim_map: int = 0
 
 
 func _initialize() -> void:
 	_sim_runs = _int_arg(0, 1, 10, DEFAULT_RUNS)
 	_time_scale = _float_arg(1, 1.0, 32.0, DEFAULT_TIME_SCALE)
+	_sim_map = _int_arg(2, 0, 2, 0)
 	call_deferred("_run_all")
 
 
 func _run_all() -> void:
-	print("SIM AUTOPLAY: runs=%d time_scale=%.1f" % [_sim_runs, _time_scale])
+	print("SIM AUTOPLAY: runs=%d time_scale=%.1f map=%d" % [_sim_runs, _time_scale, _sim_map])
 	TDSessionSnapshot.save_path = SIM_SNAPSHOT_PATH
+	if _sim_map > 0:
+		TDMapSession.select_map(_sim_map)
 	for run_index: int in range(1, _sim_runs + 1):
 		if not await _play_one_run(run_index):
 			_finish(1)

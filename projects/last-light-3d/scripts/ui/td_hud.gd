@@ -9,6 +9,7 @@ signal start_wave_pressed
 signal restart_pressed
 signal resume_pressed
 signal title_pressed
+signal next_map_pressed
 
 ## Tower card texts start as localization keys; `td_run` replaces them with
 ## data-driven labels once definitions load (see set_tower_cards).
@@ -25,6 +26,7 @@ var _start_button: Button
 var _overlay: CenterContainer
 var _overlay_message: Label
 var _overlay_restart: Button
+var _overlay_next_map: Button
 var _tower_buttons: Array[Button] = []
 
 var _pause_overlay: Control
@@ -149,6 +151,15 @@ func build_ui() -> void:
 	_overlay_restart.pressed.connect(func () -> void: restart_pressed.emit())
 	overlay_stack.add_child(_overlay_restart)
 	_register_locale_text(_overlay_restart, &"text", "RESTART_BTN")
+
+	# Next-map entry: only a map-1 victory swaps this button on.
+	_overlay_next_map = Button.new()
+	_overlay_next_map.focus_mode = Control.FOCUS_NONE
+	_style_text(_overlay_next_map, "font_size", 16)
+	_overlay_next_map.pressed.connect(func () -> void: next_map_pressed.emit())
+	_overlay_next_map.visible = false
+	overlay_stack.add_child(_overlay_next_map)
+	_register_locale_text(_overlay_next_map, &"text", "NEXT_MAP_BTN")
 
 	var overlay_title := Button.new()
 	overlay_title.focus_mode = Control.FOCUS_NONE
@@ -365,12 +376,14 @@ func set_tower_cards(labels: Array[String], tooltips: Array[String]) -> void:
 		_tower_buttons[index].tooltip_text = tooltips[index]
 
 
-func show_result(won: bool, parts_at_end: int) -> void:
+func show_result(won: bool, parts_at_end: int, can_advance: bool = false) -> void:
 	_result_shown = true
 	_result_won = won
 	_result_parts = parts_at_end
 	_overlay.visible = true
 	_overlay_message.text = tr("RESULT_WON") if won else tr("RESULT_LOST") % parts_at_end
+	if _overlay_next_map != null:
+		_overlay_next_map.visible = can_advance
 
 
 func set_pause_menu(open: bool) -> void:

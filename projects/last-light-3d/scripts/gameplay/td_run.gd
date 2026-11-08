@@ -45,46 +45,24 @@ const WAVE_CLEAR_BONUS: int = 20
 const INTEGRITY_BONUS: int = 5
 const SELL_REFUND_RATIO: float = 0.7
 
-const PATH_POINTS: PackedVector3Array = [
-	Vector3(-11.0, 0.0, 7.0),
-	Vector3(-11.0, 0.0, -6.0),
-	Vector3(-7.0, 0.0, -6.0),
-	Vector3(-7.0, 0.0, 2.0),
-	Vector3(0.0, 0.0, 2.0),
-	Vector3(0.0, 0.0, -7.0),
-	Vector3(8.0, 0.0, -7.0),
-]
-
-const SLOTS: Array[Vector3] = [
-	Vector3(-13.6, 0.0, 4.6),
-	Vector3(-8.4, 0.0, 5.0),
-	Vector3(-13.6, 0.0, -2.0),
-	Vector3(-1.8, 0.0, 4.6),
-	Vector3(-9.2, 0.0, -9.2),
-	Vector3(-4.8, 0.0, -8.6),
-	Vector3(-4.4, 0.0, -2.2),
-	Vector3(-9.4, 0.0, -0.4),
-	Vector3(2.3, 0.0, -1.2),
-	Vector3(-2.4, 0.0, -4.0),
-	Vector3(2.4, 0.0, -9.6),
-	Vector3(5.8, 0.0, -4.4),
-]
-
 # --- Scattered dressing (deterministic: identical layout every boot) ---
 const DECOR_SEED: int = 20261106
-const HILL_POSITIONS: Array[Vector3] = [
-	Vector3(-26.0, 0.0, -24.0),
-	Vector3(-10.0, 0.0, -25.0),
-	Vector3(6.0, 0.0, -25.0),
-	Vector3(20.0, 0.0, -23.0),
-	Vector3(27.0, 0.0, -14.0),
-	Vector3(30.0, 0.0, 2.0),
-	Vector3(26.0, 0.0, 13.0),
-	Vector3(-27.0, 0.0, -12.0),
-	Vector3(-29.0, 0.0, 2.0),
-	Vector3(-26.0, 0.0, 12.0),
-]
-const HILL_SCALES: Array[float] = [2.0, 1.8, 1.9, 1.7, 1.6, 1.5, 1.5, 1.6, 1.55, 1.5]
+
+# --- Map layouts: geometry data lives in data/maps/*.tres -----------------
+const MAP_LAYOUTS := {
+	1: preload("res://data/maps/map_01.tres"),
+	2: preload("res://data/maps/map_02.tres"),
+}
+const DEFAULT_MAP_ID: int = 1
+
+# Applied per-run in _apply_map_layout() before any world builds; names kept
+# identical to the old consts so every call site keeps working unchanged.
+var map_id: int = DEFAULT_MAP_ID
+var map_layout: TDMapLayout = null
+var PATH_POINTS: PackedVector3Array = PackedVector3Array()
+var SLOTS: Array[Vector3] = []
+var HILL_POSITIONS: Array[Vector3] = []
+var HILL_SCALES: Array[float] = []
 
 # --- Run state ---
 var parts: int = START_PARTS
@@ -141,6 +119,28 @@ func _enemy_def(enemy_id: StringName) -> TDEnemyDefinition:
 	return ENEMY_DEFS[enemy_id] as TDEnemyDefinition
 
 
+## Loads the map's layout resource into the run vars before any build step.
+## Selection source: TDMapSession (title handoff / advance token), unless a
+## resuming snapshot pins its own map id (free-tower positions are
+## meaningless on another layout).
+func _apply_map_layout() -> void:
+	if TDSessionSnapshot.resume_requested:
+		var snapshot: Dictionary = TDSessionSnapshot.load_state()
+		TDMapSession.select_map(int(snapshot.get("map", TDMapSession.selected_map)))
+	map_id = clampi(TDMapSession.selected_map, DEFAULT_MAP_ID, MAP_LAYOUTS.size())
+	if not MAP_LAYOUTS.has(map_id):
+		map_id = DEFAULT_MAP_ID
+	map_layout = MAP_LAYOUTS[map_id] as TDMapLayout
+	if map_layout == null:
+		push_warning("Map layout %d is not a TDMapLayout; falling back to the default map." % map_id)
+		map_id = DEFAULT_MAP_ID
+		map_layout = MAP_LAYOUTS[DEFAULT_MAP_ID] as TDMapLayout
+	PATH_POINTS = map_layout.path_points
+	SLOTS = map_layout.tower_slots
+	HILL_POSITIONS = map_layout.hill_positions
+	HILL_SCALES = map_layout.hill_scales
+
+
 func _tower_def(kind: int) -> TDTowerDefinition:
 	return TOWER_DEFS[kind] as TDTowerDefinition
 
@@ -165,6 +165,7 @@ func _ready() -> void:
 	var barricade_level: int = int(profile.get("barricade_level", 0))
 	# Barricade bonus: +2 Integrity per level
 	integrity = START_INTEGRITY + barricade_level * 2
+	_apply_map_layout()
 	_build_world()
 	_build_camera_and_light()
 	_build_env()
@@ -184,7 +185,7 @@ func _ready() -> void:
 	_preview_default = _composition_text(maxi(wave_number + 1, 1))
 	_hud.show_wave_preview(_preview_default)
 	_hud.update_status(parts, integrity, maxi(wave_number, 1), WAVES.size())
-	_metrics.record(&"run_started", {"starting_integrity": integrity, "barricade_level": barricade_level})
+	_metrics.record(&"run_started", {"starting_integrity": integrity, "barricade_level": barricade_level, "map": map_id})
 	if _resumed:
 		_metrics.record(&"run_resumed", {"wave": wave_number, "parts": parts, "integrity": integrity})
 
@@ -199,7 +200,7 @@ func _build_world() -> void:
 
 	var ground := MeshInstance3D.new()
 	var ground_plane := PlaneMesh.new()
-	ground_plane.size = Vector2(64.0, 48.0)
+	ground_plane.size = map_layout.ground_size
 	ground.mesh = ground_plane
 	var ground_material := StandardMaterial3D.new()
 	ground_material.albedo_color = Color("#3f463c")
@@ -1120,9 +1121,9 @@ func _add_spawn_beacon(position: Vector3) -> void:
 
 func _build_camera_and_light() -> void:
 	_camera = Camera3D.new()
-	_camera.fov = 42.0
+	_camera.fov = map_layout.camera_fov
 	add_child(_camera)
-	_camera.look_at_from_position(Vector3(4.0, 17.0, 15.0), Vector3(0.0, 0.0, -2.0), Vector3.UP)
+	_camera.look_at_from_position(map_layout.camera_position, map_layout.camera_focus, Vector3.UP)
 	_camera.current = true
 
 	var sun := DirectionalLight3D.new()
@@ -1262,6 +1263,7 @@ func _build_hud() -> void:
 	_hud.restart_pressed.connect(_restart)
 	_hud.resume_pressed.connect(toggle_pause)
 	_hud.title_pressed.connect(_go_to_title)
+	_hud.next_map_pressed.connect(_go_to_next_map)
 
 
 func _on_tower_selected(kind: int) -> void:
@@ -1820,7 +1822,7 @@ func _end_run(won: bool) -> void:
 	is_combat = false
 	TDSessionSnapshot.clear()  # a finished run has nothing to resume
 	_hud.set_combat_state(false)
-	_metrics.record(&"run_ended", {"won": won, "wave": wave_number, "integrity_remaining": integrity})
+	_metrics.record(&"run_ended", {"won": won, "wave": wave_number, "integrity_remaining": integrity, "map": map_id})
 	_metrics.finalize_run({
 		"won": won,
 		"wave": wave_number,
@@ -1840,10 +1842,18 @@ func _end_run(won: bool) -> void:
 		profile["salvage"] = int(profile.get("salvage", 0)) + salvage_gain
 		profile["lifetime_salvage"] = int(profile.get("lifetime_salvage", 0)) + salvage_gain
 		_profile_repo.save_profile(profile)
-	_hud.show_result(won, parts)
+	_hud.show_result(won, parts, won and map_id < MAP_LAYOUTS.size())
 	_audio.play_sfx("breach" if not won else "upgrade")
 	_add_camera_trauma(0.7 if not won else 0.3)
 	run_ended.emit(won)
+
+
+## Victory handoff to the next map: round-trips through TDMapSession (>fresh
+## scene) — the reload_current_scene path keeps restart-on-map semantics.
+func _go_to_next_map() -> void:
+	get_tree().paused = false
+	TDMapSession.advance()
+	get_tree().change_scene_to_file("res://scenes/gameplay/run.tscn")
 
 
 func _restart() -> void:
@@ -1919,6 +1929,7 @@ func save_session_snapshot() -> bool:
 		"wave": clampi(_cleared_waves_for_snapshot(), 0, WAVES.size()),
 		"parts": parts,
 		"integrity": integrity,
+		"map": map_id,
 		"towers": towers,
 	})
 

@@ -33,6 +33,9 @@ const BARRICADE_COSTS: Array[int] = [30, 70]
 
 
 func _ready() -> void:
+	# Back at the title means a fresh map provenance (a resuming snapshot
+	# re-pins its own map in the run's _apply_map_layout).
+	TDMapSession.reset()
 	_repo = ProfileRepository.new()
 	_build_background()
 	_build_title_column()
