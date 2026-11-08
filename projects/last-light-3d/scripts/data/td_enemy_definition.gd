@@ -25,3 +25,12 @@ extends Resource
 ## Optional: low-poly .glb model loaded as PackedScene. When null the enemy
 ## falls back to greybox primitives so the game runs without Blender assets.
 @export var model_scene: PackedScene
+
+## Splitter behavior: on death the parent spawns `split_count` children of
+## `split_into` (another enemy_id). Children inherit the wave health bonus
+## scaled by split_health_scale, and pay child bounty scaled by
+## split_child_bounty_scale. Zero split_count keeps an enemy whole.
+@export var split_into: StringName = &""
+@export var split_count: int = 0
+@export var split_health_scale: float = 0.5
+@export var split_child_bounty_scale: float = 0.5

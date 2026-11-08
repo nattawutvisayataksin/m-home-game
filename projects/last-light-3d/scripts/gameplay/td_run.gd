@@ -19,6 +19,7 @@ const ENEMY_DEFS := {
 	&"skitter": preload("res://data/enemies/skitter.tres"),
 	&"dasher": preload("res://data/enemies/dasher.tres"),
 	&"warden": preload("res://data/enemies/warden.tres"),
+	&"splitter": preload("res://data/enemies/splitter.tres"),
 }
 const TOWER_DEFS := {
 	TDTower.Kind.FIELD_TURRET: preload("res://data/towers/field_turret.tres"),
@@ -310,7 +311,70 @@ func _paint_path_shelter_and_slots() -> void:
 		add_child(sign)
 		_prop_points.append(sign.position)
 	_add_shelter_crystal(compound_center)
+	_build_spawn_portal()
+	_paint_dressing_and_slot_disks()
 
+
+## The enemy gate: a rift-lit ring that pulses at the walk-in end of the
+## road, so players read where Hollows come from at a glance.
+func _build_spawn_portal() -> void:
+	var portal := Node3D.new()
+	portal.name = "SpawnRift"
+	portal.position = PATH_POINTS[0] + Vector3(0.0, 0.03, 0.0)
+	add_child(portal)
+	var disc := MeshInstance3D.new()
+	var disc_mesh := CylinderMesh.new()
+	disc_mesh.top_radius = 0.85
+	disc_mesh.bottom_radius = 0.85
+	disc_mesh.height = 0.03
+	disc_mesh.radial_segments = 24
+	disc.mesh = disc_mesh
+	disc.material_override = _glow_material(Color(0.4, 0.2, 0.65), Color(0.55, 0.28, 0.95), 0.5)
+	portal.add_child(disc)
+	var outer := MeshInstance3D.new()
+	var outer_mesh := TorusMesh.new()
+	outer_mesh.inner_radius = 1.1
+	outer_mesh.outer_radius = 1.24
+	outer.mesh = outer_mesh
+	outer.material_override = _glow_material(Color(0.5, 0.25, 0.8), Color(0.6, 0.32, 1.0), 1.1)
+	outer.position.y = 0.12
+	portal.add_child(outer)
+	var inner := MeshInstance3D.new()
+	var inner_mesh := TorusMesh.new()
+	inner_mesh.inner_radius = 0.66
+	inner_mesh.outer_radius = 0.76
+	inner.mesh = inner_mesh
+	inner.material_override = _glow_material(Color(0.5, 0.3, 0.8), Color(0.52, 0.3, 0.95), 0.9)
+	inner.position.y = 0.16
+	portal.add_child(inner)
+	var pulse := outer.create_tween().set_loops()
+	pulse.tween_property(outer, "scale", Vector3.ONE * 1.14, 0.9).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	pulse.tween_property(outer, "scale", Vector3.ONE, 0.9).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	var swirl := inner.create_tween().set_loops()
+	swirl.tween_property(inner, "rotation:y", TAU, 2.4)
+
+
+## Boss arrival reads as a threat: a slow pulsing ring rides under the Warden
+## while it walks. Attached to the enemy node so it follows for free.
+func _attach_boss_aura(boss: TDEnemy) -> void:
+	var aura := MeshInstance3D.new()
+	var aura_mesh := CylinderMesh.new()
+	aura_mesh.top_radius = 1.9
+	aura_mesh.bottom_radius = 1.9
+	aura_mesh.height = 0.05
+	aura_mesh.radial_segments = 28
+	aura.mesh = aura_mesh
+	aura.material_override = _glow_material(Color(0.6, 0.2, 0.35), Color(0.85, 0.25, 0.45), 0.9)
+	aura.position = Vector3(0.0, 0.05, 0.0)
+	boss.add_child(aura)
+	var pulse := aura.create_tween().set_loops()
+	pulse.tween_property(aura, "scale", Vector3.ONE * 1.2, 1.1).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	pulse.tween_property(aura, "scale", Vector3.ONE, 1.1).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+
+
+## Slot disks, the village district, extra trees, pond and scatter dressing:
+## everything that lays down on top of the painted roads/grounds.
+func _paint_dressing_and_slot_disks() -> void:
 	for slot_index: int in range(SLOTS.size()):
 		var disk := MeshInstance3D.new()
 		var disk_cylinder := CylinderMesh.new()
@@ -1612,13 +1676,20 @@ func _spawn_tick(delta: float) -> void:
 	var enemy_id: StringName = _spawn_queue.pop_front()
 	var spawn_meta: Vector3 = _spawn_queue_meta.pop_front()
 	var stats: TDEnemyDefinition = _enemy_def(enemy_id)
+	_instantiate_enemy(stats, spawn_meta.y, stats.bounty, PATH_POINTS[0], stats)
+
+
+## Shared spawn path for wave spawns and splitter children: builds the enemy,
+## wires signals, registers live count and announces the boss archetype.
+func _instantiate_enemy(stats: TDEnemyDefinition, health_bonus: float,
+		bounty: int, spawn_position: Vector3, source: TDEnemyDefinition) -> TDEnemy:
 	var enemy := TDEnemy.new()
 	enemy.setup(
 		PATH_POINTS,
 		stats.archetype,
-		stats.base_health * (1.0 + spawn_meta.y),
+		stats.base_health * (1.0 + health_bonus),
 		stats.speed,
-		stats.bounty,
+		bounty,
 		stats.integrity_damage,
 		stats.model_scene,
 		stats.dash_walk_time,
@@ -1626,13 +1697,17 @@ func _spawn_tick(delta: float) -> void:
 		stats.dash_time,
 		stats.dash_speed_multiplier
 	)
+	enemy.source_definition = source
+	enemy.spawn_health_bonus = health_bonus
 	enemy.died.connect(_on_enemy_died)
 	enemy.leaked.connect(_on_enemy_leaked)
 	_enemy_container.add_child(enemy)
-	enemy.global_position = PATH_POINTS[0]
+	enemy.global_position = spawn_position
 	_spawned_alive += 1
 	if stats.archetype == TDEnemy.Archetype.WARDEN:
 		_announce_boss()
+		_attach_boss_aura(enemy)
+	return enemy
 
 
 func _clear_wave() -> void:
@@ -1659,7 +1734,38 @@ func _on_enemy_died(enemy: TDEnemy) -> void:
 	_spawn_effect(TDCombatEffect.KIND_DEATH, enemy.global_position)
 	_audio.play_sfx("hit", 0.06)
 	_metrics.record(&"enemy_killed", {"bounty": enemy.parts_bounty, "wave": wave_number})
+	_spawn_splitter_children(enemy)
 	enemy.queue_free()
+
+
+## Splitter parent: on death spawns its children around the corpse. Children
+## inherit the parent's wave health bonus (scaled in the definition) and the
+## child definition carries its own amounts (scaled for economy fairness).
+func _spawn_splitter_children(enemy: TDEnemy) -> void:
+	var parent_def: TDEnemyDefinition = enemy.source_definition
+	if parent_def == null or enemy.is_split_child:
+		return
+	if parent_def.split_count <= 0 or parent_def.split_into == &"":
+		return
+	if not ENEMY_DEFS.has(parent_def.split_into):
+		push_warning("Splitter child id not registered: %s" % parent_def.split_into)
+		return
+	var child_def: TDEnemyDefinition = _enemy_def(parent_def.split_into)
+	var corpse_position: Vector3 = enemy.global_position
+	var count: int = parent_def.split_count
+	var child_bounty: int = maxi(int(round(float(child_def.bounty) * parent_def.split_child_bounty_scale)), 1)
+	for child_index: int in range(count):
+		var ring_angle: float = TAU * float(child_index) / float(count)
+		var offset: Vector3 = Vector3(cos(ring_angle), 0.0, sin(ring_angle)) * 0.7
+		var child := _instantiate_enemy(child_def, enemy.spawn_health_bonus, child_bounty,
+				corpse_position + offset, child_def)
+		child.is_split_child = true
+	_spawn_effect(TDCombatEffect.KIND_SPLIT, corpse_position)
+	_metrics.record(&"enemy_split", {"count": count, "into": parent_def.split_into, "wave": wave_number})
+
+
+## Rift-lit burst when a splitter cracks open (violet twin of KIND_DEATH).
+
 
 
 func _on_enemy_leaked(enemy: TDEnemy) -> void:

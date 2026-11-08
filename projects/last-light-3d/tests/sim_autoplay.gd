@@ -14,7 +14,7 @@ const SIM_SNAPSHOT_PATH: String = "user://sim_autoplay_snapshot.json"
 const SIM_PROFILE_PATH: String = "user://sim_autoplay_profile.json"
 const DEFAULT_RUNS: int = 3
 const DEFAULT_TIME_SCALE: float = 8.0
-const MAX_PREP_PLACEMENTS: int = 2
+const MAX_PREP_PLACEMENTS: int = 1
 ## Bot reasoning knobs (mirror a mid-skill human, not a perfect player):
 ## - buys by priority, not by price: damage towers first, slows second
 ## - keeps a small mid-game stash so upgrades stay reachable
@@ -25,8 +25,8 @@ const BUILD_PRIORITY: Array[int] = [
 	TDTower.Kind.SONIC_RESONATOR,
 	TDTower.Kind.ARC_CANNON,
 ]
-const PREP_RESERVE: int = 0
-const UPGRADE_FROM_WAVE: int = 2
+const PREP_RESERVE: int = 40
+const UPGRADE_FROM_WAVE: int = 4
 ## Realtime waits are never used; this frame guard only bounds a stall.
 const MAX_FRAMES_PER_RUN: int = 200000
 

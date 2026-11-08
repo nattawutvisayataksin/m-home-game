@@ -10,7 +10,7 @@ extends Node3D
 signal died(enemy: TDEnemy)
 signal leaked(enemy: TDEnemy)
 
-enum Archetype { DRIFTER, SKITTER, DASHER, WARDEN }
+enum Archetype { DRIFTER, SKITTER, DASHER, WARDEN, SPLITTER }
 
 var health: float = 1.0
 var max_health: float = 1.0
@@ -22,6 +22,12 @@ var progress: float = 0.0
 var is_boss: bool = false
 var alive: bool = true
 var archetype: Archetype = Archetype.DRIFTER
+## Definition that spawned this enemy (the run reads split fields from it).
+var source_definition: TDEnemyDefinition = null
+## Split children must not split again.
+var is_split_child: bool = false
+## Wave health bonus the enemy was spawned with (children inherit it).
+var spawn_health_bonus: float = 0.0
 
 var _path: PackedVector3Array = PackedVector3Array()
 var _waypoint_index: int = 1
@@ -99,6 +105,12 @@ func _build_body(archetype: Archetype, model_scene: PackedScene = null) -> void:
 			mesh = boss_box
 			tint = Color(0.55, 0.2, 0.24)
 			body_height = 3.2
+		Archetype.SPLITTER:
+			var crystal := PrismMesh.new()
+			crystal.size = Vector3(1.0, 1.5, 1.0)
+			mesh = crystal
+			tint = Color(0.42, 0.24, 0.6)
+			body_height = 1.5
 		_:
 			var drifter_box := BoxMesh.new()
 			drifter_box.size = Vector3(1.0, 1.6, 1.0)
@@ -107,6 +119,11 @@ func _build_body(archetype: Archetype, model_scene: PackedScene = null) -> void:
 			body_height = 1.6
 	var material := StandardMaterial3D.new()
 	material.albedo_color = tint
+	if archetype == Archetype.SPLITTER:
+		# rift-lit crystal: the family this enemy serves glows from inside
+		material.emission_enabled = true
+		material.emission = Color(0.5, 0.26, 0.9)
+		material.emission_energy_multiplier = 0.55
 	mesh_inst.mesh = mesh
 	mesh_inst.material_override = material
 	mesh_inst.position = Vector3(0.0, body_height * 0.5, 0.0)

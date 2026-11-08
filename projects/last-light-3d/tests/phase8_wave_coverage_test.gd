@@ -101,10 +101,7 @@ func _test_wave_one_pure_economy() -> bool:
 		return false
 	if not _check(not run.is_over, "Wave 1 must not end the run."):
 		return false
-	var bounty_sum: int = 0
-	for enemy_id: StringName in wave.composition.keys():
-		bounty_sum += (TDRun.ENEMY_DEFS[enemy_id] as TDEnemyDefinition).bounty * int(wave.composition[enemy_id])
-	var expected: int = bounty_sum + run.WAVE_CLEAR_BONUS + run.INTEGRITY_BONUS * run.integrity
+	var expected: int = _expected_kill_bounty(run, 1) + run.WAVE_CLEAR_BONUS + run.INTEGRITY_BONUS * run.integrity
 	if not _check(run.parts == parts_before + expected, "Wave 1 clear paid the wrong Parts (got %d, expected %d)." % [run.parts - parts_before, expected]):
 		return false
 	var cleared: PackedInt32Array = _metrics_waves_cleared(run)
@@ -165,11 +162,16 @@ func _test_waves_two_to_eight() -> bool:
 		var cleared_waves: PackedInt32Array = _metrics_waves_cleared(run)
 		if not _check(cleared_waves.has(wave_index) and cleared_waves.count(wave_index) == 1, "Wave %d clear recorded incorrectly (%s)." % [wave_index, str(cleared_waves)]):
 			return false
+		var kill_target: int = total + _split_children_total(run, wave)
 		var kills: int = _metrics_count(run, "enemy_killed", wave_index)
-		if not _check(kills == total, "Wave %d metrics: %d/%d kills recorded." % [wave_index, kills, total]):
+		if not _check(kills == kill_target, "Wave %d metrics: %d/%d kill-events recorded (direct + split children)." % [wave_index, kills, kill_target]):
 			return false
 		var leaks: int = _metrics_count(run, "enemy_leaked", wave_index)
 		if not _check(leaks == 0, "Wave %d recorded %d leaks in the kill-only coverage." % [wave_index, leaks]):
+			return false
+		var splits: int = _metrics_count(run, "enemy_split", wave_index)
+		var split_events_expected: int = _split_parent_total(wave)
+		if not _check(splits == split_events_expected, "Wave %d split events %d != parents %d." % [wave_index, splits, split_events_expected]):
 			return false
 
 	if not _check(run.integrity == integrity_start, "Integrity changed across the kill-path coverage (%d -> %d)." % [integrity_start, run.integrity]):
@@ -203,13 +205,10 @@ func _test_wave_chaining() -> bool:
 	if not _check(run._spawned_alive == total_a + total_b, "Chained spawn produced the wrong total count."):
 		return false
 	await _kill_all_and_settle(run)
-	# One clear call pays one bonus per pending wave.
-	var bounty_sum: int = 0
-	for wave_index: int in [1, 2]:
-		var wave := run._wave_def(wave_index)
-		for enemy_id: StringName in wave.composition.keys():
-			bounty_sum += (TDRun.ENEMY_DEFS[enemy_id] as TDEnemyDefinition).bounty * int(wave.composition[enemy_id])
-	var expected: int = bounty_sum + 2 * (run.WAVE_CLEAR_BONUS + run.INTEGRITY_BONUS * run.integrity)
+	# One clear call pays one bonus per pending wave — the direct entries and
+	# the splitter children's bounties both reach the kill accounting.
+	var expected: int = _expected_kill_bounty(run, 1) + _expected_kill_bounty(run, 2) \
+			+ 2 * (run.WAVE_CLEAR_BONUS + run.INTEGRITY_BONUS * run.integrity)
 	if not _check(run.parts == parts_before + expected, "Chained clear paid the wrong Parts (%d vs %d)." % [run.parts - parts_before, expected]):
 		return false
 	var cleared: PackedInt32Array = _metrics_waves_cleared(run)
@@ -242,11 +241,47 @@ func _prepare_run_scene() -> bool:
 	return true
 
 
+## Total direct composition entries (what the spawn queue holds).
 func _composition_total(wave: TDWaveDefinition) -> int:
 	var total: int = 0
 	for enemy_id: StringName in wave.composition.keys():
 		total += int(wave.composition[enemy_id])
 	return total
+
+
+## Children every splitter parent in the wave will add on death.
+func _split_children_total(run: TDRun, wave: TDWaveDefinition) -> int:
+	var children: int = 0
+	for enemy_id: StringName in wave.composition.keys():
+		var definition := TDRun.ENEMY_DEFS[enemy_id] as TDEnemyDefinition
+		children += definition.split_count * int(wave.composition[enemy_id])
+	return children
+
+
+## Splitter parents in the wave (one enemy_split event per parent death).
+func _split_parent_total(wave: TDWaveDefinition) -> int:
+	var parents: int = 0
+	for enemy_id: StringName in wave.composition.keys():
+		var definition := TDRun.ENEMY_DEFS[enemy_id] as TDEnemyDefinition
+		if definition.split_count > 0:
+			parents += int(wave.composition[enemy_id])
+	return parents
+
+
+## All Parts the kill path pays out for the wave: direct bounties plus the
+## scaled bounties of every split child (children keep their own kills).
+func _expected_kill_bounty(run: TDRun, wave_index: int) -> int:
+	var wave := run._wave_def(wave_index)
+	var bounty_sum: int = 0
+	for enemy_id: StringName in wave.composition.keys():
+		var definition := TDRun.ENEMY_DEFS[enemy_id] as TDEnemyDefinition
+		var count: int = int(wave.composition[enemy_id])
+		bounty_sum += definition.bounty * count
+		if definition.split_count > 0:
+			var child := run._enemy_def(definition.split_into) as TDEnemyDefinition
+			var child_bounty: int = maxi(int(round(float(child.bounty) * definition.split_child_bounty_scale)), 1)
+			bounty_sum += child_bounty * definition.split_count * count
+	return bounty_sum
 
 
 ## Drains the spawn queue with the wave's own interval (no real time).
@@ -266,13 +301,19 @@ func _fast_forward_ticks(run: TDRun, step_delta: float) -> bool:
 
 ## Kill every live enemy through the damage seam, then let the physics-driven
 ## clear fire (no direct _clear_wave call — coverage of the real trigger).
+## Splitters spawn children on death, so settle rounds until nobody lives.
 func _kill_all_and_settle(run: TDRun) -> void:
-	for node: Node in root.get_tree().get_nodes_in_group("td_enemies"):
-		var enemy := node as TDEnemy
-		if enemy != null and is_instance_valid(enemy) and enemy.alive:
-			enemy.take_damage(enemy.health + 1.0)
-	for _index: int in range(4):
-		await physics_frame
+	for _round: int in range(8):
+		var any_alive: bool = false
+		for node: Node in root.get_tree().get_nodes_in_group("td_enemies"):
+			var enemy := node as TDEnemy
+			if enemy != null and is_instance_valid(enemy) and enemy.alive:
+				enemy.take_damage(enemy.health + 1.0)
+				any_alive = true
+		for _frame: int in range(4):
+			await physics_frame
+		if not any_alive:
+			break
 
 
 ## Spawned archetype counts must reflect the composition exactly.

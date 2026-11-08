@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="TDEnemyDefinition" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/td_enemy_definition.gd" id="1_def"]
+
+[resource]
+script = ExtResource("1_def")
+enemy_id = &"splitter"
+archetype = 4
+base_health = 60.0
+speed = 1.1
+bounty = 15
+integrity_damage = 1
+split_into = &"skitter"
+split_count = 2
+split_health_scale = 0.5
+split_child_bounty_scale = 0.5
