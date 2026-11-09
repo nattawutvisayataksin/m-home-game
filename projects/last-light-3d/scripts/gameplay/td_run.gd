@@ -272,13 +272,19 @@ func _paint_path_shelter_and_slots() -> void:
 	var tree_scene: PackedScene = load("res://assets/models/props/ash_tree.glb")
 	if barricade_scene != null:
 		for position: Vector3 in [Vector3(-12.8, 0.0, 8.8), Vector3(-6.6, 0.0, -10.8), Vector3(11.2, 0.0, -10.0)]:
+			if _path_distance_to(position) < 1.6:
+				push_warning("Roadside barricade %s landed on the walk road; skipped." % str(position))
+				continue
 			var barricade := barricade_scene.instantiate()
 			barricade.position = position
 			barricade.rotation.y = position.x * 0.08
 			add_child(barricade)
 			_prop_points.append(position)
 	if street_light_scene != null:
-		for position: Vector3 in [Vector3(-15.0, 0.0, 8.0), Vector3(10.0, 0.0, -4.4), Vector3(-4.2, 0.0, 4.6), Vector3(0.6, 0.0, -11.4)]:
+		for position: Vector3 in [Vector3(-15.0, 0.0, 8.0), Vector3(10.0, 0.0, -4.4), Vector3(-4.6, 0.0, 4.8), Vector3(0.6, 0.0, -11.4)]:
+			if _path_distance_to(position) < 1.6:
+				push_warning("Roadside street light %s landed on the walk road; skipped." % str(position))
+				continue
 			var street_light := street_light_scene.instantiate()
 			street_light.position = position
 			add_child(street_light)
@@ -286,7 +292,10 @@ func _paint_path_shelter_and_slots() -> void:
 	if tree_scene != null:
 		# The tree right of the road mouth sat next to the shelter compound;
 		# it moved to the far back-left so the base reads unobstructed.
-		for position: Vector3 in [Vector3(-18.0, 0.0, 9.0), Vector3(-10.0, 0.0, -12.5), Vector3(14.5, 0.0, 7.5)]:
+		for position: Vector3 in [Vector3(-18.0, 0.0, 9.0), Vector3(-13.5, 0.0, -12.5), Vector3(14.5, 0.0, 7.5)]:
+			if _path_distance_to(position) < 2.6:
+				push_warning("Roadside tree %s landed on the walk road; skipped." % str(position))
+				continue
 			var tree := tree_scene.instantiate()
 			tree.position = position
 			tree.rotation.y = position.x * 0.17
@@ -580,22 +589,30 @@ func _build_shelter_grounds(center: Vector3) -> void:
 ## Survivor settlement: seven modern low-poly houses along the left ridge and
 ## the road-front bend, plus settlement lighting. Built in code (zero assets).
 func _build_village() -> void:
+	# map-2 note: the lane bend (z=6 -> x=8) passes right under two former
+	# SE houses; both relocated so every layout's walk road stays open.
 	var house_layout: Array[Array] = [
 		[Vector3(-17.5, 0.0, 5.5), -0.35, 1.0],
 		[Vector3(-19.0, 0.0, 2.5), 0.55, 0.92],
 		[Vector3(-19.0, 0.0, -1.0), 2.55, 1.06],
 		[Vector3(-16.0, 0.0, 0.0), 0.15, 0.96],
 		[Vector3(-14.5, 0.0, -5.5), 2.2, 1.0],
-		[Vector3(4.5, 0.0, 6.6), -0.6, 0.8],
-		[Vector3(7.0, 0.0, 4.2), 0.12, 0.84],
+		[Vector3(3.4, 0.0, 1.6), -0.6, 0.8],
+		[Vector3(-16.4, 0.0, -8.4), 0.12, 0.84],
 	]
 	for entry: Array in house_layout:
 		var position: Vector3 = entry[0]
+		if _path_distance_to(position) < 3.2:
+			push_warning("Village house %s landed on the walk road; skipped." % str(position))
+			continue
 		_build_modern_house(position, float(entry[1]), float(entry[2]))
 		_prop_points.append(position)
 	var street_light_scene: PackedScene = load("res://assets/models/props/street_light.glb")
 	if street_light_scene != null:
-		for position: Vector3 in [Vector3(-16.2, 0.0, 2.6), Vector3(-17.3, 0.0, -3.2), Vector3(5.6, 0.0, 6.3)]:
+		for position: Vector3 in [Vector3(-16.2, 0.0, 2.6), Vector3(-17.3, 0.0, -3.2), Vector3(5.6, 0.0, 1.0)]:
+			if _path_distance_to(position) < 1.6:
+				push_warning("Village street light %s landed on the walk road; skipped." % str(position))
+				continue
 			var street_light := street_light_scene.instantiate()
 			street_light.position = position
 			add_child(street_light)
@@ -687,22 +704,31 @@ func _build_extra_trees() -> void:
 		return
 	for placement: Array in [
 		[Vector3(-13.5, 0.0, 8.8), 0.9, 1.0],
-		[Vector3(-12.5, 0.0, -15.5), 2.4, 1.15],
+		[Vector3(-14.5, 0.0, -14.2), 2.4, 1.15],
 		[Vector3(6.0, 0.0, 9.2), 1.6, 0.9],
 		[Vector3(-6.5, 0.0, 8.6), 5.0, 0.95],
 	]:
+		var tree_position: Vector3 = placement[0]
+		if _path_distance_to(tree_position) < 2.6:
+			push_warning("Extra tree %s landed on the walk road; skipped." % str(tree_position))
+			continue
 		var tree := tree_scene.instantiate()
-		tree.position = placement[0]
+		tree.position = tree_position
 		tree.rotation.y = float(placement[1])
 		tree.scale = Vector3.ONE * float(placement[2])
 		add_child(tree)
-		_prop_points.append(placement[0])
+		_prop_points.append(tree_position)
 
 
 ## Moonlit foreground pond (shore, water with a deep tint, rim rocks and
 ## reeds). Pure dressing; gameplay slots stay outside the shore radius.
 func _build_pond() -> void:
-	var pond_center: Vector3 = Vector3(-2.5, 0.0, 10.5)
+	# z=11.2: map-2's z=6 lane passes the old rim with <0.2 to spare; this
+	# keeps a full road-to-shore gap on every layout while staying in frame.
+	var pond_center: Vector3 = Vector3(-2.5, 0.0, 12.1)
+	if _path_distance_to(pond_center) < 5.9:
+		push_warning("Pond center %s drifted onto the walk road; pond skipped." % str(pond_center))
+		return
 	var shore := MeshInstance3D.new()
 	var shore_mesh := CylinderMesh.new()
 	shore_mesh.top_radius = 4.35
