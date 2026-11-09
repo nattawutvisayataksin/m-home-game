@@ -11,6 +11,7 @@ path_points = PackedVector3Array(-11.0, 0.0, 7.0, -11.0, 0.0, -6.0, -7.0, 0.0, -
 tower_slots = Array[Vector3]([Vector3(-13.6, 0.0, 4.6), Vector3(-8.4, 0.0, 5.0), Vector3(-13.6, 0.0, -2.0), Vector3(-1.8, 0.0, 4.6), Vector3(-9.2, 0.0, -9.2), Vector3(-4.8, 0.0, -8.6), Vector3(-4.4, 0.0, -2.2), Vector3(-9.4, 0.0, -0.4), Vector3(2.3, 0.0, -1.2), Vector3(-2.4, 0.0, -4.0), Vector3(2.4, 0.0, -9.6), Vector3(5.8, 0.0, -4.4)])
 hill_positions = Array[Vector3]([Vector3(-26.0, 0.0, -24.0), Vector3(-10.0, 0.0, -25.0), Vector3(6.0, 0.0, -25.0), Vector3(20.0, 0.0, -23.0), Vector3(27.0, 0.0, -14.0), Vector3(30.0, 0.0, 2.0), Vector3(26.0, 0.0, 13.0), Vector3(-27.0, 0.0, -12.0), Vector3(-29.0, 0.0, 2.0), Vector3(-26.0, 0.0, 12.0)])
 hill_scales = Array[float]([2.0, 1.8, 1.9, 1.7, 1.6, 1.5, 1.5, 1.6, 1.55, 1.5])
+wave_paths = Array[String](["res://data/waves/wave_01.tres", "res://data/waves/wave_02.tres", "res://data/waves/wave_03.tres", "res://data/waves/wave_04.tres", "res://data/waves/map_01/wave_05.tres", "res://data/waves/map_01/wave_06.tres", "res://data/waves/map_01/wave_07.tres", "res://data/waves/wave_08.tres"])
 camera_position = Vector3(4, 17, 15)
 camera_focus = Vector3(0, 0, -2)
 camera_fov = 42.0

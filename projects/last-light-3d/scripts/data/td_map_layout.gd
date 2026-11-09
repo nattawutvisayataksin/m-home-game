@@ -55,6 +55,12 @@ extends Resource
 ]
 @export var hill_scales: Array[float] = [2.0, 1.8, 1.9, 1.7, 1.6, 1.5, 1.5, 1.6, 1.55, 1.5]
 
+## Optional per-map wave set (ordered .tres paths). When non-empty the run
+## maps these over the global wave list: map-specific pacing/economy data
+## lives here, not in gameplay scripts. Metrics mark the first leak beyond
+## the teaching waves, so shared bloat that fits one map loses the other.
+@export var wave_paths: Array[String] = []
+
 ## Fixed tactical camera: the run locks this, so the whole map must frame.
 @export var camera_position: Vector3 = Vector3(4.0, 17.0, 15.0)
 @export var camera_focus: Vector3 = Vector3(0.0, 0.0, -2.0)

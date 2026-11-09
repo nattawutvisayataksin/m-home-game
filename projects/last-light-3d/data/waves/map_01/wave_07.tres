@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="TDWaveDefinition" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/td_wave_definition.gd" id="1_def"]
+
+[resource]
+script = ExtResource("1_def")
+wave_id = &"wave_07"
+composition = {"drifter": 22, "splitter": 7, "dasher": 8, "skitter": 16}
+spawn_interval = 0.23
+health_bonus = 1.1

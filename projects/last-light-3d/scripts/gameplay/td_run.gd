@@ -28,7 +28,8 @@ const TOWER_DEFS := {
 	TDTower.Kind.TANGLE_EMITTER: preload("res://data/towers/tangle_emitter.tres"),
 	TDTower.Kind.ARC_CANNON: preload("res://data/towers/arc_cannon.tres"),
 }
-const WAVES := [
+## Default shared wave list (used by any map without its own wave_paths).
+const DEFAULT_WAVES := [
 	preload("res://data/waves/wave_01.tres"),
 	preload("res://data/waves/wave_02.tres"),
 	preload("res://data/waves/wave_03.tres"),
@@ -38,6 +39,9 @@ const WAVES := [
 	preload("res://data/waves/wave_07.tres"),
 	preload("res://data/waves/wave_08.tres"),
 ]
+## Active wave list: the default, or the map layout's per-map override
+## (_apply_map_layout swaps it when wave_paths is non-empty).
+var WAVES: Array = DEFAULT_WAVES.duplicate()
 
 # --- Greybox economy constants (session config, not unit balance) ---
 const START_PARTS: int = 120
@@ -141,6 +145,22 @@ func _apply_map_layout() -> void:
 	SLOTS = map_layout.tower_slots
 	HILL_POSITIONS = map_layout.hill_positions
 	HILL_SCALES = map_layout.hill_scales
+	# Per-map wave override: map layouts that carry their own ordered wave
+	# list always win; the shared default stays for maps without one.
+	var wave_paths: Array[String] = map_layout.wave_paths
+	if wave_paths.is_empty():
+		WAVES = DEFAULT_WAVES.duplicate()
+		return
+	var wave_list: Array = []
+	for wave_path: String in wave_paths:
+		var wave_resource := load(wave_path)
+		if wave_resource is TDWaveDefinition:
+			wave_list.append(wave_resource)
+	if wave_list.is_empty():
+		push_warning("Map %d wave_paths produced no TDWaveDefinition; keeping the default list." % map_id)
+		WAVES = DEFAULT_WAVES.duplicate()
+		return
+	WAVES = wave_list
 
 
 func _tower_def(kind: int) -> TDTowerDefinition:

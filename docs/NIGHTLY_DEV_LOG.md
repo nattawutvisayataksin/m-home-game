@@ -30,6 +30,14 @@
 - `tests/sim_autoplay.gd` เพิ่ม CLI `<runs> <time_scale> <map>` (map 0 = default); map1: ชนะ deterministic, game_time 58.5 สุดท้าย; map2: 11/12 leak 1
 - บอท (PREP_RESERVE 40, UPGRADE_FROM_WAVE 4) ยังชนะ map1 ทุกรอบ → หยุด tune wave ตาม TD-1 เกณฑ์สุดท้ายให้ playtest มนุษย์ตัดสิน
 
+### Iteration pass ตามหัวข้อ Known TODO (ต่อวันเดียวกัน)
+- **ข้อมูลจาก metrics รอบใหม่** (~224 events/run, runs ที่ 2026-11-09): map 1 ชนะ 12/12 **leak 0 ทุกคลื่น** / upgrade ถูกใช้ 20 ครั้ง / parts ท้าย 314 — เป้า "leak > 0 คลื่น 5–7" ยังไม่ถึง → **ปรับ wave `.tres` ได้ตามเงื่อนไขเดิม เพราะมีข้อมูลอ้างอิง**
+- บทความเชิงกลไกจาก data: **การกองยอด composition อย่างเดียวไม่สร้าง leak** (clear time = spawn + เดิน + tail) และ rate ที่กัดจริงคือ **spawn_interval**; แต่ตัวเดียวก็ไม่พอเมื่อต่างแผนที่ไม่กันความเร็ว coverage จึงเกิดทำแผนที่-ต่อ-คลื่น
+- **เพิ่ม per-map wave override**: `TDMapLayout.wave_paths: Array[String]` + `td_run` `WAVES` const → `DEFAULT_WAVES` + `var WAVES` (`_apply_map_layout` สลับให้ตาม map) — แพตเทิร์นเดียวกับ PATH_POINTS/HILL_* ที่ทำไว้ก่อนหน้า; map ที่ไม่ระบุใช้ default เดิม
+- คลื่น `data/waves/map_01/` ใหม่ 3 ไฟล์ (wave 5/6/7 เฉพาะ map 1) อ้างจากรอบ data จริงทุกจุด — **คลื่น 5 (skitter 22 / splitter 5 / drifter 10 @ interval 0.32), คลื่น 6 (dasher 11 / splitter 6 / skitter 15 / drifter 14 @ 0.26), คลื่น 7 (drifter 22 / splitter 7 / dasher 8 / skitter 16 @ 0.23)**; `health_bonus` curve ตาม GDD **คงเดิมทุกตัว** (ปรับเฉพาะ interval ซึ่งเป็นตัวควบคุม rate ที่วัดได้จริง)
+- **ผลเทียบเป้า:** map 1 → **leaks คลื่น 5:4 / 6:1 / 7:2 = เป้าทุกข้อ (leak > 0 ในคลื่น 5–7) และยังชนะทุก run (integrity 5/12), upgrade ถูกใช้ (24)**; map 2 → คงชุด default ชนะ **11/12** (leak 1 คลื่น 1)
+- ข้อสรุปที่ไม่ได้ทำ: (a) ทดลองเพิ่ม tower_slots ของ map 2 แล้วไม่ช่วย — กำลังป้อมถูกผูกด้วยเงิน ไม่ใช่จำนวน slot จึงคง slot 12 ตาม design เดิม; (b) คลื่น 5–7 ค่าเดียวกันทั้งสองแผนไปไม่ถึงเป้าพร้อมกัน — ถนนยาว 2.5× ทำให้ coverage ต่อเมตรต่างกันเชิงโครงสร้าง จึงเป็นที่มาของ per-map wave ในข้อบน
+
 ### Verification
 - `dev-3d.ps1 -Action import` + `check` → 0 errors (20 scripts)
 - `test-3d.ps1` → **PHASE 1–10 PASSED** ครบ (ชุด 8 wave coverage / 9 map2 / 10 hero)
