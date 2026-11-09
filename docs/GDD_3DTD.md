@@ -100,6 +100,7 @@
 ## 11. Non-goals และ scope guard
 
 - ไม่มีมุมกล้อง orbit อิสระ, hero unit, maze TD, crafting, online ใน MVP
+  - **ข้อยกเว้นที่ผู้กำกับสั่ง (2026-11-09):** Active Hero **prototype** (ริน) ถูกสร้างไว้แล้วเพื่อทดลองแนวคิด — **dev-gated ด้วยคีย์ H** ใน dev build เท่านั้น ยังไม่ใช่ feature ของ MVP จนกว่า Game Director จะตัดสินอนุมัติหรือตัดทิ้งหลังได้ลองเล่น + metrics; ห้ามเปิดให้ผู้เล่นทั่วไปก่อนคำตัดสิน (โค้ด: `td_hero.gd`, ค่าอยู่ `data/heroes/rin_prototype.tres`)
 - ไม่ทำ content ขนาดใหญ่ก่อน vertical-slice gate; ไม่แตะ Android จนผ่าน core loop
 - ไม่ปรับสมดุลด้วยความรู้สึกของผู้พัฒนาเพียงลำพัง; ต้องใช้ playtest + metric ร่วมกันเสมอ
 - ไม่ hardcode ตัวเลขสำคัญใน logic ทุกปรับมันต้องเรียกผ่าน resource เดียวกัน

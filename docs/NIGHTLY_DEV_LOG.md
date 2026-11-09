@@ -1,5 +1,47 @@
 # Nightly Development Log — LAST LIGHT
 
+## Entry — มอนสเตอร์โจมตีฐาน + ความสวย/เอฟเฟกต์, Map 2, Hero prototype (2026-11-09)
+
+**Scope:** คำสั่งผู้กำกับ 3 ข้อ: (1) มอนสเตอร์โจมตีฐาน + ยกระดับความสวย/เอฟเฟกต์ ✅ (2) Map 2 หลังผ่านด่าน 1 ✅ (3) Active Hero prototype ✅ — รวมงานทั้งวัน 3 ชุด + sim metrics ชุดแรก
+
+### ข้อ 1 — Splitter + เอฟเฟกต์การบุกฐาน (commit `815a17e`)
+- ศัตรูใหม่ **Splitter**: ตายแล้วแตกเป็น TRAINER-CHILD 2 ตัวขึ้น param `.tres` (`split_children` 60hp กึ่ง HP แม่), ตัวแบบ crystal prism emissive; คลื่นแนะนำใน wave .tres กลุ่มกลาง–ท้าย
+- FX ใหม่ `KIND_SPLIT` (วงม่วง + เศษ), spawn portal วงเปิดตัวแห่ง, aura บน Warden boss → ฐานโดนตีมี `KIND_LEAK` เดิมเสริมแรงขึ้นอ่านง่าย
+- เหตุผล balance: ผูกกับ sim metrics ชุดแรก (รายละเอียดด้านล่าง) — เกมเดิมผู้เล่นชนะสบายเกิน leak 0
+- ตรวจด้วย selfshot + phase8 (wave coverage) เพิ่มเป็นชุดที่ 8
+
+### ข้อ 2 — Map 2 (commit `22498de`)
+- `TDMapLayout` Resource (`scripts/data/td_map_layout.gd`) + `data/maps/map_01.tres` (ค่าเดิมย้ายมา) / `map_02.tres` — พื้น 80×58 (+51%), ถนน 10 จุด ~125 หน่วย (~2.5×), SLOTS 12 จุดห่างถนน ≥3, เนินวงนอก
+- `TDRun` PATH_POINTS/SLOTS/HILL_* กลายเป็น vars อ่านจาก layout (`_apply_map_layout()`), `TDMapSession` static handoff (แบบ `TDSessionSnapshot`), snapshot เก็บ `"map"` + resume อ่าน map กลับได้, metrics ใส่ map id
+- Flow: ชนะ map 1 → HUD ปุ่ม **NEXT_MAP** → โหลด map 2; map identity ผ่านทุกเส้นทาง flash save + resume
+- Sim bot (deterministic) map 2: ชนะ true, integrity 11/12 (leak 1 ในคลื่น 1), game_time 157.1s เทียบ map1 58s — แผนใหญ่กว่าจริงตามเป้า "พื้นที่เดิน +≥50%"
+- เทสต์ชุดที่ 9 `phase9_map2_test.gd`; selfshot map 2 ยืนยันภาพ (กล้องล็อก (−4,29,31)→(−4,0,0) fov 50)
+
+### ข้อ 3 — Active Hero prototype (**ผู้กำกับสั่งเป็นกรณีพิเศษ** — ละเว้นข้อห้าม hero ใน AGENTS.md, dev-gated ด้วยคีย์ H, OUT ของ scope ปกติ ถ้าไม่อนุมัติอย่างเป็นทางการจะไม่เปิดให้ผู้เล่น)
+- **Slider balance อยู่ data**: `TDHeroDefinition` + `data/heroes/rin_prototype.tres` (move_speed 6, move_accel 16, lean 10°, range 3.6, cooldown 0.4, damage 16, arc 70°) — สคริปต์ไม่ hardcode
+- `TDHero` สร้างในโค้ดหมด (teal jacket, visor emissive cyan, ปืน emissive, เดิน lean/bob ลื่น, ความเร่ง smoothing exponential, clamp เขตพื้น margin 1) — ตัวละครรินจาก docs/STORY.md
+- โจมตีรี่ไทยผ่าน seam `take_damage` เดียวกับป้อม (แหว่ง balance hook เดียว), cone/arc + cooldown; คลิกซ้ายขณะ engage = strike ณ จุดพื้น (คลิกวางป้อมถูก ignore ใน hero mode), F = ยิงหาเป้าอัตโนมัติ
+- FX `KIND_HERO_BURST` (วง cyan + เศษ + tracer beam จากกระบอกปืน→จุดกระทบ) + sfx arc_burst + metrics `hero_strike`/`hero_engaged` + ข้อความ CSV (HERO_RIN)
+- Hero ยืนจุด spawn ใหม่ = ปลายถนน (ปากทางออก) + (0.5, 0, 4.5) พ้นขอบ platform คอมพาวด์ (pos เดิมให้กล้องตรวจเห็น obj รอบตัวบังผิดความตั้งใจ)
+- เทสต์ชุดที่ 10 `phase10_hero_test.gd` (toggle/move smoothing/bounds/frontal cone/cooldown rear-safe/metrics) — แก้ flakiness: ศัตรูตัวแรกถูกลบก่อนวัด cooled strike เพราะมันเดินออกจาก cone ระหว่างรอ cooldown ได้
+- Visual: selfshot ยืนยัน teal jacket + visor + ปืน + วง burst + tracer + เศษ (in-engine เท่านั้น); กล่องครีมที่ทำเป็นปริศนาเบื้องหน้ากล้องคือตัว Drifter ที่เทสต์ spawn ไว้ยิง ตกบนเส้นสายตากล้อง→hero พอดี — ย้าย spawn ฝั่งซ้ายแล้วจบ
+
+### Sim metrics ชุดแรก (อ้างอิง balance ข้อ 1)
+- `tests/sim_autoplay.gd` เพิ่ม CLI `<runs> <time_scale> <map>` (map 0 = default); map1: ชนะ deterministic, game_time 58.5 สุดท้าย; map2: 11/12 leak 1
+- บอท (PREP_RESERVE 40, UPGRADE_FROM_WAVE 4) ยังชนะ map1 ทุกรอบ → หยุด tune wave ตาม TD-1 เกณฑ์สุดท้ายให้ playtest มนุษย์ตัดสิน
+
+### Verification
+- `dev-3d.ps1 -Action import` + `check` → 0 errors (20 scripts)
+- `test-3d.ps1` → **PHASE 1–10 PASSED** ครบ (ชุด 8 wave coverage / 9 map2 / 10 hero)
+- Visual ทั้งหมดผ่าน in-engine capture (`root.get_texture()`), ไฟล์ png gitignored, tmp probe scripts ลบหมดแล้ว
+
+### Next
+- Hero: รอ Game Director อนุมัติ/ไม่อนุมัติเป็น feature จริง (GDD_3DTD มีโน้ต devgate แล้ว) — ก่อนนั้นคงเปิดด้วยคีย์ H เพื่อทดลองเท่านั้น
+- Map 2 รอ playtest มนุษย์ + metrics เทียบ map 1 ถึงแตะ balance .tres
+- targeting mode ต่อป้อมยังรอผู้กำกับยืนยันตามเดิม
+
+---
+
 ## Entry — Localization ไทย/อังกฤษ ครบทุกหน้า + เปลี่ยนภาษาสด (2026-11-07)
 
 **Scope:** หัวข้อสุดท้ายในเช็กลิสต์ TD-2 ที่ยังไม่ทำ (ROADMAP: "Localization ไทย/อังกฤษ") — ปุ่มเลือกภาษาในแผงตั้งค่า, แปลหน้าจอ user-facing ทุกตัว, เทสต์ชุดที่ 7. ไม่แตะ balance/ตัวเลข data `.tres` แม้แต่ตัวเดียว
