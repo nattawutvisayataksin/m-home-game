@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="TDHeroDefinition" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/td_hero_definition.gd" id="1_hero"]
+
+[resource]
+script = ExtResource("1_hero")
+hero_id = &"rin_prototype"
+display_key = "HERO_RIN"
+move_speed = 6.0
+move_accel = 16.0
+body_lean_deg = 10.0
+attack_range = 3.6
+attack_cooldown = 0.4
+attack_damage = 16.0
+attack_arc_deg = 70.0

@@ -12,6 +12,7 @@ const METRICS_SCRIPT: Script = preload("res://scripts/systems/run_metrics.gd")
 const PROFILE_SCRIPT: Script = preload("res://scripts/systems/profile_repository.gd")
 const AUDIO_SCRIPT: Script = preload("res://scripts/systems/td_audio_director.gd")
 const EFFECT_SCRIPT: Script = preload("res://scripts/actors/td_combat_effect.gd")
+const HERO_DEF: TDHeroDefinition = preload("res://data/heroes/rin_prototype.tres")
 const TOWER_SLOT_PREVIEW_ENABLED: bool = false
 
 const ENEMY_DEFS := {
@@ -96,6 +97,7 @@ var _effects: Node3D
 var _camera_trauma: float = 0.0
 var _trauma_clock: float = 0.0
 var _preview_default: String = ""
+var _hero: TDHero = null
 
 var _camera: Camera3D
 var _ghost: MeshInstance3D
@@ -1339,6 +1341,12 @@ func _unhandled_input(event: InputEvent) -> void:
 		var slot: int = _slot_from_mouse(mouse_event.position)
 		var free_tower_index: int = _free_tower_from_position(placement_position)
 		if mouse_event.button_index == MOUSE_BUTTON_LEFT:
+			if _hero != null and is_instance_valid(_hero):
+				# Hero control mode owns the left click: a direct strike
+				# toward the clicked point (tower clicks return with H off).
+				if placement_position != Vector3.INF:
+					_hero.strike_at(placement_position)
+				return
 			if slot >= 0 and _slot_occupied[slot]:
 				upgrade_tower(slot)
 			elif free_tower_index >= 0:
@@ -1366,6 +1374,11 @@ func _unhandled_input(event: InputEvent) -> void:
 				_select_kind(TDTower.Kind.ARC_CANNON)
 			KEY_SPACE:
 				start_wave()
+			KEY_H:
+				_toggle_hero()
+			KEY_F:
+				if _hero != null and is_instance_valid(_hero):
+					_hero.try_attack()
 
 
 func _select_kind(kind: int) -> void:
@@ -1374,6 +1387,40 @@ func _select_kind(kind: int) -> void:
 	var ghost_cylinder := _ghost.mesh as CylinderMesh
 	ghost_cylinder.top_radius = stats.range_radius
 	ghost_cylinder.bottom_radius = stats.range_radius
+
+
+# --- Dev-gated hero prototype (director-ordered prep) ----------------------
+
+## H toggles the hero: control mode owns WASD + left-click strikes while
+## engaged. Not a shipped feature - see docs/GDD_3DTD hero appendix.
+func _toggle_hero() -> void:
+	if _hero != null and is_instance_valid(_hero):
+		_hero.queue_free()
+		_hero = null
+		return
+	_hero = TDHero.new()
+	_hero.name = "Hero"
+	add_child(_hero)
+	_hero.setup(HERO_DEF, map_layout.ground_size * 0.5)
+	_hero.struck.connect(_on_hero_attacked)
+	# spawn on open ground clear of the compound platform ring
+	_hero.global_position = PATH_POINTS[PATH_POINTS.size() - 1] + Vector3(0.5, 0.0, 4.5)
+	_metrics.record(&"hero_engaged", {"hero": String(HERO_DEF.hero_id)})
+	_audio.play_sfx("upgrade", 0.06)
+
+
+## Shared strike feedback: cyan tracer burst at the impact, spawn side keeps
+## its own presentation via TDCombatEffect's beam anchor.
+func _on_hero_attacked(impact_position: Vector3) -> void:
+	if _hero == null or not is_instance_valid(_hero):
+		return
+	var effect: TDCombatEffect = EFFECT_SCRIPT.new() as TDCombatEffect
+	effect.effect_kind = TDCombatEffect.KIND_HERO_BURST
+	effect.effect_from = _hero.muzzle_position()
+	_effects.add_child(effect)
+	effect.global_position = impact_position
+	_audio.play_sfx("arc_burst", 0.03)
+	_metrics.record(&"hero_strike", {"wave": maxi(wave_number, 1)})
 
 
 func _slot_from_mouse(screen_position: Vector2) -> int:

@@ -16,8 +16,12 @@ const KIND_WAVE: int = 6
 const KIND_MUZZLE: int = 7
 const KIND_ELECTRIC: int = 8
 const KIND_SPLIT: int = 9
+const KIND_HERO_BURST: int = 10
 
 var effect_kind: int = 0
+## Optional beam anchor (hero burst): when set, a tracer beam runs from this
+## world position to the effect position.
+var effect_from: Vector3 = Vector3.INF
 
 var _age: float = 0.0
 var _lifetime: float = 0.25
@@ -26,6 +30,9 @@ var _motion_scale: float = 1.0
 var _ring_nodes: Array[MeshInstance3D] = []
 
 var _sparks: Array[MeshInstance3D] = []
+
+var _tracer_node: MeshInstance3D = null
+var _tracer_material: StandardMaterial3D = null
 
 
 func _ready() -> void:
@@ -64,6 +71,13 @@ func _ready() -> void:
 			_lifetime = 0.42
 			_build_ring(0.4, 2.3, 0.05, Color(0.72, 0.38, 1.0))
 			_build_sparks(8, 2.5, Color(0.72, 0.45, 1.0))
+		KIND_HERO_BURST:
+			# the hero's rifle burst: cyan tracer + hot impact sparks
+			_lifetime = 0.2
+			_build_ring(0.25, 1.0, 0.035, Color(0.3, 0.9, 1.0))
+			_build_sparks(7, 1.5, Color(0.55, 0.95, 1.0))
+			if effect_from != Vector3.INF:
+				_build_tracer(effect_from)
 		_:
 			_lifetime = 0.25
 
@@ -96,6 +110,32 @@ func _build_ring(start_radius: float, end_radius: float, thickness: float,
 	mesh_instance.position = Vector3(0.0, 0.2, 0.0)
 	add_child(mesh_instance)
 	_ring_nodes.append(mesh_instance)
+
+
+## Slim emissive beam from a source world point to the effect origin: the
+## hero's rifle tracer. A cylinder is turned into a line by pivoting at its
+## center and aiming its Y axis along the span.
+func _build_tracer(from_position: Vector3) -> void:
+	var beam := MeshInstance3D.new()
+	var beam_mesh := CylinderMesh.new()
+	var span: float = global_position.distance_to(from_position)
+	if span < 0.05:
+		return
+	beam_mesh.top_radius = 0.035
+	beam_mesh.bottom_radius = 0.035
+	beam_mesh.height = span
+	var material := StandardMaterial3D.new()
+	material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	material.emission_enabled = true
+	material.emission = Color(0.45, 0.92, 1.0)
+	material.emission_energy_multiplier = 1.4
+	beam.mesh = beam_mesh
+	beam.material_override = material
+	add_child(beam)
+	beam.look_at_from_position(global_position.lerp(from_position, 0.5), from_position, Vector3.UP)
+	beam.rotation.x += PI * 0.5
+	_tracer_node = beam
+	_tracer_material = material
 
 
 func _build_sparks(count: int, max_distance: float, color: Color) -> void:
@@ -144,3 +184,8 @@ func _process(delta: float) -> void:
 		spark.position = Vector3(cos(angle) * distance, 0.2 - progress * 0.25, sin(angle) * distance)
 		var material := spark.get_meta(&"material") as StandardMaterial3D
 		material.albedo_color = Color(material.emission.r, material.emission.g, material.emission.b, fade)
+	if _tracer_material != null:
+		_tracer_material.albedo_color = Color(_tracer_material.emission.r, _tracer_material.emission.g, _tracer_material.emission.b, fade * _alpha_scale)
+		_tracer_material.emission_energy_multiplier = fade * 1.4 * _alpha_scale
+		if _tracer_node != null:
+			_tracer_node.scale = Vector3(1.0, maxf(1.0 - progress * 1.6, 0.01), 1.0)
