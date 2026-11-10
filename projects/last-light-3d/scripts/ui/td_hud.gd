@@ -28,6 +28,8 @@ var _overlay_message: Label
 var _overlay_restart: Button
 var _overlay_next_map: Button
 var _tower_buttons: Array[Button] = []
+var _hero_panel: VBoxContainer
+var _hero_hint: Label
 
 var _pause_overlay: Control
 var _settings_overlay: Control
@@ -106,6 +108,28 @@ func build_ui() -> void:
 	bottom.size_flags_vertical = Control.SIZE_SHRINK_END
 	bottom.add_theme_constant_override("separation", 8)
 	root.add_child(bottom)
+
+	# Hero control card (approved feature, 2026-11-09): sits bottom-left above
+	# the tower cards and shows only while the hero is deployed; the hint row
+	# doubles as the onboarding for new players.
+	var hero_row := HBoxContainer.new()
+	hero_row.alignment = BoxContainer.ALIGNMENT_BEGIN
+	hero_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	bottom.add_child(hero_row)
+	_hero_panel = VBoxContainer.new()
+	_hero_panel.add_theme_constant_override("separation", 2)
+	_hero_panel.visible = false
+	hero_row.add_child(_hero_panel)
+	var hero_status := Label.new()
+	_style_text(hero_status, "font_size", 14)
+	hero_status.add_theme_color_override("font_color", Color("#7fe3d8"))
+	_hero_panel.add_child(hero_status)
+	_register_locale_text(hero_status, &"text", "HERO_PANEL")
+	_hero_hint = Label.new()
+	_style_text(_hero_hint, "font_size", 12)
+	_hero_hint.add_theme_color_override("font_color", Color("#5d6a74"))
+	_hero_panel.add_child(_hero_hint)
+	_register_locale_text(_hero_hint, &"text", "HERO_HINT")
 
 	var buttons := HBoxContainer.new()
 	buttons.add_theme_constant_override("separation", 10)
@@ -305,6 +329,13 @@ func update_status(parts: int, integrity: int, wave: int, max_waves: int) -> voi
 	_parts_label.text = tr("HUD_MONEY") % parts
 	_integrity_label.text = tr("HUD_INTEGRITY") % integrity
 	_wave_label.text = tr("HUD_WAVE") % [wave, max_waves]
+
+
+## Hero card visibility follows the hero's deployed state (td_run calls this
+## right from spawn/recall on the approved hero feature).
+func set_hero_active(active: bool) -> void:
+	if _hero_panel != null:
+		_hero_panel.visible = active
 
 
 ## GDD: HUD แสดงปริมาณ enemy ทยอย spawn. Hidden outside combat.

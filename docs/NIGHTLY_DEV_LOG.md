@@ -1,5 +1,27 @@
 # Nightly Development Log — LAST LIGHT
 
+## Entry — แผง "ฐานที่มั่น" + รีดไซน์ footer-left, Hero อนุมัติเป็นฟีเจอร์จริง, playtest-fix dressing map 2 (2026-11-09/10)
+
+**Scope:** feedback ผู้กำกับ (1) ต้นไม้/บ้านบนถนน map 2 — fix `3dcc415` ✅ (2) "ปุ่มซ้ายล่างหน้า title คืออะไร คลิกทำไม" → **ปรับ menu ให้อธิบายตัวเอง** ✅ (3) "ดำเนินการทำ Hero ได้เลย" → ยก dev-gate ทำฟีเจอร์จริง ✅
+
+### (1) Dressing map 2 — fix playtest (commit `3dcc415`)
+- จุด fixed dressing ที่ทับถนน zigzag 10 จุด: บ้าน 2 หลัง, โคมหมู่บ้าน, ต้นไม้ extra ×2, โคม roadside, บ่อ — ย้ายพิกัดหมด + selfshot map 2 ไม่มี warning skip
+- **Guard ใหม่** ใน builders ทุกกลุ่ม (บ้าน/โคม/แถว roadside/บ่อ): `_path_distance_to(position) < margin` → `push_warning` + skip (margin: บ้าน 3.2 / ต้นไม้ 2.6 / โคม 1.6 / บ่อ 5.9); คลื่น map ๆ ได้ตรวจเอง — จับจุดพิกัดย้ายรอบสองที่ตกบนถนน map 1 (โคม −4.4,3.4 ห่าง segment (−7,2)→(0,2) แค่ 1.4) จริงตามเทสต์ phase5/6, เลือกจุด −4.6/4.8 ที่ clear สองแผน
+- บทเรียน: การย้าย prop แก้ปัญหาเห็นต่อ map เดียว — guard แยกตาม margin ต่อชนิด prop คือสิ่งที่กันวางผิดทุก map ในอนาคต
+
+### (2) Footer-left หน้า title → แผง "ฐานที่มั่น — อัปเกรดถาวรของคุณ"
+- ปัญหาเดิม: แถบแค่ "Salvage %d · ชนะ %d · คลื่นไกลสุด %d" + ปุ่ม "อัปเกรด Barricade → LvN (Salvage 30)" — ไม่มีอธิบายว่าอยู่ทำไม และปุ่มปิดเงียบเมื่อเงินไม่พอ (ผู้กำกับ: "ไม่เข้าใจ ไม่ work")
+- โครงใหม่ 4 ส่วน: หัวข้อ `META_TITLE` → สถิติ profile → **บรรทัดผลจริง `BARRICADE_EFFECT`** "แผงกั้น Barricade Lv1/2 — Shelter เริ่มแต่ละคืนด้วย Integrity 12 (+2 ต่อระดับ)" (อ้างค่า `TDRun.START_INTEGRITY` เดียว — ห้าม hardcode ซ้ำ) → ปุ่ม `BARRICADE_BUY` ใหม่ "ซื้ออัปเกรดแผงกั้น Barricade Lv2 — Salvage 70"
+- **กดปุ่มเมื่อเงินไม่พอจะตอบบนหน้าจอ**: `BARRICADE_SHORT` "Salvage ไม่พอ — ต้องการอีก N" (label เพิ่ม, tween ซ่อน 3 วิ) — ปุ่ม disabled เฉพาะสถานะครบสูงสุดเท่านั้น; บทเรียน UX: state ที่ตายเงียบ = "ปุ่มไม่ work" ในตาผู้เล่น
+- keys ใหม่ `META_TITLE`/`BARRICADE_EFFECT`/`BARRICADE_SHORT` + ปรับปรุงข้อความ BARRICADE_BUY/MAX — **ต้อง `-Action import` ทุกครั้งที่แก้ translations.csv** (`.translation` รวบรวมจาก CSV ที่ import; ข้ามขั้นนี้คราวนี้เจอ error "not all arguments converted" ใน phase7 จริง)
+
+### (3) Hero ริน — ผู้กำกับอนุมัติ (ยก dev-gate, GDD_3DTD §11 อัปเดต)
+- `_ready` เรียก `_toggle_hero()` → **ริน auto-deploy ทุกคืน**; H = เรียก/ส่งกลับ (สายวางป้อมล้วนกด H ออกได้), คลิกซ้าย = ยิงที่จุด, F = ยิงด้านหน้า — โครงเดิมทั้งหมด ไม่แตะตัวเลข `rin_prototype.tres`
+- HUD การ์ดควบคุม (td_hud `set_hero_active`): "ริน — ลงสนามแล้ว" + คำใบ้ `HERO_HINT` "WASD เดิน · คลิกซ้ายยิงที่จุด · F ยิงด้านหน้า · H เรียก/ส่งกลับ" — แสดงเมื่อรินอยู่บนสนาม ซ่อนเมื่อเรียกกลับ
+- `HERO_RIN` เปลี่ยนจาก "ต้นแบบผู้ลงสนาม" → "นักลงสนาม" (สถานะไม่ใช่ prototype แล้ว)
+- เทสต์ phase10 ใหม่: auto-deploy ตั้งแต่เริ่มรัน / toggle ส่งกลับ → การ์ดหาย / กด H กลับได้ + การ์ดโผล่ / ยิงเจาะ seam take_damage + cooldown + HUD sync — 10/10 ชุดเขียว exit 0
+- metrics: `hero_engaged` ตอน spawn, `hero_strike` ต่อยิง — เก็บเทียบครั้งแรกที่ผู้เล่นจริงได้ใช้
+
 ## Entry — มอนสเตอร์โจมตีฐาน + ความสวย/เอฟเฟกต์, Map 2, Hero prototype (2026-11-09)
 
 **Scope:** คำสั่งผู้กำกับ 3 ข้อ: (1) มอนสเตอร์โจมตีฐาน + ยกระดับความสวย/เอฟเฟกต์ ✅ (2) Map 2 หลังผ่านด่าน 1 ✅ (3) Active Hero prototype ✅ — รวมงานทั้งวัน 3 ชุด + sim metrics ชุดแรก

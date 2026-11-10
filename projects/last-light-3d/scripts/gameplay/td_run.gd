@@ -202,6 +202,9 @@ func _ready() -> void:
 	if TDSessionSnapshot.resume_requested:
 		TDSessionSnapshot.resume_requested = false
 		_restore_session(TDSessionSnapshot.load_state())
+	# Approved hero feature (director decision, 2026-11-09): ริน auto-deploys
+	# every run; H still recalls/summons her for a pure-tower playstyle.
+	_toggle_hero()
 	# No clearing here: a stale snapshot survives until a real wave-clear (or a
 	# run end) supersedes it, so an accidental fresh start keeps old progress.
 	_preview_default = _composition_text(maxi(wave_number + 1, 1))
@@ -1435,14 +1438,16 @@ func _select_kind(kind: int) -> void:
 	ghost_cylinder.bottom_radius = stats.range_radius
 
 
-# --- Dev-gated hero prototype (director-ordered prep) ----------------------
+# --- Hero feature (approved 2026-11-09, formerly the dev-gated prototype) ---
 
 ## H toggles the hero: control mode owns WASD + left-click strikes while
-## engaged. Not a shipped feature - see docs/GDD_3DTD hero appendix.
+## engaged. Auto-spawned each run since the director's approval; H stays as
+## the recall/summon switch for a pure-tower playstyle.
 func _toggle_hero() -> void:
 	if _hero != null and is_instance_valid(_hero):
 		_hero.queue_free()
 		_hero = null
+		_hud.set_hero_active(false)
 		return
 	_hero = TDHero.new()
 	_hero.name = "Hero"
@@ -1451,6 +1456,7 @@ func _toggle_hero() -> void:
 	_hero.struck.connect(_on_hero_attacked)
 	# spawn on open ground clear of the compound platform ring
 	_hero.global_position = PATH_POINTS[PATH_POINTS.size() - 1] + Vector3(0.5, 0.0, 4.5)
+	_hud.set_hero_active(true)
 	_metrics.record(&"hero_engaged", {"hero": String(HERO_DEF.hero_id)})
 	_audio.play_sfx("upgrade", 0.06)
 

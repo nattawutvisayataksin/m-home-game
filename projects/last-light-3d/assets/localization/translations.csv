@@ -12,9 +12,14 @@ FEATURE_STRIP,One night · 8 waves · 4 towers · Lv2 upgrades · sell back 70%,
 SLOGAN,“The last light is our front line.”,“แสงสุดท้าย คือแนวรบของเรา”
 BUILD_TAG,Tech demo · Shelter 09 · build 2026-11-07,เดโม่เทคนิค · Shelter 09 · build 2026-11-07
 PROFILE_ROW,Salvage %d · Wins %d · Best wave %d,Salvage %d · ชนะ %d ครั้ง · คลื่นไกลสุด %d
-BARRICADE_BUY,UPGRADE BARRICADE → Lv%d (%d Salvage),อัปเกรด Barricade → Lv%d (Salvage %d)
-BARRICADE_MAX,BARRICADE Lv%d — MAXED OUT,Barricade Lv%d — สูงสุดแล้ว
+BARRICADE_BUY,BUY BARRICADE Lv%d — %d Salvage,ซื้ออัปเกรดแผงกั้น Barricade Lv%d — Salvage %d
+BARRICADE_MAX,BARRICADE Lv%d — MAXED OUT,อัปเกรดแผงกั้นครบ Lv%d แล้ว
 BARRICADE_TOOLTIP,Upgrade the Barricade — Shelter 09 keeps the watch.\n+2 Shelter Integrity per level (max Lv2). Applied to the following nights.,อัปเกรด Barricade — ยืนรักษาการสังเกตของ Shelter 09\n+2 Shelter Integrity ต่อระดับ (สูงสุด Lv2) ใช้กับคืนถัด ๆ ไป
+META_TITLE,YOUR BASE — PERMANENT UPGRADES,ฐานที่มั่น — อัปเกรดถาวรของคุณ
+BARRICADE_EFFECT,Barricade Lv%d/%d — Shelter starts each night with %d Integrity (+2 per level),แผงกั้น Barricade Lv%d/%d — Shelter เริ่มแต่ละคืนด้วย Integrity %d (+2 ต่อระดับ)
+BARRICADE_SHORT,Not enough Salvage — need %d more,Salvage ไม่พอ — ต้องการอีก %d
+HERO_PANEL,Rin — on duty,ริน — ลงสนามแล้ว
+HERO_HINT,WASD walk · Left-click strike · F strike ahead · H recall,WASD เดิน · คลิกซ้ายยิงที่จุด · F ยิงด้านหน้า · H เรียก/ส่งกลับ
 SETTINGS_TITLE,SETTINGS,ตั้งค่า
 MASTER_VOLUME,Master volume,เสียงหลัก
 SFX_VOLUME,SFX volume,เสียงเอฟเฟกต์
@@ -43,7 +48,7 @@ RESTART_BTN,Restart,เริ่มใหม่
 NEXT_MAP_BTN,Next Map ▶,ด่านต่อไป ▶
 MAP_NAME_1,Road to Shelter 09,เส้นทางสู่เชลเตอร์ 09
 MAP_NAME_2,Rift Fields,ที่ราบริฟท์
-HERO_RIN,Rin - Field Prototype,ริน ต้นแบบผู้ลงสนาม
+HERO_RIN,Rin — Field Operative,ริน — นักลงสนาม
 MAIN_MENU_BTN,Main Menu,กลับหน้าหลัก
 BOSS_INCOMING,RIFT WARDEN IS CLOSING IN!,RIFT WARDEN เคลื่อนเข้ามาแล้ว!
 TOWER_CARD_LABEL,%d  %s — %d Money,%d  %s — เงิน %d

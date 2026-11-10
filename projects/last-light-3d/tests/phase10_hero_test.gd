@@ -1,8 +1,9 @@
 extends SceneTree
 
-## Hero prototype test (dev-gated, director-ordered prep): the H toggle spawns
-## and despawns the hero, movement smooths (no snapping) and respects the
-## ground bounds, and the strike seam damages an enemy through take_damage
+## Hero feature test (approved 2026-11-09): the hero auto-deploys at run
+## start, the H-toggle recalls and re-summons her, movement smooths (no
+## snapping) and respects the ground bounds, the HUD control card follows the
+## deployed state, and the strike seam damages an enemy through take_damage
 ## with the cooldown guarding repeats. No real-time waits.
 
 const RUN_SCENE: PackedScene = preload("res://scenes/gameplay/run.tscn")
@@ -45,13 +46,31 @@ func _test_all() -> bool:
 		return false
 	run._profile_repo.save_path = TEST_PROFILE_PATH
 
-	if not _check(run._hero == null, "The hero must stay dormant until the dev toggle."):
+	# Approved behavior: the hero auto-deploys with the run and her control
+	# card shows in the HUD immediately.
+	var auto_hero := run._hero as TDHero
+	if not _check(auto_hero != null, "Hero did not auto-deploy at run start."):
 		return false
+	if not _check(is_instance_valid(auto_hero.definition), "Hero launched without a definition resource."):
+		return false
+	var hud_card := run._hud._hero_panel
+	if not _check(hud_card != null and hud_card.visible, "HUD hero card missing or hidden while the hero is deployed."):
+		return false
+
+	# H recall: despawns and hides the card.
+	run._toggle_hero()
+	if not _check(run._hero == null, "Toggle did not recall the auto-deployed hero."):
+		return false
+	if not _check(not hud_card.visible, "HUD hero card stayed visible after recall."):
+		return false
+	# Re-summon via the same toggle (the H switch keeps working).
 	run._toggle_hero()
 	var hero := run._hero as TDHero
-	if not _check(hero != null, "H toggle did not spawn a TDHero."):
+	if not _check(hero != null, "Toggle did not re-summon the hero."):
 		return false
-	if not _check(is_instance_valid(hero.definition), "Hero launched without a definition resource."):
+	if not _check(is_instance_valid(hero.definition), "Re-summoned hero launched without a definition resource."):
+		return false
+	if not _check(hud_card.visible, "HUD hero card did not reappear with the re-summoned hero."):
 		return false
 
 	# Movement: seam input east (+x). One physics frame must move less than a

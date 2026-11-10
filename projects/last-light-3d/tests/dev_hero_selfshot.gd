@@ -17,7 +17,10 @@ func _run() -> void:
 	await _settle_frames(10)
 	var run := current_scene as TDRun
 
-	run._toggle_hero()
+	# Approved feature: the hero is already deployed; only summon her if a
+	# future guard path starts without one.
+	if run._hero == null:
+		run._toggle_hero()
 	var hero := run._hero as TDHero
 	hero.use_seam_input = true
 	# a short walk so the gait reads, then stand and fight

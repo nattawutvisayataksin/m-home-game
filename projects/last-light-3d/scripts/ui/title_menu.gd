@@ -24,6 +24,8 @@ var _locale_texts: Array[Array] = []
 var _locale_refreshers: Array[Callable] = []
 var _profile_label: Label
 var _barricade_button: Button
+var _barricade_line: Label
+var _meta_feedback: Label
 var _continue_button: Button
 var _snapshot_wave: int = 0
 var _repo: ProfileRepository
@@ -190,18 +192,32 @@ func _build_footer() -> void:
 	row.add_theme_constant_override("separation", 18)
 	footer.add_child(row)
 
-	# Left: meta progression — salvage balance + Barricade upgrade purchase.
+	# Left: base panel — a titled block so the player can tell at a glance
+	# what the row is for (profile readout + the permanent Barricade upgrade).
 	var profile_box := VBoxContainer.new()
 	profile_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	profile_box.alignment = BoxContainer.ALIGNMENT_BEGIN
 	profile_box.add_theme_constant_override("separation", 5)
 	row.add_child(profile_box)
 
+	var meta_title := Label.new()
+	_style_text(meta_title, "font_size", 13)
+	meta_title.add_theme_color_override("font_color", Color("#c9a25c"))
+	profile_box.add_child(meta_title)
+	_register_locale_text(meta_title, &"text", "META_TITLE")
+
 	_profile_label = Label.new()
 	_profile_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	_style_text(_profile_label, "font_size", 14)
 	_profile_label.add_theme_color_override("font_color", Color("#9fb2a8"))
 	profile_box.add_child(_profile_label)
+
+	# One concrete sentence: what the Barricade level changes, in numbers.
+	_barricade_line = Label.new()
+	_barricade_line.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	_style_text(_barricade_line, "font_size", 13)
+	_barricade_line.add_theme_color_override("font_color", Color("#8a9bb0"))
+	profile_box.add_child(_barricade_line)
 
 	_barricade_button = Button.new()
 	_barricade_button.custom_minimum_size = Vector2(330.0, 42.0)
@@ -218,6 +234,15 @@ func _build_footer() -> void:
 	_barricade_button.pressed.connect(_upgrade_barricade)
 	profile_box.add_child(_barricade_button)
 	_register_locale_text(_barricade_button, &"tooltip_text", "BARRICADE_TOOLTIP")
+
+	# Missing-funds feedback: a short message instead of a silently dead
+	# button, so "nothing happened" never becomes the player's conclusion.
+	_meta_feedback = Label.new()
+	_meta_feedback.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	_meta_feedback.visible = false
+	_style_text(_meta_feedback, "font_size", 13)
+	_meta_feedback.add_theme_color_override("font_color", Color("#e07a66"))
+	profile_box.add_child(_meta_feedback)
 	_refresh_profile_row()
 
 	# Center: brand slogan + build tag.
@@ -247,7 +272,7 @@ func _build_footer() -> void:
 ## Sample the real profile for the footer readout; repo may be swapped by
 ## tests through set_profile_repository().
 func _refresh_profile_row() -> void:
-	if _profile_label == null or _barricade_button == null:
+	if _profile_label == null or _barricade_button == null or _barricade_line == null:
 		return
 	var profile: Dictionary = _repo.load_profile()
 	var salvage: int = int(profile.get("salvage", 0))
@@ -255,18 +280,26 @@ func _refresh_profile_row() -> void:
 	_profile_label.text = tr("PROFILE_ROW") % [
 		salvage, int(profile.get("victories", 0)), int(profile.get("best_wave", 1)),
 	]
-	if level >= ProfileRepository.MAX_BARRICADE_LEVEL:
+	# Plain-numbers effect line: level X of Y, and the Integrity the Shelter
+	# actually opens each night with (single source: TDRun.START_INTEGRITY).
+	var max_level: int = ProfileRepository.MAX_BARRICADE_LEVEL
+	_barricade_line.text = tr("BARRICADE_EFFECT") % [level, max_level, TDRun.START_INTEGRITY + level * 2]
+	if _meta_feedback != null:
+		_meta_feedback.visible = false
+	if level >= max_level:
 		_barricade_button.text = tr("BARRICADE_MAX") % level
 		_barricade_button.disabled = true
 		return
 	var cost: int = BARRICADE_COSTS[level]
 	_barricade_button.text = tr("BARRICADE_BUY") % [level + 1, cost]
-	_barricade_button.disabled = salvage < cost
+	# The button stays clickable even on short funds: the click itself then
+	# reports what is missing on screen (dead disabled state taught nothing).
+	_barricade_button.disabled = false
 
 
 func _upgrade_barricade() -> void:
 	if not _upgrade_barricade_profile():
-		_refresh_profile_row()  # keep readout honest on max/refund paths
+		_report_purchase_blocker()
 
 
 ## Pure meta-progression math over the profile dict; returns true on success.
@@ -287,6 +320,26 @@ func _upgrade_barricade_profile() -> bool:
 		return false
 	_refresh_profile_row()
 	return true
+
+
+## Explains a failed purchase on screen, briefly: how much Salvage is missing.
+func _report_purchase_blocker() -> void:
+	if _meta_feedback == null:
+		return
+	var profile: Dictionary = _repo.load_profile()
+	var level: int = clampi(int(profile.get("barricade_level", 0)), 0, ProfileRepository.MAX_BARRICADE_LEVEL)
+	if level >= ProfileRepository.MAX_BARRICADE_LEVEL:
+		return
+	var missing: int = maxi(BARRICADE_COSTS[level] - int(profile.get("salvage", 0)), 0)
+	if missing <= 0:
+		return  # save failure path: the warning push already covers it
+	_meta_feedback.text = tr("BARRICADE_SHORT") % missing
+	_meta_feedback.visible = true
+	var tween := create_tween()
+	tween.tween_interval(3.0)
+	tween.tween_callback(func () -> void:
+		if _meta_feedback != null and is_instance_valid(_meta_feedback):
+			_meta_feedback.visible = false)
 
 
 func _add_menu_button(vbox: VBoxContainer, key: String, on_pressed: Callable) -> Button:

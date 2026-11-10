@@ -38,7 +38,7 @@ Godot 4.7.2 ต้องอยู่ใน PATH หรือตั้ง env `GO
 
 - **ห้ามแตะตัวเลข balance ใน data .tres** โดยไม่มี playtest metrics อ้างอิง — ปรับด้วยข้อมูล ไม่ใช่ความรู้สึก
 - **โปรเจกต์ 2D (`projects/last-light/`) อย่าแตะ** นอกจากระบบ metrics (`scripts/systems/run_metrics.gd`, `tests/phase6_metrics_test.gd`) — มันคือ reference build ที่เก็บสถิติอยู่
-- **ห้ามเพิ่ม hero/active player unit** ในโปรเจกต์ 3D — เกมนี้ตัวผู้เล่นวางป้อมล้วนตาม GDD_3DTD
+- **Hero (ริน) อนุมัติแล้ว (2026-11-10)** — ห้ามเพิ่ม hero ตัวที่สอง; ริน auto-deploy ทุกคืน (ค่าอยู่ `data/heroes/rin_prototype.tres`, เดิมเป็น prototype dev-gated — ดู GDD_3DTD §11 ฉบับ 2026-11-10)
 - งานเรื่อง origin / IP: ใช้เรื่องจาก `docs/STORY.md` (Shelter 09, ริน, มีรา, Hollows, Rift Warden) — อย่าสร้างตัวละคร/ชื่อใหม่
 - Visual check เฉพาะสิ่งที่ปลอดภัย: ใช้ in-engine capture (`root.get_texture().get_image()`) ผ่าน `tests/dev_title_selfshot.gd` เป็นแบบอย่าง — **ห้าม capture หน้าจอเดสก์ท็อปโดยรอบ** ผู้ใช้งานเครื่องนี้มีหน้าต่างส่วนตัวเปิดอยู่
 
@@ -49,4 +49,4 @@ Godot 4.7.2 ต้องอยู่ใน PATH หรือตั้ง env `GO
 3. **TD-2:** Blender low-poly assets ✅ (ผ่าน Blender AI Bridge; asset suite ครบ ป้อม/ศัตรู/props)
 4. Settings (volume/accessibility) ✅ 2026-11-04; flash save บนโปรเจกต์ 3D ✅ 2026-11-05; **Localization ไทย/อังกฤษ ✅ 2026-11-07** (translations.csv + เลือกภาษาใน settings, เปลี่ยนสดทุกหน้า, เทสต์ phase7)
 5. **Playtest มนุษย์ TD-2** ✅ 2026-11-06 — เกณฑ์ผ่าน (วางป้อมแรก 5 วิ < 25 วิ, อธิบาย leak ได้) ครั้งแรก; รอรอบใหม่บน wave set 2026-11-09 + Splitter
-6. **งานเสนอชุดถัดไป (ต้องได้ Game Director รับก่อน):** targeting mode ต่อป้อม (GDD §5 "หลัง vertical slice"), โหมดภาษาอังกฤษต่อยอดใน marketing copy, **Hero prototype รอตัดสิน** (dev-gated คีย์ H — อนุมัติ/ตัดทิ้ง ดู GDD_3DTD §11), leak คลื่น 1 บน map 2 รอผู้กำกับเลือกแนวทาง (ช่องวางต่อ coverage / wave ของ map 2)
+6. **งานเสนอชุดถัดไป (ต้องได้ Game Director รับก่อน):** targeting mode ต่อป้อม (GDD §5 "หลัง vertical slice"), โหมดภาษาอังกฤษต่อยอดใน marketing copy, leak คลื่น 1 บน map 2 รอผู้กำกับเลือกแนวทาง (ช่องวางต่อ coverage / wave ของ map 2); **Hero ริน อนุมัติแล้ว 2026-11-10** (auto-deploy + HUD การ์ด, phase10 ครบ) — ขั้นถัดไปถ้ามี: playtest มนุษย์ hero ต่างหาก + metrics `hero_strike` สะสม

@@ -1,12 +1,13 @@
 class_name TDHero
 extends Node3D
 
-## Dev-gated hero prototype (director-ordered prep): a code-built low-poly
-## operative with smooth WASD movement, a leaning/bobbing gait and an emissive
-## rifle. Movement is discrete-world WASD (the tactical camera faces north, so
-## screen-up is -z). Attacks ride the enemy damage seam (take_damage) so the
-## hero and towers share one balancing hook. All tuning lives in
-## TDHeroDefinition (.tres); this script never hardcodes balance.
+## Approved hero (director decision, 2026-11-09; formerly the dev-gated
+## prototype): a code-built low-poly operative with smooth WASD movement, a
+## leaning/bobbing gait and an emissive rifle. Movement is discrete-world WASD
+## (the tactical camera faces north, so screen-up is -z). Attacks ride the
+## enemy damage seam (take_damage) so the hero and towers share one balancing
+## hook. All tuning lives in TDHeroDefinition (.tres); this script never
+## hardcodes balance.
 
 ## Fired after a strike lands (world position of the impact) - the run spawns
 ## the VFX/SFX/metrics around it, keeping this node presentation-free.
