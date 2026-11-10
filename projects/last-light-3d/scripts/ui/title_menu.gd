@@ -182,7 +182,7 @@ func _build_footer() -> void:
 	var footer := MarginContainer.new()
 	footer.name = "Footer"
 	footer.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
-	footer.offset_top = -108.0
+	footer.offset_top = -132.0
 	footer.offset_bottom = -16.0
 	footer.add_theme_constant_override("margin_left", 56.0)
 	footer.add_theme_constant_override("margin_right", 56.0)
