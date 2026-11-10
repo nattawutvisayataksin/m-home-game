@@ -30,6 +30,7 @@ var _overlay_next_map: Button
 var _tower_buttons: Array[Button] = []
 var _hero_panel: VBoxContainer
 var _hero_hint: Label
+var _toast_label: Label
 
 var _pause_overlay: Control
 var _settings_overlay: Control
@@ -336,6 +337,30 @@ func update_status(parts: int, integrity: int, wave: int, max_waves: int) -> voi
 func set_hero_active(active: bool) -> void:
 	if _hero_panel != null:
 		_hero_panel.visible = active
+
+
+## Transient bottom-center line for per-tower feedback (targeting mode
+## changes): event-driven only, fades out on its own.
+func show_targeting_toast(text: String) -> void:
+	if _toast_label == null:
+		_toast_label = Label.new()
+		_toast_label.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
+		_toast_label.anchor_top = 0.78
+		_toast_label.anchor_bottom = 0.78
+		_toast_label.grow_horizontal = Control.GROW_DIRECTION_BOTH
+		_toast_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		_style_text(_toast_label, "font_size", 15)
+		_toast_label.add_theme_color_override("font_color", Color("#dfe9e2"))
+		add_child(_toast_label)
+	_toast_label.text = text
+	_toast_label.visible = true
+	_toast_label.modulate = Color.WHITE
+	var tween := create_tween()
+	tween.tween_interval(1.6)
+	tween.tween_property(_toast_label, "modulate:a", 0.0, 0.5)
+	tween.tween_callback(func () -> void:
+		if _toast_label != null and is_instance_valid(_toast_label):
+			_toast_label.visible = false)
 
 
 ## GDD: HUD แสดงปริมาณ enemy ทยอย spawn. Hidden outside combat.

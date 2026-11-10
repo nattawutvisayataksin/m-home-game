@@ -1,14 +1,19 @@
 class_name TDTower
 extends Node3D
 
-## Tower: auto-acquires the enemy with the highest path progress inside range
-## ("first" targeting) and fires projectiles; Tangle applies a slow aura.
+## Tower: auto-acquires enemies inside range and fires projectiles; Tangle
+## applies a slow aura. Targeting mode is per-tower and player-cycled (GDD §5
+## post-vertical-slice): FIRST (default) / LAST / STRONGEST / WEAKEST.
 ## When a model_scene is provided via setup(), instantiates the low-poly .glb;
 ## otherwise falls back to greybox primitives.
 
 signal fired(kind: Kind, from_position: Vector3)
 
 enum Kind { FIELD_TURRET, SONIC_RESONATOR, TANGLE_EMITTER, ARC_CANNON }
+
+## Per-tower target preference, cycled by the player with T (localized chip
+## label above the turret nods the current mode; local keys TARGET_MODE_*).
+enum TargetingMode { FIRST, LAST, STRONGEST, WEAKEST }
 
 const MAX_LEVEL: int = 2
 
@@ -19,6 +24,10 @@ var range_radius: float = 5.0
 var splash_radius: float = 0.0
 var slow_factor: float = 1.0
 var level: int = 0
+## Player-called targeting mode; FIRST keeps the pre-mode behavior exactly.
+var targeting_mode: TargetingMode = TargetingMode.FIRST
+
+var _mode_label: Label3D
 
 var _cooldown: float = 0.0
 var _projectile_parent: Node3D
@@ -49,6 +58,29 @@ func setup(tower_kind: Kind, new_range: float, new_damage: float,
 
 func can_upgrade() -> bool:
 	return level < MAX_LEVEL
+
+
+## Cycles the player-facing targeting mode; returns the new mode so the
+## caller can refresh the chip label, show a toast and record metrics.
+func cycle_targeting() -> TargetingMode:
+	targeting_mode = TargetingMode.values()[(int(targeting_mode) + 1) % TargetingMode.size()]
+	return targeting_mode
+
+
+## Sets the localized mode chip above the turret. Hidden for FIRST so towers
+## stay clean until the player actually uses the feature.
+func set_mode_label_text(text: String) -> void:
+	if _mode_label == null:
+		_mode_label = Label3D.new()
+		_mode_label.name = "TargetingMode"
+		_mode_label.font_size = 26
+		_mode_label.outline_size = 6
+		_mode_label.position = Vector3(0.0, 2.0, 0.0)
+		_mode_label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+		_mode_label.no_depth_test = true
+		add_child(_mode_label)
+	_mode_label.text = text
+	_mode_label.visible = targeting_mode != TargetingMode.FIRST
 
 
 ## Applies a new level with recomputed stats. Caller owns cost math.
@@ -226,14 +258,25 @@ func _physics_process(delta: float) -> void:
 
 func _acquire_target() -> TDEnemy:
 	var best: TDEnemy = null
+	var best_score: float = -INF
 	for node: Node in _projectile_parent.get_tree().get_nodes_in_group("td_enemies"):
 		var enemy := node as TDEnemy
 		if enemy == null or not is_instance_valid(enemy) or not enemy.alive:
 			continue
 		if enemy.global_position.distance_to(global_position) > range_radius:
 			continue
-		if best == null or enemy.progress > best.progress:
+		# FIRST keeps the legacy hook: highest path progress (furthest along).
+		var score: float = enemy.progress
+		match targeting_mode:
+			TargetingMode.LAST:
+				score = -enemy.progress
+			TargetingMode.STRONGEST:
+				score = enemy.health
+			TargetingMode.WEAKEST:
+				score = -enemy.health
+		if best == null or score > best_score:
 			best = enemy
+			best_score = score
 	return best
 
 

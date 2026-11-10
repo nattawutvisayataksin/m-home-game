@@ -1428,6 +1428,10 @@ func _unhandled_input(event: InputEvent) -> void:
 			KEY_F:
 				if _hero != null and is_instance_valid(_hero):
 					_hero.try_attack()
+			KEY_T:
+				# Per-tower targeting mode (GDD §5 post-vertical-slice): the
+				# tower under the cursor cycles FIRST/LAST/STRONGEST/WEAKEST.
+				_cycle_tower_targeting(get_viewport().get_mouse_position())
 
 
 func _select_kind(kind: int) -> void:
@@ -1473,6 +1477,44 @@ func _on_hero_attacked(impact_position: Vector3) -> void:
 	effect.global_position = impact_position
 	_audio.play_sfx("arc_burst", 0.03)
 	_metrics.record(&"hero_strike", {"wave": maxi(wave_number, 1)})
+
+
+# --- Per-tower targeting (GDD §5 post-vertical-slice) ----------------------
+
+## Localized names per TargetingMode; indexed by the enum order for O(1).
+const TARGETING_MODE_KEYS: Array[String] = [
+	"TARGET_MODE_FIRST", "TARGET_MODE_LAST", "TARGET_MODE_STRONGEST", "TARGET_MODE_WEAKEST",
+]
+const TARGETING_TOAST_KEY: String = "TARGETING_TOAST"
+
+
+## T cycles the targeting mode of whichever tower the cursor rests on (slot
+## towers and free towers share the same helper), then speaks the result:
+## chip above the turret + a HUD toast + one metrics line.
+func _cycle_tower_targeting(mouse_position: Vector2) -> void:
+	var tower: TDTower = _tower_under_mouse(mouse_position)
+	if tower == null:
+		return
+	var new_mode: TDTower.TargetingMode = tower.cycle_targeting()
+	var mode_text: String = tr(TARGETING_MODE_KEYS[new_mode])
+	tower.set_mode_label_text(mode_text)
+	_hud.show_targeting_toast(tr(TARGETING_TOAST_KEY) % mode_text)
+	_metrics.record(&"targeting_changed", {"mode": TDTower.TargetingMode.keys()[int(new_mode)], "wave": maxi(wave_number, 1)})
+	_audio.play_sfx("upgrade", 0.02)
+
+
+func _tower_under_mouse(mouse_position: Vector2) -> TDTower:
+	var slot: int = _slot_from_mouse(mouse_position)
+	if slot >= 0 and _slot_occupied[slot]:
+		var slot_tower: TDTower = _slot_towers[slot]
+		if slot_tower != null and is_instance_valid(slot_tower):
+			return slot_tower
+	var free_tower_index: int = _free_tower_from_position(_ground_position_from_mouse(mouse_position))
+	if free_tower_index >= 0:
+		var free_tower: TDTower = _free_towers[free_tower_index]
+		if free_tower != null and is_instance_valid(free_tower):
+			return free_tower
+	return null
 
 
 func _slot_from_mouse(screen_position: Vector2) -> int:

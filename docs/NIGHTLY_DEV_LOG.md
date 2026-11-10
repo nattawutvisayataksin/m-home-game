@@ -1,8 +1,16 @@
 # Nightly Development Log — LAST LIGHT
 
-## Entry — แผง "ฐานที่มั่น" + รีดไซน์ footer-left, Hero อนุมัติเป็นฟีเจอร์จริง, playtest-fix dressing map 2 (2026-11-09/10)
+## Entry — แผง "ฐานที่มั่น" + รีดไซน์ footer-left, Hero อนุมัติเป็นฟีเจอร์จริง, targeting mode ต่อป้อม, playtest-fix dressing map 2 (2026-11-09/10)
 
-**Scope:** feedback ผู้กำกับ (1) ต้นไม้/บ้านบนถนน map 2 — fix `3dcc415` ✅ (2) "ปุ่มซ้ายล่างหน้า title คืออะไร คลิกทำไม" → **ปรับ menu ให้อธิบายตัวเอง** ✅ (3) "ดำเนินการทำ Hero ได้เลย" → ยก dev-gate ทำฟีเจอร์จริง ✅ + **ปิดจุดตัดสินค้างสุดท้าย: leak คลื่น 1 บน map 2** (ผ่าน per-map wave override เดิม ด้านล่าง)
+**Scope:** feedback ผู้กำกับ (1) ต้นไม้/บ้านบนถนน map 2 — fix `3dcc415` ✅ (2) "ปุ่มซ้ายล่างหน้า title คืออะไร คลิกทำไม" → **ปรับ menu ให้อธิบายตัวเอง** ✅ (3) "ดำเนินการทำ Hero ได้เลย" → ยก dev-gate ทำฟีเจอร์จริง ✅ (4) **targeting mode ต่อป้อม** (ผู้กำกับเลือกจากคิว Known TODO) ✅ + **ปิดจุดตัดสินค้างสุดท้าย: leak คลื่น 1 บน map 2** (ผ่าน per-map wave override เดิม ด้านล่าง)
+
+### (0.5) Targeting mode ต่อป้อม — FIRST/LAST/STRONGEST/WEAKEST (11/11 เขียว)
+- `TDTower.TargetingMode` enum + `targeting_mode` default FIRST (**FIRST คงพฤติกรรมเดิมเป๊ะ** — บอท sim ไม่กด T ผลจึงไม่ขยับ: map1 leaks 5:4/6:1/7:2, map2 12/12 leak 0 ยืนยันหลัง merge); `_acquire_target` เป็น score switch (progress / -progress / health / -health) ไฟล์เดียวจบ
+- Input: **ชี้ป้อม (สล็อตหรือป้อมอิสระ) แล้วกด T** — `_tower_under_mouse` ผ่าน slot picker เดิม + `_free_tower_from_position` เดิม, `cycle_targeting()` คืนโหมดใหม่และ run เป็น single owner ของข้อความ ( localize ผ่าน run ไม่อย่าง tower)
+- Feedback 3 ชั้น: chip **Label3D localize เหนือป้อม** (y=2.0, billboard, font 26, **ซ่อนเมื่อ FIRST** ให้หน้าจอสะอาดจนกว่าจะใช้ฟีเจอร์) + toast ล่างจอ (`show_targeting_toast`, tween 1.6s→fade 0.5) + metrics `targeting_changed` (mode/wave)
+- ผลเทสต์ phase11 ใหม่ (`tests/phase11_targeting_test.gd`): default FIRST / วน cycle ครบ 4 โหมด / chip lazy-build + ซ่อนตอน FIRST / acquire ต่อโหมดเลือกถูกจากคู่ศัตรู orthogonal (หัวแถว-ฉีบาง vs ต้นหลัง-แข็งแรง) / tower-under-mouse จริงผ่าน camera unproject / toast + metrics — **11/11 ชุดเขียว exit 0**
+- selfshot `_targeting_selfshot.png` chip "ยิงแข็งสุด" เหนือป้อม + toast "เปลี่ยนเป้า: ..." อ่านได้จริง
+- บทเรียน Godot 4.7: cast enum ด้วยวงเล็บ `TargetingMode(x)` และ `String(enum_value)` parse fail — ใช้ `.values()[x]` / `.keys()[x]` แทน
 
 ### (0) Leak คลื่น 1 บน map 2 — ปิดด้วย sim metrics (10/10 เขียว)
 - baseline ยืนยันหลัง hero auto-deploy: map 2 ชนะ 11/12 **leak 1 ในคลื่น 1 ทุก run** (deterministic) — คลื่น 1 เป็นคลื่น teaching (drifter 6 @1.0s) ที่ช่วงเปิดตัวระยะคุ้มครองบางก่อนเงินซื้อป้อมที่สอง

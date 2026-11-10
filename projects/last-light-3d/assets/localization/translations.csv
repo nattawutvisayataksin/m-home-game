@@ -20,6 +20,11 @@ BARRICADE_EFFECT,Barricade Lv%d/%d — Shelter starts each night with %d Integri
 BARRICADE_SHORT,Not enough Salvage — need %d more,Salvage ไม่พอ — ต้องการอีก %d
 HERO_PANEL,Rin — on duty,ริน — ลงสนามแล้ว
 HERO_HINT,WASD walk · Left-click strike · F strike ahead · H recall,WASD เดิน · คลิกซ้ายยิงที่จุด · F ยิงด้านหน้า · H เรียก/ส่งกลับ
+TARGET_MODE_FIRST,FIRST,ยิงหัวแถว
+TARGET_MODE_LAST,LAST,ยิงท้ายแถว
+TARGET_MODE_STRONGEST,STRONGEST,ยิงแข็งสุด
+TARGET_MODE_WEAKEST,WEAKEST,ยิงอ่อนสุด
+TARGETING_TOAST,Targeting: %s — press T over a tower to cycle,เปลี่ยนเป้า: %s — ชี้ป้อมแล้วกด T สลับต่อ
 SETTINGS_TITLE,SETTINGS,ตั้งค่า
 MASTER_VOLUME,Master volume,เสียงหลัก
 SFX_VOLUME,SFX volume,เสียงเอฟเฟกต์
