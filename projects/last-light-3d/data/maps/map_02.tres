@@ -14,3 +14,4 @@ hill_scales = Array[float]([2.0, 1.8, 1.9, 1.7, 1.6, 1.5, 1.5, 1.6, 1.6, 1.7])
 camera_position = Vector3(-4.0, 29.0, 31.0)
 camera_focus = Vector3(-4.0, 0.0, 0.0)
 camera_fov = 50.0
+wave_paths = Array[String](["res://data/waves/map_02/wave_01.tres", "res://data/waves/wave_02.tres", "res://data/waves/wave_03.tres", "res://data/waves/wave_04.tres", "res://data/waves/wave_05.tres", "res://data/waves/wave_06.tres", "res://data/waves/wave_07.tres", "res://data/waves/wave_08.tres"])

@@ -2,7 +2,13 @@
 
 ## Entry — แผง "ฐานที่มั่น" + รีดไซน์ footer-left, Hero อนุมัติเป็นฟีเจอร์จริง, playtest-fix dressing map 2 (2026-11-09/10)
 
-**Scope:** feedback ผู้กำกับ (1) ต้นไม้/บ้านบนถนน map 2 — fix `3dcc415` ✅ (2) "ปุ่มซ้ายล่างหน้า title คืออะไร คลิกทำไม" → **ปรับ menu ให้อธิบายตัวเอง** ✅ (3) "ดำเนินการทำ Hero ได้เลย" → ยก dev-gate ทำฟีเจอร์จริง ✅
+**Scope:** feedback ผู้กำกับ (1) ต้นไม้/บ้านบนถนน map 2 — fix `3dcc415` ✅ (2) "ปุ่มซ้ายล่างหน้า title คืออะไร คลิกทำไม" → **ปรับ menu ให้อธิบายตัวเอง** ✅ (3) "ดำเนินการทำ Hero ได้เลย" → ยก dev-gate ทำฟีเจอร์จริง ✅ + **ปิดจุดตัดสินค้างสุดท้าย: leak คลื่น 1 บน map 2** (ผ่าน per-map wave override เดิม ด้านล่าง)
+
+### (0) Leak คลื่น 1 บน map 2 — ปิดด้วย sim metrics (10/10 เขียว)
+- baseline ยืนยันหลัง hero auto-deploy: map 2 ชนะ 11/12 **leak 1 ในคลื่น 1 ทุก run** (deterministic) — คลื่น 1 เป็นคลื่น teaching (drifter 6 @1.0s) ที่ช่วงเปิดตัวระยะคุ้มครองบางก่อนเงินซื้อป้อมที่สอง
+- ทางแก้ที่เลือก: `data/waves/map_02/wave_01.tres` — composition/health_bonus คงเหลือเหมือน default แต่ `spawn_interval` 1.0 → 1.2 (~17% rate ลงตอนเปิดตัว) + `map_02.tres` ระบุ `wave_paths` (คลื่น 1 ใช้ของ map 2 เอง, คลื่น 2–8 ชี้ default ตามเดิม) — ใช้แกร่ง per-map wave override ที่ทำไว้แล้ว ไม่เพิ่มโค้ดเกมเลย
+- ผล sim: map 2 → **ชนะ 12/12, leak 0 ทุกคลื่น** (parts_end 314); map 1 ตรวจยินกับย้อนไม่เปลี่ยน (leaks 5:4/6:1/7:2 ตามเป้า iteration เดมที่ปิดไปแล้ว)
+- ทดลองแยกก่อนหน้า (2026-11-09): เพิ่ม tower_slots ไม่ช่วย — กำลังป้อมติดเงิน ไม่ใช่ช่องวางรายจุด ย่างเป็นข้อมูลที่ทำให้เลือก interval คลื่น teaching ได้เอง
 
 ### (1) Dressing map 2 — fix playtest (commit `3dcc415`)
 - จุด fixed dressing ที่ทับถนน zigzag 10 จุด: บ้าน 2 หลัง, โคมหมู่บ้าน, ต้นไม้ extra ×2, โคม roadside, บ่อ — ย้ายพิกัดหมด + selfshot map 2 ไม่มี warning skip
