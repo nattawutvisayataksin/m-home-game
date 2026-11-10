@@ -1,6 +1,6 @@
 # LAST LIGHT — AI Handoff Document
 
-อัปเดต: 2026-11-07 — หลัง Localization ไทย/อังกฤษครบทุกหน้า (TD-2 เช็กลิสต์ปิดครบ)
+อัปเดต: 2026-11-10 — หลัง Hero อนุมัติเป็นฟีเจอร์จริง / targeting mode ต่อป้อม / แผงฐานที่มั่นหน้า title / leak map 2 ปิด (เทสต์ 11 suite)
 ข้อมูลสำหรับ AI agent (Codex / Copilot / Antigravity / opencode) ที่รับงานพัฒนาต่อภายใน repo นี้
 คู่มือย่อฉบับเริ่มงาน: `AGENTS.md` (root) | กติกาข้อนี้ใช้ตามที่เขียนไว้ทั้งหมด
 
@@ -36,30 +36,31 @@ Pivot จาก 2D → 3D tower defense ตัดสินโดย Game Directo
 
 ```
   data/
-  enemies/{drifter,skitter,dasher,warden}.tres      # TDEnemyDefinition
-  towers/{field_turret,sonic_resonator,tangle_emitter,arc_cannon}.tres   # TDTowerDefinition
-  waves/wave_01..08.tres                             # TDWaveDefinition (composition, spawn_interval, health_bonus)
+  enemies/{drifter,skitter,splitter,trainer,dasher,warden}.tres   # TDEnemyDefinition
+  towers/{field_turret,sonic_resonator,tangle_emitter,arc_cannon}.tres   # TDTowerDefinition (level arrays authoritative)
+  waves/wave_01..08.tres                             # คลื่น default; data/waves/map_01/*.tres (ชุด map 1), data/waves/map_02/wave_01.tres (คลื่น teaching map 2)
+  maps/{map_01,map_02}.tres                          # TDMapLayout: ground/path_points/tower_slots/hills/wave_paths/camera
+  heroes/rin_prototype.tres                          # TDHeroDefinition (hero ริน อนุมัติแล้ว)
 scripts/
   actors/td_enemy.gd       # waypoint walker + slow_factor (reset ทุก physics frame by run)
-  actors/td_tower.gd       # first-targeting fire loop; level/can_upgrade/apply_upgrade; MAX_LEVEL=2
+  actors/td_tower.gd       # fire loop + TargetingMode (FIRST/LAST/STRONGEST/WEAKEST, cycle_targeting + chip Label3D)
+  actors/td_hero.gd        # hero ริน: WASD walk, strike_at/try_attack (เจาะ seam take_damage), definition-driven
   actors/td_projectile.gd  # homing + optional splash (สร้างโดย TDTower._fire, set fields ก่อน add_child)
-  gameplay/td_run.gd       # orchestrator: build world, waves via .tres, slot picking, place/upgrade/sell
+  gameplay/td_run.gd       # orchestrator: build world, waves ต่อ map (TDMapLayout.wave_paths), slot picking, place/upgrade/sell, hero toggle (KEY_H), targeting (KEY_T)
   data/*.gd                # Resource classes (มีมาตรฐานบังคับให้เป็น typed class)
-  systems/run_metrics.gd   # ระบบเก็บ JSON ที่ run ทุกรอบ (schema 1)
-  systems/td_settings_store.gd  # autoload "TDSettings": settings.cfg + AudioServer + ui_font_size
-  systems/td_session_snapshot.gd # flash save รอบกลางคัน → user://session_snapshot.json (เทสต์ phase6)
-  systems/profile_repository.gd # user://profile.json (schema v3, progression ไม่ใช่ settings)
-  ui/td_hud.gd             # HUD ครบ + pause menu + settings overlay; รับ Esc แทน td_run
-  ui/td_settings_panel.gd  # panel settings ใช้ร่วม title/pause (ปุ่มเสียง + accessibility)
-  ui/title_menu.gd         # หน้า main menu (เริ่มภารกิจ, วิธีเล่น, เรื่องราว, ตั้งค่า, ออก)
+  systems/run_metrics.gd   # ระบบเก็บ JSON ที่ run ทุกรอบ (schema 1; + hero_engaged/hero_strike/targeting_changed)
+  systems/td_settings_store.gd  # autoload "TDSettings": settings.cfg + AudioServer + ui_font_size + locale
+  systems/td_session_snapshot.gd # flash save รอบกลางคัน → user://session_snapshot.json (เทสต์ phase6 + phase9)
+  systems/profile_repository.gd # user://profile.json (schema v3: salvage/wins/best_wave/barricade_level/victories)
+  ui/td_hud.gd             # HUD ครบ + pause menu + settings overlay + hero card + targeting toast; รับ Esc แทน td_run
+  ui/td_settings_panel.gd  # panel settings ใช้ร่วม title/pause (ปุ่มเสียง + accessibility + ภาษา)
+  ui/title_menu.gd         # หน้า main menu + แผง "ฐานที่มั่น" (footer: สถิติ + BARRICADE_EFFECT + ปุ่มซื้อที่ตอบเมื่อเงินไม่พอ)
 scenes/
   gameplay/run.tscn        # เส้นเริ่มเดียวที่ map to td_run.gd
   ui/title.tscn            # หน้าแรก (main_scene ใน project.godot)
 tests/
-  phase1_3d_smoke.gd       # SceneTree test: boot, placement, wave tick, kill bounty, leak, defeat overlay
-  phase2_td_data_title_test.gd  # .tres sanity, upgrade/sell accounting, title menu flow
-  phase3_settings_test.gd  # settings store + panel, large text, pause settings + Esc order
-  dev_title_selfshot.gd    # in-engine screenshot (safe visual check, no desktop capture)
+  phase1..phase11          # SceneTree tests: smoke/data/settings/audio/vfx/save+splitter/localization/wave coverage/map2/hero/targeting
+  dev_*_selfshot.gd        # in-engine screenshot (safe visual check, no desktop capture)
 assets/brand/logo_emblem.svg
 ```
 
@@ -118,6 +119,16 @@ assets/brand/logo_emblem.svg
 - **Title menu ปรับปรุง (2026-11-06):** gradient + ปุ่ม StyleBoxFlat (`_menu_style`) + footer (`_build_footer`) — คอลัมน์กึ่งกลางยืดถึง offset_bottom 316 กับฟุตเตอร์ที่ -76 อย่าทับกัน; ภาพใน `docs/marketing/` (menu_title, showcase_battle) จับจาก in-engine capture ต้อง re-capture เมื่อเมนู/ฉากเปลี่ยน
 - ข้อควรรู้เดิมจากงาน 2026-11-05 และ 2026-11-04 ทั้งหมดยังใช้อยู่
 
+### ข้อควรรู้เพิ่มจากงาน 2026-11-09/10
+
+- **Hero ริน (อนุมัติ 2026-11-10):** `_ready` เรียก `_toggle_hero()` — hero auto-deploy ทุกคืน; H เป็น recall/re-summon; ยิงเจาะ seam `take_damage` เดียวกับป้อม (hook balance ร่วมกัน); ค่าทั้งหมดใน `data/heroes/rin_prototype.tres`; **ห้ามเพิ่ม hero ตัวที่สอง** (guardrail AGENTS); metrics `hero_engaged`/`hero_strike`
+- **Targeting mode ต่อป้อม:** `TDTower.TargetingMode` (FIRST default/LAST/STRONGEST/WEAKEST) — T บนป้อมใต้เคอร์เซอร์ผ่าน `_tower_under_mouse` → `_cycle_tower_targeting` (run เป็น single owner localization: chip Label3D + toast + metrics `targeting_changed`); FIRST คงพฤติกรรมเดิม exact — sim ทั้งสอง map ไม่เปลี่ยน (บอทไม่กด T); chip ซ่อนตอน FIRST
+- **Per-map wave override:** `TDMapLayout.wave_paths` = array path .tres ต่อคลื่น — map 1 ชี้ `data/waves/map_01/`, map 2 ชี้ `wave_01` map-local (teaching wave, interval 1.2) และคลื่น 2–8 default; แตะ wave ต่อเมื่อมี playtest/sim metrics อ้าง
+- **Dressing guard:** builders prop ทุกกลุ่มใช้ `_path_distance_to(position) < margin` → `push_warning` + skip (กัน prop ตกบนถนนทุก map ในอนาคต)
+- **แผง "ฐานที่มั่น" footer หน้า title:** หัวข้อ + `PROFILE_ROW` + `BARRICADE_EFFECT` (อ้าง `TDRun.START_INTEGRITY` เดียว ห้าม hardcode ซ้ำ) + ปุ่มซื้อกดได้เสมอ (เงินไม่พอ → `BARRICADE_SHORT` "ไม่พออีก N", tween 3วิ) — disabled เฉพาะ maxed; บทเรียน UX: ปุ่ม disabled เงียบ = "ปุ่มไม่ work" ในตาผู้เล่น
+- **Godot 4.7 บนสเกล selector:** cast enum วงเล็บ `TargetingMode(x)` parse fail — ใช้ `.values()[x]`; `String(enum_value)` ไม่มี constructor — ใช้ `.keys()[x]`
+- เอกสารในเกม: `HOW_TO_BODY` ใน CSV คือคู่มือสดของหน้า "วิธีการเล่น" — แก้กติกา/ปุ่มใหม่ต้องอัปเดตด้วย + reimport
+
 ## 5) กติกาสากลของ repo (อ่าน AGENTS.md แล้วสรุปเพิ่มที่นี้)
 
 - Godot 4.7.2, tabs, static typing, UI ในโค้ด, balance ใน .tres, SceneTree tests, dev log entry ต่องาน
@@ -131,7 +142,7 @@ assets/brand/logo_emblem.svg
 ## 6) สิ่งที่ตัดสินใจแล้ว / ตัดสินไม่ได้
 
 **ตัดสินแล้ว (ปิดปากทุกกรณี)**
-- ป้อมวันจะเป็นทหารตัวเกม (hero) ไม่มีส่วนคุม
+- รินเป็น hero ตัวเดียวของเกม (อนุมัติ 2026-11-10, auto-deploy) — ห้ามเพิ่ม hero ตัวที่สอง, ป้อมยังเป็นแกนเกมคู่กัน
 - แบรนด์ยังใช้ IP หลัก: Shelter 09, ริน, มีรา, Hollows, Rift Warden, Parts/Salvage
 - ปล่อยโปรเจกต์ 2D ไว้เป็น reference ตลอดชีวิตหน้างาน (ไม่ลบ)
 - ภาษาเป็นไทยก่อน (title menu + story + marketing เป็นไทยสำเร็จ), อังกฤษแทรกเฉพาะคำศัพท์ IP

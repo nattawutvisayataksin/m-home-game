@@ -6,17 +6,18 @@
 
 ### (0.5) Targeting mode ต่อป้อม — FIRST/LAST/STRONGEST/WEAKEST (11/11 เขียว)
 - `TDTower.TargetingMode` enum + `targeting_mode` default FIRST (**FIRST คงพฤติกรรมเดิมเป๊ะ** — บอท sim ไม่กด T ผลจึงไม่ขยับ: map1 leaks 5:4/6:1/7:2, map2 12/12 leak 0 ยืนยันหลัง merge); `_acquire_target` เป็น score switch (progress / -progress / health / -health) ไฟล์เดียวจบ
-- Input: **ชี้ป้อม (สล็อตหรือป้อมอิสระ) แล้วกด T** — `_tower_under_mouse` ผ่าน slot picker เดิม + `_free_tower_from_position` เดิม, `cycle_targeting()` คืนโหมดใหม่และ run เป็น single owner ของข้อความ ( localize ผ่าน run ไม่อย่าง tower)
+- Input: **ชี้ป้อม (สล็อตหรือป้อมอิสระ) แล้วกด T** — `_tower_under_mouse` ผ่าน slot picker เดิม + `_free_tower_from_position` เดิม, `cycle_targeting()` คืนโหมดใหม่และ run เป็น single owner ของข้อความ localize (tower ไม่เก็บ key เอง)
 - Feedback 3 ชั้น: chip **Label3D localize เหนือป้อม** (y=2.0, billboard, font 26, **ซ่อนเมื่อ FIRST** ให้หน้าจอสะอาดจนกว่าจะใช้ฟีเจอร์) + toast ล่างจอ (`show_targeting_toast`, tween 1.6s→fade 0.5) + metrics `targeting_changed` (mode/wave)
-- ผลเทสต์ phase11 ใหม่ (`tests/phase11_targeting_test.gd`): default FIRST / วน cycle ครบ 4 โหมด / chip lazy-build + ซ่อนตอน FIRST / acquire ต่อโหมดเลือกถูกจากคู่ศัตรู orthogonal (หัวแถว-ฉีบาง vs ต้นหลัง-แข็งแรง) / tower-under-mouse จริงผ่าน camera unproject / toast + metrics — **11/11 ชุดเขียว exit 0**
+- ผลเทสต์ phase11 ใหม่ (`tests/phase11_targeting_test.gd`): default FIRST / วน cycle ครบ 4 โหมด / chip lazy-build + ซ่อนตอน FIRST / acquire ต่อโหมดเลือกถูกจากคู่ศัตรู orthogonal (หัวแถว-HP บาง vs ตัวหลัง-HP หนา) / tower-under-mouse จริงผ่าน camera unproject / toast + metrics — **11/11 ชุดเขียว exit 0**
 - selfshot `_targeting_selfshot.png` chip "ยิงแข็งสุด" เหนือป้อม + toast "เปลี่ยนเป้า: ..." อ่านได้จริง
+- **เอกสารส่งมอบ (2026-11-10, ต่อ):** คู่มือบนเกม `HOW_TO_BODY` เพิ่มขั้น 4–5 (hero WASD/คลิกซ้าย/F/H + T เลือกเป้า) และขั้น 9–10 (map 2 + แผงฐานที่มั่น) — reimport แล้ว selfshot ตรวจตาครบ; `docs/PLAYER_MANUAL_3D.md` (ควบคุมครบ T/WASD/F/H + Integrity เริ่ม 12 ตาม Barricade Lv1 + หัวริน + map 2 "ที่ราบริฟท์"), `docs/AI_HANDOFF.md` (วันที่ + โค้ดแมปครบ 2026-11-10 + ข้อควรรู้งาน 09/10 + ข้อตกลง hero ตัวเดียวฉบับใหม่), `START_HERE.md` (สถานะปัจจุบัน), dev log แก้ประโยคเสียจากงานคืนกลางคืน — ชุดเทสต์เขียวใหม่ 11/11 exit 0
 - บทเรียน Godot 4.7: cast enum ด้วยวงเล็บ `TargetingMode(x)` และ `String(enum_value)` parse fail — ใช้ `.values()[x]` / `.keys()[x]` แทน
 
 ### (0) Leak คลื่น 1 บน map 2 — ปิดด้วย sim metrics (10/10 เขียว)
 - baseline ยืนยันหลัง hero auto-deploy: map 2 ชนะ 11/12 **leak 1 ในคลื่น 1 ทุก run** (deterministic) — คลื่น 1 เป็นคลื่น teaching (drifter 6 @1.0s) ที่ช่วงเปิดตัวระยะคุ้มครองบางก่อนเงินซื้อป้อมที่สอง
 - ทางแก้ที่เลือก: `data/waves/map_02/wave_01.tres` — composition/health_bonus คงเหลือเหมือน default แต่ `spawn_interval` 1.0 → 1.2 (~17% rate ลงตอนเปิดตัว) + `map_02.tres` ระบุ `wave_paths` (คลื่น 1 ใช้ของ map 2 เอง, คลื่น 2–8 ชี้ default ตามเดิม) — ใช้แกร่ง per-map wave override ที่ทำไว้แล้ว ไม่เพิ่มโค้ดเกมเลย
-- ผล sim: map 2 → **ชนะ 12/12, leak 0 ทุกคลื่น** (parts_end 314); map 1 ตรวจยินกับย้อนไม่เปลี่ยน (leaks 5:4/6:1/7:2 ตามเป้า iteration เดมที่ปิดไปแล้ว)
-- ทดลองแยกก่อนหน้า (2026-11-09): เพิ่ม tower_slots ไม่ช่วย — กำลังป้อมติดเงิน ไม่ใช่ช่องวางรายจุด ย่างเป็นข้อมูลที่ทำให้เลือก interval คลื่น teaching ได้เอง
+- ผล sim: map 2 → **ชนะ 12/12, leak 0 ทุกคลื่น** (parts_end 314); map 1 ตรวจยืนยันไม่เปลี่ยนจากย้อนหลัง (leaks 5:4/6:1/7:2 ตามเป้า iteration เดิมที่ปิดไปแล้ว)
+- ทดลองแยกก่อนหน้า (2026-11-09): เพิ่ม tower_slots ไม่ช่วย — กำลังป้อมติดเงิน ไม่ใช่ช่องวางรายจุด ยังเป็นข้อมูลที่ทำให้เลือก interval คลื่น teaching ได้เอง
 
 ### (1) Dressing map 2 — fix playtest (commit `3dcc415`)
 - จุด fixed dressing ที่ทับถนน zigzag 10 จุด: บ้าน 2 หลัง, โคมหมู่บ้าน, ต้นไม้ extra ×2, โคม roadside, บ่อ — ย้ายพิกัดหมด + selfshot map 2 ไม่มี warning skip

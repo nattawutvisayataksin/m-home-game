@@ -12,7 +12,10 @@
 - ✅ อัปเกรดปืนซ้ำได้สูงสุดเลเวล 6 ในรอบ และเสริม Barricade ระหว่างรอบได้ 2 ระดับ
 - ✅ profile schema v3 migration พร้อม automated gameplay/save/stress tests
 - ✅ 3D TD main build พร้อม title menu / pause / settings / flash save / resume flow
-- ⏳ รอ Windows playtest; Android และ export ถูกพักไว้
+- ✅ 3D เป็นเกมหลัก: TD-2 ปิดครบทุกหัวข้อ (asset low-poly suite ครบจาก Blender + Localization ไทย/อังกฤษ) — ดู ROADMAP
+- ✅ Hero ริน (อนุมัติ 2026-11-10) auto-deploy + การ์ดควบคุมใน HUD + แผง "ฐานที่มั่น" หน้า title (progression ถาวร)
+- ✅ Targeting mode ต่อป้อม (T: หัวแถว/ท้ายแถว/แข็งสุด/อ่อนสุด) + Map 2 หลังชนะ + leak teaching wave map 2 ปิดด้วย sim metrics
+- ⏳ รอ Windows playtest รอบใหม่ (ครอบ hero + targeting + wave set ล่าสุด); Android และ export ถูกพักไว้
 
 ## แหล่งข้อมูลหลัก
 

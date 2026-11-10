@@ -80,11 +80,13 @@ HOW_TO_BODY,"[color=#e8c27d]HOW TO PLAY[/color]
    [b]4[/b] Arc Cannon  heavy long-range bursts (140 Money)
 2. Left-click a placed tower = upgrade (max Lv2 — hover a tower to see its stats and price per level) — right-click a tower = sell back 70%
 3. Press Space or the Start Wave button to open a wave — you may chain the next wave while the current one is live; no need to wait (riskier, but the money flows faster)
-4. Press Esc to pause — closing the game mid-run with progress leaves a resume button waiting on the title menu next time
-5. Enemies slipping past the towers lower Shelter Integrity; at zero you lose
-6. Kills pay money. Clearing a wave pays a bonus scaled by remaining Integrity
-7. Surviving all 8 waves and bringing down the Rift Warden = victory
-8. Out of the run: Salvage earned in combat buys Barricade upgrades on the title menu — +2 Integrity per level, max Lv2 (used on later nights)","[color=#e8c27d]วิธีการเล่น[/color]
+4. Rin is on the field with you: [b]WASD[/b] walks her, [b]left-click[/b] strikes a spot, [b]F[/b] strikes ahead, [b]H[/b] recalls (and re-summons) her
+5. [b]T[/b] while pointing at one of your towers cycles how it picks targets: first / last / strongest / weakest — a chip above the turret shows the mode (hidden on the default \"first\")
+6. Press Esc to pause — closing the game mid-run with progress leaves a resume button waiting on the title menu next time
+7. Enemies slipping past the towers lower Shelter Integrity; at zero you lose
+8. Kills pay money. Clearing a wave pays a bonus scaled by remaining Integrity
+9. Surviving all 8 waves and bringing down the Rift Warden = victory — clearing map 1 unlocks [b]map 2[/b] (a longer, winding route)
+10. Out of the run: the title menu's [b]base panel[/b] is yours — Salvage earned in combat buys Barricade upgrades +2 Integrity per level, max Lv2 (applied on later nights)","[color=#e8c27d]วิธีการเล่น[/color]
 
 1. เตรียมตัวก่อนเปิดคลื่น — คลิกซ้ายที่จุดวาง (จุดสีเหลือง) เพื่อวางป้อม ใช้ปุ่ม 1/2/3/4 เลือกชนิด:
    [b]1[/b] Field Turret ยิงเดี่ยวรวดเร็ว (80 เงิน)
@@ -93,11 +95,13 @@ HOW_TO_BODY,"[color=#e8c27d]HOW TO PLAY[/color]
    [b]4[/b] Arc Cannon ลูกใหญ่ระเบิดแรง ระยะไกล (140 เงิน)
 2. คลิกซ้ายที่ป้อมที่วางไว้แล้ว = อัปเกรด (สูงสุด Lv2 — เอาเมาส์ชี้ป้อมเพื่อดูพลังแต่ละระดับและราคา) — คลิกขวาที่ป้อม = ขายคืน 70%
 3. กด Space หรือปุ่ม Start Wave เพื่อเปิดคลื่น — จะกดเรียกคลื่นต่อไปเลยระหว่างคลื่นก็ได้ ไม่ต้องรอคลื่นเดิมจบ (อันตรายแต่รางวัลไหลเร็ว)
-4. กด Esc เพื่อหยุดชั่วคราว — ปิดเกมกลางรอบที่มีความคืบหน้า เมื่อเปิดใหม่จะมีปุ่ม resume พร้อมรออยู่
-5. ศัตรูที่ลอดผ่านป้อมจะลด Shelter Integrity ถ้าหมด แปลว่าแพ้
-6. กำจัดศัตรูได้เงิน จบคลื่นได้โบนัสตาม Integrity ที่เหลือ
-7. เอาตัวรอดครบ 8 คลื่นจนจัดการ Rift Warden ได้ = ชนะ
-8. นอกรอบ: Salvage ที่ได้จากการรบใช้อัปเกรด Barricade บนหน้าเมนูได้ — +2 Integrity ต่อระดับ สูงสุด Lv2 (ใช้กับคืนถัด ๆ ไป)"
+4. รินลงสนามพร้อมคุณตลอดคืน: [b]WASD[/b] เดิน, [b]คลิกซ้าย[/b] ยิงที่จุด, [b]F[/b] ยิงด้านหน้า, [b]H[/b] เรียกกลับ (และเรียกลงสนามใหม่)
+5. [b]T[/b] ขณะชี้ที่ป้อมของเรา จะวนโหมดการเลือกเป้า: หัวแถว / ท้ายแถว / แข็งสุด / อ่อนสุด — ป้ายเหนือป้อมบอกโหมดปัจจุบัน (ค่าเริ่มต้น \"หัวแถว\" จะซ่อนป้ายไว้)
+6. กด Esc เพื่อหยุดชั่วคราว — ปิดเกมกลางรอบที่มีความคืบหน้า เมื่อเปิดใหม่จะมีปุ่ม resume พร้อมรออยู่
+7. ศัตรูที่ลอดผ่านป้อมจะลด Shelter Integrity ถ้าหมด แปลว่าแพ้
+8. กำจัดศัตรูได้เงิน จบคลื่นได้โบนัสตาม Integrity ที่เหลือ
+9. เอาตัวรอดครบ 8 คลื่นจนจัดการ Rift Warden ได้ = ชนะ — ผ่านภารกิจแรกจะปลดล็อก [b]map 2[/b] (ถนนยาวกว่า โค้งมากกว่า)
+10. นอกรอบ: แผง \"ฐานที่มั่น\" บนหน้าเมนูคือของคุณ — Salvage ที่ได้จากการรบซื้ออัปเกรด Barricade +2 Integrity ต่อระดับ สูงสุด Lv2 (ใช้กับคืนถัด ๆ ไป)"
 STORY_BODY,"[color=#e8c27d]STORY[/color]
 
 After the starless night, the coast world collapsed into dark zones. The [b]Hollows[/b] swarm is drawn to heat and noise of survivors, and they come every night along the roads that still hold.
